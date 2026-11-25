@@ -1,0 +1,409 @@
+// Generado desde powerbi/ESPECIFICACION_POWERBI.md con scripts/generar_powerbi.py.
+// No editar a mano: cambiá la especificación y volvé a generar.
+// Uso: Power BI Desktop → Vista de consultas DAX → pegar →
+//      "Actualizar modelo con cambios".
+// Requiere una tabla '_Medidas' en el modelo (ver §2 de la especificación).
+
+DEFINE
+
+    // ---- Precios spot
+    MEASURE '_Medidas'[Precio WTI] =
+        CALCULATE ( AVERAGE ( fact_precios_diarios[valor] ), dim_serie[serie_key] = "RWTC_D" )
+    MEASURE '_Medidas'[Precio Brent] =
+        CALCULATE ( AVERAGE ( fact_precios_diarios[valor] ), dim_serie[serie_key] = "RBRTE_D" )
+    MEASURE '_Medidas'[Precio Henry Hub] =
+        CALCULATE ( AVERAGE ( fact_precios_diarios[valor] ), dim_serie[serie_key] = "RNGWHHD_D" )
+    MEASURE '_Medidas'[Último WTI] =
+        VAR f =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RWTC_D" )
+        RETURN
+            CALCULATE ( [Precio WTI], REMOVEFILTERS ( dim_fecha ), dim_fecha[fecha] = f )
+    MEASURE '_Medidas'[Variación diaria WTI %] =
+        VAR f =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RWTC_D" )
+        VAR fAnterior =
+            CALCULATE (
+                MAX ( fact_precios_diarios[fecha] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "RWTC_D",
+                fact_precios_diarios[fecha] < f
+            )
+        VAR anterior =
+            CALCULATE ( [Precio WTI], REMOVEFILTERS ( dim_fecha ), dim_fecha[fecha] = fAnterior )
+        RETURN
+            IF ( ISBLANK ( anterior ), BLANK (), DIVIDE ( [Último WTI] - anterior, anterior ) )
+    MEASURE '_Medidas'[Promedio WTI 12 meses] =
+        VAR f =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RWTC_D" )
+        RETURN
+            CALCULATE (
+                [Precio WTI],
+                REMOVEFILTERS ( dim_fecha ),
+                DATESINPERIOD ( dim_fecha[fecha], f, -1, YEAR )
+            )
+    MEASURE '_Medidas'[WTI vs promedio 12 meses %] =
+        VAR promedio = [Promedio WTI 12 meses]
+        RETURN
+            IF ( ISBLANK ( promedio ), BLANK (), DIVIDE ( [Último WTI], promedio ) - 1 )
+    MEASURE '_Medidas'[Último Henry Hub] =
+        VAR f =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RNGWHHD_D" )
+        RETURN
+            CALCULATE ( [Precio Henry Hub], REMOVEFILTERS ( dim_fecha ), dim_fecha[fecha] = f )
+    MEASURE '_Medidas'[Variación diaria Henry Hub %] =
+        VAR f =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RNGWHHD_D" )
+        VAR fAnterior =
+            CALCULATE (
+                MAX ( fact_precios_diarios[fecha] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "RNGWHHD_D",
+                fact_precios_diarios[fecha] < f
+            )
+        VAR anterior =
+            CALCULATE ( [Precio Henry Hub], REMOVEFILTERS ( dim_fecha ), dim_fecha[fecha] = fAnterior )
+        RETURN
+            IF ( ISBLANK ( anterior ), BLANK (), DIVIDE ( [Último Henry Hub] - anterior, anterior ) )
+    MEASURE '_Medidas'[Promedio Henry Hub 12 meses] =
+        VAR f =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RNGWHHD_D" )
+        RETURN
+            CALCULATE (
+                [Precio Henry Hub],
+                REMOVEFILTERS ( dim_fecha ),
+                DATESINPERIOD ( dim_fecha[fecha], f, -1, YEAR )
+            )
+    MEASURE '_Medidas'[Henry Hub vs promedio 12 meses %] =
+        VAR promedio = [Promedio Henry Hub 12 meses]
+        RETURN
+            IF ( ISBLANK ( promedio ), BLANK (), DIVIDE ( [Último Henry Hub], promedio ) - 1 )
+    MEASURE '_Medidas'[Diferencial Brent-WTI] =
+        -- Último día del contexto en que cotizaron ambos crudos
+        VAR f =
+            MAXX (
+                FILTER (
+                    VALUES ( dim_fecha[fecha] ),
+                    NOT ISBLANK ( [Precio WTI] ) && NOT ISBLANK ( [Precio Brent] )
+                ),
+                dim_fecha[fecha]
+            )
+        RETURN
+            CALCULATE ( [Precio Brent] - [Precio WTI], dim_fecha[fecha] = f )
+    MEASURE '_Medidas'[Precio WTI mensual] =
+        CALCULATE ( AVERAGE ( fact_precios_mensuales[valor] ), dim_serie[serie_key] = "RWTC_M" )
+
+    // ---- Combustibles en surtidor
+    MEASURE '_Medidas'[Precio en surtidor] =
+        -- Genérica: poné dim_serie[nombre] en el eje para comparar combustibles
+        AVERAGE ( fact_precio_surtidor_semanal[valor] )
+    MEASURE '_Medidas'[Precio gasolina regular] =
+        CALCULATE ( [Precio en surtidor], dim_serie[serie_key] = "EMM_EPMR_PTE_NUS_DPG_W" )
+
+    // ---- Inventarios de petróleo
+    MEASURE '_Medidas'[Stock semanal] =
+        -- Genérica y semiaditiva: valor a la última semana con dato del contexto
+        VAR f = MAX ( fact_inventarios_semanales[fecha] )
+        RETURN
+            CALCULATE ( SUM ( fact_inventarios_semanales[valor] ), fact_inventarios_semanales[fecha] = f )
+    MEASURE '_Medidas'[Stock crudo comercial] =
+        CALCULATE ( [Stock semanal], dim_serie[serie_key] = "WCESTUS1_W" )
+    MEASURE '_Medidas'[Stock SPR] =
+        CALCULATE ( [Stock semanal], dim_serie[serie_key] = "WCSSTUS1_W" )
+    MEASURE '_Medidas'[Variación semanal crudo comercial] =
+        VAR f =
+            CALCULATE ( MAX ( fact_inventarios_semanales[fecha] ), dim_serie[serie_key] = "WCESTUS1_W" )
+        VAR anterior =
+            CALCULATE (
+                SUM ( fact_inventarios_semanales[valor] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "WCESTUS1_W",
+                fact_inventarios_semanales[fecha] = f - 7
+            )
+        RETURN
+            IF ( ISBLANK ( anterior ), BLANK (), [Stock crudo comercial] - anterior )
+    MEASURE '_Medidas'[Crudo comercial vs año anterior %] =
+        VAR f =
+            CALCULATE ( MAX ( fact_inventarios_semanales[fecha] ), dim_serie[serie_key] = "WCESTUS1_W" )
+        VAR haceUnAnio =
+            CALCULATE (
+                SUM ( fact_inventarios_semanales[valor] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "WCESTUS1_W",
+                fact_inventarios_semanales[fecha] = f - 364
+            )
+        RETURN
+            IF ( ISBLANK ( haceUnAnio ), BLANK (), DIVIDE ( [Stock crudo comercial], haceUnAnio ) - 1 )
+
+    // ---- Almacenamiento de gas
+    MEASURE '_Medidas'[Gas almacenado Lower 48] =
+        VAR f =
+            CALCULATE (
+                MAX ( fact_almacenamiento_gas_semanal[fecha] ),
+                dim_serie[serie_key] = "NW2_EPG0_SWO_R48_BCF_W"
+            )
+        RETURN
+            CALCULATE (
+                SUM ( fact_almacenamiento_gas_semanal[valor] ),
+                dim_serie[serie_key] = "NW2_EPG0_SWO_R48_BCF_W",
+                fact_almacenamiento_gas_semanal[fecha] = f
+            )
+    MEASURE '_Medidas'[Inyección neta semanal] =
+        -- Positiva: se inyectó gas; negativa: se extrajo
+        VAR f =
+            CALCULATE (
+                MAX ( fact_almacenamiento_gas_semanal[fecha] ),
+                dim_serie[serie_key] = "NW2_EPG0_SWO_R48_BCF_W"
+            )
+        VAR anterior =
+            CALCULATE (
+                SUM ( fact_almacenamiento_gas_semanal[valor] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "NW2_EPG0_SWO_R48_BCF_W",
+                fact_almacenamiento_gas_semanal[fecha] = f - 7
+            )
+        RETURN
+            IF ( ISBLANK ( anterior ), BLANK (), [Gas almacenado Lower 48] - anterior )
+    MEASURE '_Medidas'[Almacenamiento vs año anterior %] =
+        VAR f =
+            CALCULATE (
+                MAX ( fact_almacenamiento_gas_semanal[fecha] ),
+                dim_serie[serie_key] = "NW2_EPG0_SWO_R48_BCF_W"
+            )
+        VAR haceUnAnio =
+            CALCULATE (
+                SUM ( fact_almacenamiento_gas_semanal[valor] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "NW2_EPG0_SWO_R48_BCF_W",
+                fact_almacenamiento_gas_semanal[fecha] = f - 364
+            )
+        RETURN
+            IF ( ISBLANK ( haceUnAnio ), BLANK (), DIVIDE ( [Gas almacenado Lower 48], haceUnAnio ) - 1 )
+    MEASURE '_Medidas'[Gas almacenado por región] =
+        -- Genérica: usá dim_region[nombre] en el eje. Excluye el total Lower 48.
+        VAR f = MAX ( fact_almacenamiento_gas_semanal[fecha] )
+        RETURN
+            CALCULATE (
+                SUM ( fact_almacenamiento_gas_semanal[valor] ),
+                KEEPFILTERS ( dim_serie[serie_key] <> "NW2_EPG0_SWO_R48_BCF_W" ),
+                fact_almacenamiento_gas_semanal[fecha] = f
+            )
+    MEASURE '_Medidas'[Participación regional %] =
+        DIVIDE (
+            [Gas almacenado por región],
+            CALCULATE ( [Gas almacenado por región], REMOVEFILTERS ( dim_region ), REMOVEFILTERS ( dim_serie ) )
+        )
+
+    // ---- Producción
+    MEASURE '_Medidas'[Producción de crudo] =
+        -- Miles de barriles por día: es una tasa, se promedia
+        CALCULATE ( AVERAGE ( fact_produccion_mensual[valor] ), dim_serie[serie_key] = "MCRFPUS2_M" )
+    MEASURE '_Medidas'[Producción de crudo interanual %] =
+        VAR actual = [Producción de crudo]
+        VAR anterior =
+            CALCULATE ( [Producción de crudo], DATEADD ( dim_fecha[fecha], -12, MONTH ) )
+        RETURN
+            IF ( ISBLANK ( anterior ), BLANK (), DIVIDE ( actual - anterior, anterior ) )
+    MEASURE '_Medidas'[Producción de gas seco] =
+        CALCULATE ( SUM ( fact_produccion_mensual[valor] ), dim_serie[serie_key] = "N9070US2_M" )
+    MEASURE '_Medidas'[Producción de gas comercializado] =
+        CALCULATE ( SUM ( fact_produccion_mensual[valor] ), dim_serie[serie_key] = "N9050US2_M" )
+    MEASURE '_Medidas'[Último mes de producción] =
+        CALCULATE (
+            MAX ( fact_produccion_mensual[fecha] ),
+            REMOVEFILTERS ( dim_fecha ),
+            dim_serie[serie_key] = "MCRFPUS2_M"
+        )
+
+    // ---- Consumo de gas
+    MEASURE '_Medidas'[Consumo total de gas] =
+        CALCULATE ( SUM ( fact_consumo_gas_mensual[valor] ), dim_serie[serie_key] = "N9140US2_M" )
+    MEASURE '_Medidas'[Consumo por sector] =
+        -- Genérica: usá dim_serie[nombre] en el eje. Excluye el total para no contarlo como sector.
+        CALCULATE (
+            SUM ( fact_consumo_gas_mensual[valor] ),
+            KEEPFILTERS ( dim_serie[serie_key] <> "N9140US2_M" )
+        )
+    MEASURE '_Medidas'[Participación del sector %] =
+        DIVIDE ( [Consumo por sector], [Consumo total de gas] )
+    MEASURE '_Medidas'[Participación generación eléctrica %] =
+        -- Del último mes publicado, sin importar los filtros de fecha
+        VAR f =
+            CALCULATE (
+                MAX ( fact_consumo_gas_mensual[fecha] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "N9140US2_M"
+            )
+        VAR generacion =
+            CALCULATE (
+                SUM ( fact_consumo_gas_mensual[valor] ),
+                REMOVEFILTERS ( dim_fecha ),
+                dim_serie[serie_key] = "N3045US2_M",
+                fact_consumo_gas_mensual[fecha] = f
+            )
+        VAR total =
+            CALCULATE ( [Consumo total de gas], REMOVEFILTERS ( dim_fecha ), fact_consumo_gas_mensual[fecha] = f )
+        RETURN
+            DIVIDE ( generacion, total )
+
+    // ---- Último dato (tarjetas)
+    MEASURE '_Medidas'[Último valor] =
+        IF ( HASONEVALUE ( dim_serie[serie_key] ), MAX ( fact_ultimo_dato[valor] ) )
+    MEASURE '_Medidas'[Variación vs dato anterior %] =
+        IF ( HASONEVALUE ( dim_serie[serie_key] ), MAX ( fact_ultimo_dato[variacion_pct] ) )
+    MEASURE '_Medidas'[Fecha del último dato] =
+        IF ( HASONEVALUE ( dim_serie[serie_key] ), MAX ( fact_ultimo_dato[fecha] ) )
+    MEASURE '_Medidas'[Indicador de variación] =
+        -- Flecha + signo + texto: el sentido no depende solo del color
+        VAR v = [Variación vs dato anterior %]
+        RETURN
+            IF (
+                ISBLANK ( v ),
+                "sin dato previo",
+                IF ( v > 0, "▲ ", IF ( v < 0, "▼ ", "■ " ) )
+                    & FORMAT ( v, "+0.0 %;−0.0 %;0.0 %", "es-AR" )
+            )
+
+    // ---- Rezago precio → producción
+    MEASURE '_Medidas'[Correlación] =
+        AVERAGE ( analisis_rezago[correlacion] )
+    MEASURE '_Medidas'[Rezago óptimo (meses)] =
+        -- Mayor correlación con signo; ante empate, el rezago más corto (igual que el pipeline)
+        IF (
+            HASONEVALUE ( analisis_rezago[escenario] ),
+            VAR mejores =
+                TOPN (
+                    1,
+                    FILTER (
+                        CALCULATETABLE ( analisis_rezago, REMOVEFILTERS ( analisis_rezago[rezago_meses] ) ),
+                        NOT ISBLANK ( analisis_rezago[correlacion] )
+                    ),
+                    analisis_rezago[correlacion], DESC
+                )
+            RETURN
+                MINX ( mejores, analisis_rezago[rezago_meses] )
+        )
+    MEASURE '_Medidas'[Correlación en el óptimo] =
+        VAR k = [Rezago óptimo (meses)]
+        RETURN
+            CALCULATE (
+                AVERAGE ( analisis_rezago[correlacion] ),
+                REMOVEFILTERS ( analisis_rezago[rezago_meses] ),
+                analisis_rezago[rezago_meses] = k
+            )
+    MEASURE '_Medidas'[Es rezago óptimo] =
+        -- 1 en la barra del óptimo: usalo en el formato condicional del color de las barras
+        IF ( SELECTEDVALUE ( analisis_rezago[rezago_meses] ) = [Rezago óptimo (meses)], 1, 0 )
+    MEASURE '_Medidas'[Texto rezago] =
+        VAR k = [Rezago óptimo (meses)]
+        RETURN
+            IF (
+                ISBLANK ( k ),
+                "Elegí un escenario",
+                "Mayor correlación a " & k & IF ( k = 1, " mes", " meses" ) & " (r = "
+                    & FORMAT ( [Correlación en el óptimo], "0.00", "es-AR" ) & ")"
+            )
+
+    // ---- Frescura y calidad
+    MEASURE '_Medidas'[Fuentes al día] =
+        CALCULATE ( COUNTROWS ( frescura ), frescura[estado] = "al_dia" ) + 0
+    MEASURE '_Medidas'[Fuentes atrasadas] =
+        CALCULATE ( COUNTROWS ( frescura ), frescura[estado] = "atrasado" ) + 0
+    MEASURE '_Medidas'[Máximo atraso (días)] =
+        MAX ( frescura[dias_atraso] )
+    MEASURE '_Medidas'[Fecha de cálculo] =
+        MAX ( frescura[calculado_al] )
+    MEASURE '_Medidas'[Estado de los datos] =
+        VAR n = [Fuentes atrasadas]
+        RETURN
+            IF (
+                n = 0,
+                "● Todas las fuentes al día",
+                "▲ " & n & IF ( n = 1, " fuente atrasada", " fuentes atrasadas" )
+            )
+                & " · calculado al " & FORMAT ( [Fecha de cálculo], "dd/mm/yyyy", "es-AR" )
+    MEASURE '_Medidas'[Icono de estado] =
+        -- Para la tabla de frescura (una fila por dataset)
+        SWITCH (
+            SELECTEDVALUE ( frescura[estado] ),
+            "al_dia", "● Al día",
+            "atrasado", "▲ Atrasado"
+        )
+
+    // ---- HTML para el visual *HTML Content*
+    MEASURE '_Medidas'[HTML Banner petróleo] =
+        VAR fecha =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RWTC_D" )
+        VAR v = [Variación diaria WTI %]
+        VAR colorV = IF ( v > 0, "#1d7a3b", IF ( v < 0, "#b3261e", "#565b62" ) )
+        VAR flecha = IF ( v > 0, "▲", IF ( v < 0, "▼", "■" ) )
+        VAR anual = [Crudo comercial vs año anterior %]
+        RETURN
+            "<div style='font-family:Segoe UI,sans-serif;background:#fbfaf7;border:1px solid #ded7ca;border-radius:12px;padding:16px 20px;color:#1c1f22'>"
+                & "<div style='font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#565b62'>WTI (Cushing) · "
+                & FORMAT ( fecha, "dd/mm/yyyy", "es-AR" ) & "</div>"
+                & "<div style='font-size:44px;font-weight:600;line-height:1.1'>"
+                & FORMAT ( [Último WTI], "#,0.00", "es-AR" )
+                & " <span style='font-size:14px;font-weight:400;color:#565b62'>US$/barril</span></div>"
+                & "<div style='font-size:13px'><span style='color:" & colorV & "'>" & flecha & "</span> "
+                & FORMAT ( v, "+0.0 %;−0.0 %;0.0 %", "es-AR" ) & " vs. día hábil anterior</div>"
+                & "<div style='margin-top:10px;font-size:13px;color:#565b62'>Brent: <b style='color:#1c1f22'>"
+                & FORMAT ( [Diferencial Brent-WTI], "#,0.00", "es-AR" ) & "</b> US$ sobre el WTI · Crudo comercial: <b style='color:#1c1f22'>"
+                & FORMAT ( [Stock crudo comercial], "#,0", "es-AR" ) & "</b> miles de barriles ("
+                & FORMAT ( anual, "+0.0 %;−0.0 %", "es-AR" ) & " interanual)</div>"
+                & "</div>"
+    MEASURE '_Medidas'[HTML Banner gas] =
+        VAR fecha =
+            CALCULATE ( MAX ( fact_precios_diarios[fecha] ), dim_serie[serie_key] = "RNGWHHD_D" )
+        VAR v = [Variación diaria Henry Hub %]
+        VAR colorV = IF ( v > 0, "#1d7a3b", IF ( v < 0, "#b3261e", "#565b62" ) )
+        VAR flecha = IF ( v > 0, "▲", IF ( v < 0, "▼", "■" ) )
+        RETURN
+            "<div style='font-family:Segoe UI,sans-serif;background:#fbfaf7;border:1px solid #ded7ca;border-radius:12px;padding:16px 20px;color:#1c1f22'>"
+                & "<div style='font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#565b62'>Henry Hub · "
+                & FORMAT ( fecha, "dd/mm/yyyy", "es-AR" ) & "</div>"
+                & "<div style='font-size:44px;font-weight:600;line-height:1.1'>"
+                & FORMAT ( [Último Henry Hub], "#,0.00", "es-AR" )
+                & " <span style='font-size:14px;font-weight:400;color:#565b62'>US$/MMBtu</span></div>"
+                & "<div style='font-size:13px'><span style='color:" & colorV & "'>" & flecha & "</span> "
+                & FORMAT ( v, "+0.0 %;−0.0 %;0.0 %", "es-AR" ) & " vs. día hábil anterior</div>"
+                & "<div style='margin-top:10px;font-size:13px;color:#565b62'>Almacenamiento Lower 48: <b style='color:#1c1f22'>"
+                & FORMAT ( [Gas almacenado Lower 48], "#,0", "es-AR" ) & "</b> Bcf ("
+                & FORMAT ( [Almacenamiento vs año anterior %], "+0.0 %;−0.0 %", "es-AR" ) & " interanual)</div>"
+                & "</div>"
+    MEASURE '_Medidas'[HTML Frases petróleo] =
+        VAR dif = [WTI vs promedio 12 meses %]
+        VAR anual = [Crudo comercial vs año anterior %]
+        VAR item = "<li style='margin:0 0 10px;padding-left:4px'>"
+        RETURN
+            "<ol style='font-family:Segoe UI,sans-serif;font-size:14px;line-height:1.5;color:#1c1f22;margin:0;padding-left:20px'>"
+                & item & "El WTI cerró en US$ " & FORMAT ( [Último WTI], "#,0.00", "es-AR" )
+                & " por barril, un " & FORMAT ( ABS ( dif ), "0.0 %", "es-AR" )
+                & IF ( dif >= 0, " por encima", " por debajo" )
+                & " de su promedio de los últimos 12 meses (US$ "
+                & FORMAT ( [Promedio WTI 12 meses], "#,0.00", "es-AR" ) & ").</li>"
+                & item & "El Brent cotizó US$ " & FORMAT ( ABS ( [Diferencial Brent-WTI] ), "#,0.00", "es-AR" )
+                & IF ( [Diferencial Brent-WTI] >= 0, " por encima", " por debajo" ) & " del WTI.</li>"
+                & item & "Los inventarios comerciales de crudo suman "
+                & FORMAT ( [Stock crudo comercial] / 1000, "#,0.0", "es-AR" ) & " millones de barriles: un "
+                & FORMAT ( ABS ( anual ), "0.0 %", "es-AR" ) & IF ( anual >= 0, " más", " menos" )
+                & " que un año atrás.</li>"
+                & "</ol>"
+    MEASURE '_Medidas'[HTML Advertencia rezago] =
+        "<div style='font-family:Segoe UI,sans-serif;font-size:13px;line-height:1.5;background:#efebe2;border-left:4px solid #a35400;border-radius:8px;padding:12px 14px;color:#1c1f22'>"
+            & "<b>⚠ Correlación no es causalidad.</b> Este análisis es descriptivo: mide cuánto se parecen los movimientos "
+            & "del WTI y de la producción de crudo con distintos desfasajes. No prueba que el precio cause la producción, "
+            & "que también depende de costos, tecnología, infraestructura y decisiones de las empresas. "
+            & "Comparalo en los dos escenarios: con la historia completa y sin 2020-2021."
+            & "</div>"
+
+EVALUATE
+ROW (
+    "Último WTI", [Último WTI],
+    "WTI vs promedio 12 meses %", [WTI vs promedio 12 meses %],
+    "Diferencial Brent-WTI", [Diferencial Brent-WTI],
+    "Último Henry Hub", [Último Henry Hub],
+    "Stock crudo comercial", [Stock crudo comercial],
+    "Gas almacenado Lower 48", [Gas almacenado Lower 48],
+    "Participación generación eléctrica %", [Participación generación eléctrica %],
+    "Fuentes al día", [Fuentes al día]
+)
