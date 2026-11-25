@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* Paleta propia. Serie 1–4 validadas para daltonismo (ΔE CVD ≥ 14) y contraste ≥ 3:1
+   en ambos modos con el validador de paletas; el modo oscuro tiene sus propios pasos. */
+:root {
+  color-scheme: light;
+  --fondo: #f4f1ea;
+  --superficie: #fbfaf7;
+  --superficie-2: #efebe2;
+  --tinta: #1c1f22;
+  --tinta-2: #565b62;
+  --linea: #ded7ca;
+  --grilla: #e8e3d9;
+  --acento-petroleo: #b4541a;
+  --acento-gas: #1f6fd1;
+  --s1: #1f6fd1;
+  --s2: #c4531a;
+  --s3: #7a45c2;
+  --s4: #a87d00;
+  --apagado: #b9b3a8;
+  --ok: #1d7a3b;
+  --alerta: #a35400;
+  --sube: #1d7a3b;
+  --baja: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --fondo: #0f1113;
+    --superficie: #14171a;
+    --superficie-2: #1b1f23;
+    --tinta: #ecebe8;
+    --tinta-2: #a5a9af;
+    --linea: #2b3036;
+    --grilla: #23282d;
+    --acento-petroleo: #e0743a;
+    --acento-gas: #4b8ff0;
+    --s1: #4b8ff0;
+    --s2: #e0743a;
+    --s3: #a586ee;
+    --s4: #c08a1c;
+    --apagado: #4a5058;
+    --ok: #4cc27a;
+    --alerta: #f0a347;
+    --sube: #4cc27a;
+    --baja: #f2726a;
+  }
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-tinta: var(--tinta);
+  --color-tinta-2: var(--tinta-2);
+  --color-linea: var(--linea);
+  --color-ok: var(--ok);
+  --color-alerta: var(--alerta);
+  --color-sube: var(--sube);
+  --color-baja: var(--baja);
+  --font-display: var(--fuente-display), Georgia, serif;
+  --font-sans: var(--fuente-texto), system-ui, sans-serif;
+  --font-mono: var(--fuente-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-sector="petroleo"] { --acento: var(--acento-petroleo); }
+[data-sector="gas"] { --acento: var(--acento-gas); }
+
+.cifra { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+:focus-visible {
+  outline: 2px solid var(--acento, var(--s1));
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---- Tarjetas que giran (hover, foco con teclado o toque) ---- */
+.tarjeta { perspective: 1100px; }
+.tarjeta-giro {
+  position: relative;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.tarjeta:hover .tarjeta-giro,
+.tarjeta:focus-within .tarjeta-giro,
+.tarjeta[data-girada="true"] .tarjeta-giro { transform: rotateY(180deg); }
+.cara {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.cara-dorso { transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-giro { transition: none; transform: none !important; }
+  .cara { backface-visibility: visible; transition: opacity 150ms linear; }
+  .cara-dorso { transform: none; opacity: 0; }
+  .tarjeta:hover .cara-frente,
+  .tarjeta:focus-within .cara-frente,
+  .tarjeta[data-girada="true"] .cara-frente { opacity: 0; }
+  .tarjeta:hover .cara-dorso,
+  .tarjeta:focus-within .cara-dorso,
+  .tarjeta[data-girada="true"] .cara-dorso { opacity: 1; }
+}
+
+@media (forced-colors: active) {
+  .cara { border: 1px solid CanvasText; }
+}
