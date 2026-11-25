@@ -1,0 +1,39 @@
+{
+  "name": "Pulso Energético",
+  "dataColors": ["#1F6FD1", "#C4531A", "#7A45C2", "#A87D00", "#5B6770", "#B9B3A8"],
+  "background": "#FBFAF7",
+  "secondaryBackground": "#EFEBE2",
+  "foreground": "#1C1F22",
+  "foregroundNeutralSecondary": "#565B62",
+  "backgroundLight": "#F4F1EA",
+  "foregroundNeutralTertiary": "#8A8F96",
+  "tableAccent": "#1F6FD1",
+  "good": "#1D7A3B",
+  "neutral": "#A35400",
+  "bad": "#B3261E",
+  "maximum": "#1F6FD1",
+  "center": "#E8E3D9",
+  "minimum": "#F4F1EA",
+  "textClasses": {
+    "title": { "fontFace": "Segoe UI Semibold", "fontSize": 14, "color": "#1C1F22" },
+    "header": { "fontFace": "Segoe UI Semibold", "fontSize": 12, "color": "#1C1F22" },
+    "label": { "fontFace": "Segoe UI", "fontSize": 10, "color": "#565B62" },
+    "callout": { "fontFace": "Segoe UI Semibold", "fontSize": 32, "color": "#1C1F22" }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [{ "show": true, "color": { "solid": { "color": "#FBFAF7" } }, "transparency": 0 }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#DED7CA" } }, "radius": 12 }],
+        "valueAxis": [{ "gridlineColor": { "solid": { "color": "#E8E3D9" } }, "gridlineStyle": "solid" }],
+        "categoryAxis": [{ "gridlineShow": false }],
+        "lineStyles": [{ "strokeWidth": 2 }]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [{ "color": { "solid": { "color": "#F4F1EA" } }, "transparency": 0 }]
+      }
+    }
+  }
+}
