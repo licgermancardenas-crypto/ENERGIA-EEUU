@@ -1,0 +1,233 @@
+{
+  "generado_desde": "config/pipeline.yaml",
+  "dias_minimos_diarios": 2,
+  "ventana_relectura_dias": {
+    "daily": 30,
+    "weekly": 56,
+    "monthly": 186
+  },
+  "umbrales_frescura_dias": {
+    "daily": 10,
+    "weekly": 14,
+    "monthly": 120
+  },
+  "rezago": {
+    "max_meses": 12,
+    "min_observaciones": 24,
+    "precio": {
+      "dataset": "precios_spot_mensuales",
+      "serie": "RWTC"
+    },
+    "produccion": {
+      "dataset": "produccion_crudo_mensual",
+      "serie": "MCRFPUS2"
+    },
+    "escenarios": [
+      {
+        "id": "completo",
+        "etiqueta": "Historia completa"
+      },
+      {
+        "id": "sin_pandemia",
+        "etiqueta": "Sin 2020-2021 (pandemia)",
+        "excluir": [
+          "2020-01",
+          "2021-12"
+        ]
+      }
+    ]
+  },
+  "regiones": {
+    "NUS": {
+      "nombre": "Estados Unidos",
+      "tipo": "pais"
+    },
+    "YCUOK": {
+      "nombre": "Cushing, Oklahoma",
+      "tipo": "hub_precio"
+    },
+    "ZEU": {
+      "nombre": "Europa (Mar del Norte)",
+      "tipo": "hub_precio"
+    },
+    "RGC": {
+      "nombre": "Henry Hub, Luisiana",
+      "tipo": "hub_precio"
+    },
+    "R31": {
+      "nombre": "Este",
+      "tipo": "region_almacenamiento"
+    },
+    "R32": {
+      "nombre": "Medio Oeste",
+      "tipo": "region_almacenamiento"
+    },
+    "R33": {
+      "nombre": "Centro Sur",
+      "tipo": "region_almacenamiento"
+    },
+    "R34": {
+      "nombre": "Montaña",
+      "tipo": "region_almacenamiento"
+    },
+    "R35": {
+      "nombre": "Pacífico",
+      "tipo": "region_almacenamiento"
+    },
+    "R48": {
+      "nombre": "Lower 48",
+      "tipo": "agregado_almacenamiento"
+    }
+  },
+  "datasets": [
+    {
+      "nombre": "precios_spot_diarios",
+      "ruta": "petroleum/pri/spt",
+      "frecuencia": "daily",
+      "inicio": "2023-01-01",
+      "sector": "petroleo",
+      "categoria": "precio_spot",
+      "tabla_gold": "fact_precios_diarios",
+      "solo_positivos": true,
+      "series": {
+        "RWTC": "WTI (Cushing)",
+        "RBRTE": "Brent (Europa)"
+      }
+    },
+    {
+      "nombre": "henry_hub_diario",
+      "ruta": "natural-gas/pri/fut",
+      "frecuencia": "daily",
+      "inicio": "2023-01-01",
+      "sector": "gas",
+      "categoria": "precio_spot",
+      "tabla_gold": "fact_precios_diarios",
+      "solo_positivos": true,
+      "series": {
+        "RNGWHHD": "Henry Hub"
+      }
+    },
+    {
+      "nombre": "precios_spot_mensuales",
+      "ruta": "petroleum/pri/spt",
+      "frecuencia": "monthly",
+      "inicio": "2010-01",
+      "sector": "petroleo",
+      "categoria": "precio_spot_mensual",
+      "tabla_gold": "fact_precios_mensuales",
+      "solo_positivos": true,
+      "series": {
+        "RWTC": "WTI (Cushing) mensual",
+        "RBRTE": "Brent (Europa) mensual"
+      }
+    },
+    {
+      "nombre": "henry_hub_mensual",
+      "ruta": "natural-gas/pri/fut",
+      "frecuencia": "monthly",
+      "inicio": "2010-01",
+      "sector": "gas",
+      "categoria": "precio_spot_mensual",
+      "tabla_gold": "fact_precios_mensuales",
+      "solo_positivos": true,
+      "series": {
+        "RNGWHHD": "Henry Hub mensual"
+      }
+    },
+    {
+      "nombre": "precio_surtidor_semanal",
+      "ruta": "petroleum/pri/gnd",
+      "frecuencia": "weekly",
+      "inicio": "2023-01-01",
+      "sector": "petroleo",
+      "categoria": "precio_surtidor",
+      "tabla_gold": "fact_precio_surtidor_semanal",
+      "solo_positivos": true,
+      "series": {
+        "EMM_EPMR_PTE_NUS_DPG": "Gasolina regular",
+        "EMM_EPMM_PTE_NUS_DPG": "Gasolina media",
+        "EMM_EPMP_PTE_NUS_DPG": "Gasolina premium",
+        "EMD_EPD2D_PTE_NUS_DPG": "Diésel"
+      }
+    },
+    {
+      "nombre": "inventarios_semanales",
+      "ruta": "petroleum/stoc/wstk",
+      "frecuencia": "weekly",
+      "inicio": "2023-01-01",
+      "sector": "petroleo",
+      "categoria": "inventario",
+      "tabla_gold": "fact_inventarios_semanales",
+      "solo_positivos": true,
+      "series": {
+        "WCESTUS1": "Crudo comercial (sin SPR)",
+        "WCSSTUS1": "Reserva Estratégica (SPR)",
+        "WGTSTUS1": "Gasolina total",
+        "WDISTUS1": "Destilados"
+      }
+    },
+    {
+      "nombre": "produccion_crudo_mensual",
+      "ruta": "petroleum/crd/crpdn",
+      "frecuencia": "monthly",
+      "inicio": "2010-01",
+      "sector": "petroleo",
+      "categoria": "produccion",
+      "tabla_gold": "fact_produccion_mensual",
+      "solo_positivos": true,
+      "series": {
+        "MCRFPUS2": "Producción de crudo"
+      }
+    },
+    {
+      "nombre": "almacenamiento_gas_semanal",
+      "ruta": "natural-gas/stor/wkly",
+      "frecuencia": "weekly",
+      "inicio": "2023-01-01",
+      "sector": "gas",
+      "categoria": "almacenamiento",
+      "tabla_gold": "fact_almacenamiento_gas_semanal",
+      "solo_positivos": true,
+      "series": {
+        "NW2_EPG0_SWO_R31_BCF": "Almacenamiento Este",
+        "NW2_EPG0_SWO_R32_BCF": "Almacenamiento Medio Oeste",
+        "NW2_EPG0_SWO_R33_BCF": "Almacenamiento Centro Sur",
+        "NW2_EPG0_SWO_R34_BCF": "Almacenamiento Montaña",
+        "NW2_EPG0_SWO_R35_BCF": "Almacenamiento Pacífico",
+        "NW2_EPG0_SWO_R48_BCF": "Almacenamiento Lower 48"
+      }
+    },
+    {
+      "nombre": "consumo_gas_mensual",
+      "ruta": "natural-gas/cons/sum",
+      "frecuencia": "monthly",
+      "inicio": "2010-01",
+      "sector": "gas",
+      "categoria": "consumo",
+      "tabla_gold": "fact_consumo_gas_mensual",
+      "solo_positivos": true,
+      "series": {
+        "N3010US2": "Residencial",
+        "N3020US2": "Comercial",
+        "N3035US2": "Industrial",
+        "N3045US2": "Generación eléctrica",
+        "N3025US2": "Vehicular",
+        "N9140US2": "Consumo total"
+      }
+    },
+    {
+      "nombre": "produccion_gas_mensual",
+      "ruta": "natural-gas/prod/sum",
+      "frecuencia": "monthly",
+      "inicio": "2010-01",
+      "sector": "gas",
+      "categoria": "produccion",
+      "tabla_gold": "fact_produccion_mensual",
+      "solo_positivos": true,
+      "series": {
+        "N9070US2": "Producción de gas seco",
+        "N9050US2": "Producción de gas comercializada"
+      }
+    }
+  ]
+}

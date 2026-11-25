@@ -1,0 +1,72 @@
+[
+  {
+    "nombre": "precios_spot_diarios",
+    "ruta": "petroleum/pri/spt",
+    "frecuencia": "daily",
+    "inicio": "2023-01-01",
+    "query": "frequency=daily&data%5B0%5D=value&start=2023-01-01&facets%5Bseries%5D%5B%5D=RWTC&facets%5Bseries%5D%5B%5D=RBRTE&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "henry_hub_diario",
+    "ruta": "natural-gas/pri/fut",
+    "frecuencia": "daily",
+    "inicio": "2023-01-01",
+    "query": "frequency=daily&data%5B0%5D=value&start=2023-01-01&facets%5Bseries%5D%5B%5D=RNGWHHD&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "precios_spot_mensuales",
+    "ruta": "petroleum/pri/spt",
+    "frecuencia": "monthly",
+    "inicio": "2010-01",
+    "query": "frequency=monthly&data%5B0%5D=value&start=2010-01&facets%5Bseries%5D%5B%5D=RWTC&facets%5Bseries%5D%5B%5D=RBRTE&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "henry_hub_mensual",
+    "ruta": "natural-gas/pri/fut",
+    "frecuencia": "monthly",
+    "inicio": "2010-01",
+    "query": "frequency=monthly&data%5B0%5D=value&start=2010-01&facets%5Bseries%5D%5B%5D=RNGWHHD&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "precio_surtidor_semanal",
+    "ruta": "petroleum/pri/gnd",
+    "frecuencia": "weekly",
+    "inicio": "2023-01-01",
+    "query": "frequency=weekly&data%5B0%5D=value&start=2023-01-01&facets%5Bseries%5D%5B%5D=EMM_EPMR_PTE_NUS_DPG&facets%5Bseries%5D%5B%5D=EMM_EPMM_PTE_NUS_DPG&facets%5Bseries%5D%5B%5D=EMM_EPMP_PTE_NUS_DPG&facets%5Bseries%5D%5B%5D=EMD_EPD2D_PTE_NUS_DPG&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "inventarios_semanales",
+    "ruta": "petroleum/stoc/wstk",
+    "frecuencia": "weekly",
+    "inicio": "2023-01-01",
+    "query": "frequency=weekly&data%5B0%5D=value&start=2023-01-01&facets%5Bseries%5D%5B%5D=WCESTUS1&facets%5Bseries%5D%5B%5D=WCSSTUS1&facets%5Bseries%5D%5B%5D=WGTSTUS1&facets%5Bseries%5D%5B%5D=WDISTUS1&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "produccion_crudo_mensual",
+    "ruta": "petroleum/crd/crpdn",
+    "frecuencia": "monthly",
+    "inicio": "2010-01",
+    "query": "frequency=monthly&data%5B0%5D=value&start=2010-01&facets%5Bseries%5D%5B%5D=MCRFPUS2&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "almacenamiento_gas_semanal",
+    "ruta": "natural-gas/stor/wkly",
+    "frecuencia": "weekly",
+    "inicio": "2023-01-01",
+    "query": "frequency=weekly&data%5B0%5D=value&start=2023-01-01&facets%5Bseries%5D%5B%5D=NW2_EPG0_SWO_R31_BCF&facets%5Bseries%5D%5B%5D=NW2_EPG0_SWO_R32_BCF&facets%5Bseries%5D%5B%5D=NW2_EPG0_SWO_R33_BCF&facets%5Bseries%5D%5B%5D=NW2_EPG0_SWO_R34_BCF&facets%5Bseries%5D%5B%5D=NW2_EPG0_SWO_R35_BCF&facets%5Bseries%5D%5B%5D=NW2_EPG0_SWO_R48_BCF&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "consumo_gas_mensual",
+    "ruta": "natural-gas/cons/sum",
+    "frecuencia": "monthly",
+    "inicio": "2010-01",
+    "query": "frequency=monthly&data%5B0%5D=value&start=2010-01&facets%5Bseries%5D%5B%5D=N3010US2&facets%5Bseries%5D%5B%5D=N3020US2&facets%5Bseries%5D%5B%5D=N3035US2&facets%5Bseries%5D%5B%5D=N3045US2&facets%5Bseries%5D%5B%5D=N3025US2&facets%5Bseries%5D%5B%5D=N9140US2&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
+    "nombre": "produccion_gas_mensual",
+    "ruta": "natural-gas/prod/sum",
+    "frecuencia": "monthly",
+    "inicio": "2010-01",
+    "query": "frequency=monthly&data%5B0%5D=value&start=2010-01&facets%5Bseries%5D%5B%5D=N9070US2&facets%5Bseries%5D%5B%5D=N9050US2&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  }
+]
