@@ -51,6 +51,7 @@ class Settings:
     rezago_min_obs: int
     rezago_precio: tuple[str, str]
     rezago_produccion: tuple[str, str]
+    rezago_escenarios: list[dict[str, Any]]
     regiones: dict[str, dict[str, str]]
     datasets: dict[str, DatasetConfig]
 
@@ -121,6 +122,8 @@ def load_settings(
         rezago_min_obs=int(rez.get("min_observaciones", 24)),
         rezago_precio=(rez["precio"]["dataset"], rez["precio"]["serie"]),
         rezago_produccion=(rez["produccion"]["dataset"], rez["produccion"]["serie"]),
+        rezago_escenarios=rez.get("escenarios") or [{"id": "completo",
+                                                     "etiqueta": "Historia completa"}],
         regiones=raw.get("regiones", {}),
         datasets=datasets,
     )

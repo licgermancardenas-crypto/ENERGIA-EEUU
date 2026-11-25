@@ -31,6 +31,9 @@ rezago:
   min_observaciones: 24
   precio: {dataset: precios_spot_mensuales, serie: RWTC}
   produccion: {dataset: produccion_crudo_mensual, serie: MCRFPUS2}
+  escenarios:
+    - {id: completo, etiqueta: Historia completa}
+    - {id: sin_pandemia, etiqueta: "Sin 2020-2021 (pandemia)", excluir: ["2020-01", "2021-12"]}
 
 regiones:
   NUS:   {nombre: Estados Unidos, tipo: pais}

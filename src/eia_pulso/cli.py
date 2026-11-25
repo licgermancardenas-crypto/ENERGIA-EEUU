@@ -83,10 +83,11 @@ def main(argv: list[str] | None = None) -> int:
                 f.dataset: f"{f.estado:<9} último={f.ultimo_periodo} atraso={f.dias_atraso}d"
                 for f in rg.frescura.itertuples()
             })
-            r = rg.rezago
-            print(f"\n== Rezago WTI -> producción de crudo ==\n  óptimo: "
-                  f"{r['rezago_optimo_meses']} meses (r={r['correlacion']}, n={r['n_obs']})\n"
-                  f"  {r['advertencia']}")
+            print("\n== Rezago WTI -> producción de crudo ==")
+            for e in rg.rezago["escenarios"]:
+                print(f"  {e['etiqueta']:<28} óptimo: {e['rezago_optimo_meses']} meses "
+                      f"(r={e['correlacion']}, n={e['n_obs']})")
+            print(f"  {rg.rezago['advertencia']}")
         return 0
     except ConfigError as exc:
         log.error("%s", exc)

@@ -18,7 +18,7 @@ import pandas as pd
 
 from eia_pulso.config import Settings
 from eia_pulso.gold.freshness import calcular_frescura
-from eia_pulso.gold.lag import correlacion_cruzada, resumen_rezago
+from eia_pulso.gold.lag import ADVERTENCIA, correlacion_cruzada, resumen_rezago
 from eia_pulso.gold.validations import GoldValidationError, validar_gold
 from eia_pulso.periodos import ahora_utc_iso, hoy_utc
 from eia_pulso.silver.storage import leer_revisiones, leer_silver
@@ -190,11 +190,18 @@ def run_gold(settings: Settings, hoy: date | None = None) -> ResultadoGold:
     (ds_p, serie_p), (ds_q, serie_q) = settings.rezago_precio, settings.rezago_produccion
     precio = silver[(silver["dataset"] == ds_p) & (silver["serie"] == serie_p)]
     prod = silver[(silver["dataset"] == ds_q) & (silver["serie"] == serie_q)]
-    tabla_rezago = correlacion_cruzada(precio, prod, settings.rezago_max_meses,
-                                       settings.rezago_min_obs)
-    rezago = resumen_rezago(tabla_rezago)
-    rezago.update({"serie_precio": f"{serie_p}_M", "serie_produccion": f"{serie_q}_M",
-                   "calculado_al": hoy.isoformat()})
+    tablas_rezago, escenarios = [], []
+    for esc in settings.rezago_escenarios:
+        excluir = tuple(esc["excluir"]) if esc.get("excluir") else None
+        t = correlacion_cruzada(precio, prod, settings.rezago_max_meses,
+                                settings.rezago_min_obs, excluir=excluir)
+        tablas_rezago.append(t.assign(escenario=esc["id"]))
+        escenarios.append({"id": esc["id"], "etiqueta": esc["etiqueta"],
+                           "excluir": list(excluir) if excluir else None, **resumen_rezago(t)})
+    tabla_rezago = pd.concat(tablas_rezago, ignore_index=True)
+    rezago = {"serie_precio": f"{serie_p}_M", "serie_produccion": f"{serie_q}_M",
+              "calculado_al": hoy.isoformat(), "advertencia": ADVERTENCIA,
+              "escenarios": escenarios}
 
     conteos = {k: len(v) for k, v in tablas.items()}
     resumen = {"generado_utc": ahora_utc_iso(), "calculado_al": hoy.isoformat(),

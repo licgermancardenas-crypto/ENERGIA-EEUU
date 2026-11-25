@@ -27,12 +27,30 @@ def _serie_mensual(df: pd.DataFrame) -> pd.Series:
     return s.reindex(rango)
 
 
+def _excluir(s: pd.Series, excluir: tuple[str, str] | None) -> pd.Series:
+    """Pone NaN en la ventana excluida (antes de las variaciones: también se pierden las
+    variaciones que entran y salen de la ventana)."""
+    if not excluir:
+        return s
+    desde, hasta = pd.Period(excluir[0], "M"), pd.Period(excluir[1], "M")
+    s = s.copy()
+    s[(s.index >= desde) & (s.index <= hasta)] = float("nan")
+    return s
+
+
 def correlacion_cruzada(
-    precio: pd.DataFrame, produccion: pd.DataFrame, max_rezago: int = 12, min_obs: int = 24
+    precio: pd.DataFrame,
+    produccion: pd.DataFrame,
+    max_rezago: int = 12,
+    min_obs: int = 24,
+    excluir: tuple[str, str] | None = None,
 ) -> pd.DataFrame:
-    """Recibe DataFrames con columnas periodo/valor. Devuelve una fila por rezago."""
-    dp = _serie_mensual(precio).pct_change(fill_method=None)
-    dq = _serie_mensual(produccion).pct_change(fill_method=None)
+    """Recibe DataFrames con columnas periodo/valor. Devuelve una fila por rezago.
+
+    `excluir` = ("AAAA-MM", "AAAA-MM") deja afuera una ventana (p. ej. la pandemia).
+    """
+    dp = _excluir(_serie_mensual(precio), excluir).pct_change(fill_method=None)
+    dq = _excluir(_serie_mensual(produccion), excluir).pct_change(fill_method=None)
     idx = dp.index.union(dq.index)
     dp, dq = dp.reindex(idx), dq.reindex(idx)
     filas = []
@@ -57,6 +75,18 @@ def resumen_rezago(tabla: pd.DataFrame) -> dict:
                 "advertencia": ADVERTENCIA, "detalle": []}
     mejor = validas.loc[validas["correlacion"].idxmax()]
     return {
+        **_resumen_mejor(mejor),
+        "detalle": [
+            {"rezago_meses": int(f.rezago_meses),
+             "correlacion": None if pd.isna(f.correlacion) else round(float(f.correlacion), 4),
+             "n_obs": int(f.n_obs)}
+            for f in tabla.itertuples()
+        ],
+    }
+
+
+def _resumen_mejor(mejor: pd.Series) -> dict:
+    return {
         "rezago_optimo_meses": int(mejor["rezago_meses"]),
         "correlacion": round(float(mejor["correlacion"]), 4),
         "n_obs": int(mejor["n_obs"]),
@@ -65,10 +95,4 @@ def resumen_rezago(tabla: pd.DataFrame) -> dict:
         "metodo": "Pearson entre variación % mensual del WTI (t) y de la producción (t+k)",
         "criterio": "rezago con la mayor correlación (con signo)",
         "advertencia": ADVERTENCIA,
-        "detalle": [
-            {"rezago_meses": int(f.rezago_meses),
-             "correlacion": None if pd.isna(f.correlacion) else round(float(f.correlacion), 4),
-             "n_obs": int(f.n_obs)}
-            for f in tabla.itertuples()
-        ],
     }

@@ -134,6 +134,26 @@ def test_rezago_detecta_desfasaje_conocido():
     assert "no causal" in r["advertencia"]
 
 
+def test_rezago_excluyendo_ventana():
+    meses = pd.date_range("2018-01-01", periods=96, freq="MS")
+    valores = np.linspace(100, 200, len(meses))
+    df = pd.DataFrame({"periodo": meses, "valor": valores})
+    completo = correlacion_cruzada(df, df, 0, 2)
+    sin = correlacion_cruzada(df, df, 0, 2, excluir=("2020-01", "2021-12"))
+    # 24 meses excluidos + la variación que sale de la ventana
+    assert completo.loc[0, "n_obs"] - sin.loc[0, "n_obs"] == 25
+
+
+def test_gold_publica_los_dos_escenarios_de_rezago(settings, pipeline_completo):
+    r = json.loads((settings.gold_dir / "analisis_rezago.json").read_text(encoding="utf-8"))
+    assert [e["id"] for e in r["escenarios"]] == ["completo", "sin_pandemia"]
+    assert r["escenarios"][1]["excluir"] == ["2020-01", "2021-12"]
+    assert "no causal" in r["advertencia"]
+    tabla = pd.read_parquet(settings.gold_dir / "parquet" / "analisis_rezago.parquet")
+    assert set(tabla["escenario"]) == {"completo", "sin_pandemia"}
+    assert len(tabla) == 2 * (settings.rezago_max_meses + 1)
+
+
 def test_rezago_con_pocos_datos_no_inventa_resultado():
     meses = pd.date_range("2026-01-01", periods=10, freq="MS")
     df = pd.DataFrame({"periodo": meses, "valor": range(1, 11)})
