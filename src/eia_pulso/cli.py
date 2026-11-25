@@ -1,4 +1,4 @@
-"""CLI: python -m eia_pulso run --stage bronze|silver|gold|all"""
+"""CLI: python -m eia_pulso run --stage bronze|silver|gold|all  |  export-web --out DIR"""
 
 from __future__ import annotations
 
@@ -26,6 +26,11 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--hoy", type=date.fromisoformat,
                      help="Fecha de referencia YYYY-MM-DD (para pruebas/reprocesos)")
     run.add_argument("-v", "--verbose", action="store_true")
+    web = sub.add_parser("export-web", help="Exporta Gold a JSON para el dashboard web")
+    web.add_argument("--config", help="Ruta al YAML (default: config/pipeline.yaml)")
+    web.add_argument("--data-dir", help="Carpeta de datos (default: data/)")
+    web.add_argument("--out", default="web/public/data", help="Carpeta destino de los JSON")
+    web.add_argument("-v", "--verbose", action="store_true")
     return p
 
 
@@ -44,6 +49,15 @@ def main(argv: list[str] | None = None) -> int:
     configurar_logging(args.verbose)
     try:
         settings = load_settings(args.config, args.data_dir)
+        if args.comando == "export-web":
+            from pathlib import Path
+
+            from eia_pulso.web.export import exportar
+
+            res = exportar(settings.gold_dir, Path(args.out))
+            _tabla(f"JSON web en {res.destino}",
+                   {k: f"{v:>9,} bytes" for k, v in res.archivos.items()})
+            return 0
         datasets = [d.strip() for d in args.datasets.split(",")] if args.datasets else None
         if datasets:
             faltan = set(datasets) - set(settings.datasets)

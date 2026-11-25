@@ -5,7 +5,7 @@
 fabric/config/eia_config.json
 
 # Datos locales del pipeline
-data/
+/data/
 
 # Python
 __pycache__/
