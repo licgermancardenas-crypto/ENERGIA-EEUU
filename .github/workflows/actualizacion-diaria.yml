@@ -30,7 +30,7 @@ jobs:
       DATA_STORE: ${{ github.workspace }}/../data-store
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -39,7 +39,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -97,7 +97,7 @@ jobs:
       - name: Exportar JSON del dashboard
         run: python -m eia_pulso export-web --out web/public/data
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
