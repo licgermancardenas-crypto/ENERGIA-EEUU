@@ -1,0 +1,27 @@
+# Secretos
+.env
+.env.*
+!.env.example
+fabric/config/eia_config.json
+
+# Datos locales del pipeline
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+web/.next/
+web/out/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
