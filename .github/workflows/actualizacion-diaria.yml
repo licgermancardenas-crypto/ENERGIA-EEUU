@@ -1,0 +1,155 @@
+# Corrida diaria del pipeline: Bronze → Silver → Gold → JSON del dashboard → deploy.
+#
+# Persistencia: Bronze y Silver viven en la rama huérfana `data-store` (append-only,
+# nunca se reescribe la historia). Gold se reconstruye en cada corrida y no se guarda.
+# Secretos: EIA_API_KEY (obligatorio) y VERCEL_DEPLOY_HOOK_URL (opcional).
+name: Actualización diaria
+
+on:
+  schedule:
+    - cron: "30 19 * * *"   # 19:30 UTC, después de las publicaciones diarias de la EIA
+  workflow_dispatch:
+    inputs:
+      completo:
+        description: "Recargar Bronze desde la fecha de inicio (ignora la carga incremental)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizacion-diaria
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATA_STORE: ${{ github.workspace }}/../data-store
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configurar Git (bot)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar el pipeline
+        run: pip install -e .
+
+      - name: Recuperar Bronze y Silver desde la rama data-store
+        run: |
+          if git ls-remote --exit-code --heads origin data-store >/dev/null; then
+            git fetch --depth 1 origin "+refs/heads/data-store:refs/remotes/origin/data-store"
+            git worktree add -B data-store "$DATA_STORE" origin/data-store
+            mkdir -p data
+            [ -d "$DATA_STORE/data/bronze" ] && cp -r "$DATA_STORE/data/bronze" data/
+            [ -d "$DATA_STORE/data/silver" ] && cp -r "$DATA_STORE/data/silver" data/
+            echo "Recuperado: $(find data -type f | wc -l) archivos"
+          else
+            echo "No existe data-store: primera corrida, carga histórica completa."
+            git worktree add --detach "$DATA_STORE"
+            git -C "$DATA_STORE" checkout --orphan data-store
+            git -C "$DATA_STORE" rm -rfq . || true
+          fi
+
+      - name: Correr el pipeline (Bronze → Silver → Gold)
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: |
+          if [ -z "$EIA_API_KEY" ]; then
+            echo "::error::Falta el secreto EIA_API_KEY (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          ARGS=""
+          if [ "${{ inputs.completo }}" = "true" ]; then ARGS="--completo"; fi
+          python -m eia_pulso run --stage all $ARGS
+
+      - name: Guardar Bronze y Silver en data-store
+        run: |
+          mkdir -p "$DATA_STORE/data"
+          rm -rf "$DATA_STORE/data/bronze" "$DATA_STORE/data/silver"
+          cp -r data/bronze data/silver "$DATA_STORE/data/"
+          cat > "$DATA_STORE/README.md" <<'MD'
+          # data-store
+          Rama de datos del pipeline (Bronze JSON crudos y Silver Parquet). La escribe solo la
+          GitHub Action "Actualización diaria". No hacer merge a main.
+          MD
+          cd "$DATA_STORE"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Sin cambios en Bronze/Silver."
+          else
+            git commit -qm "data: corrida $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin data-store
+          fi
+
+      - name: Exportar JSON del dashboard
+        run: python -m eia_pulso export-web --out web/public/data
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Validar el dashboard (tests + build)
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
+
+      - name: Publicar JSON en main
+        id: publicar
+        run: |
+          git add web/public/data
+          if git diff --cached --quiet; then
+            echo "cambios=false" >> "$GITHUB_OUTPUT"
+            echo "Los JSON no cambiaron."
+          else
+            git commit -qm "data(web): actualización diaria $(date -u +%Y-%m-%d)"
+            git push origin HEAD:main
+            echo "cambios=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Disparar deploy en Vercel (deploy hook, opcional)
+        if: steps.publicar.outputs.cambios == 'true'
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$HOOK" ]; then
+            curl -fsS -X POST "$HOOK" > /dev/null && echo "Deploy solicitado a Vercel."
+          else
+            echo "Sin VERCEL_DEPLOY_HOOK_URL: el deploy lo dispara la integración Git de Vercel con el push."
+          fi
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "## Pulso Energético — corrida diaria"
+            if [ -f data/gold/resumen.json ]; then
+              echo '```json'; cat data/gold/resumen.json; echo '```'
+            fi
+            if [ -f data/gold/frescura.json ]; then
+              echo "### Frescura"
+              python - <<'PY'
+          import json
+          f = json.load(open("data/gold/frescura.json", encoding="utf-8"))
+          print("| Dataset | Último período | Atraso | Estado |\n|---|---|---:|---|")
+          for d in f["datasets"]:
+              print(f"| {d['dataset']} | {d['ultimo_periodo'][:10]} | {d['dias_atraso']} d | {d['estado']} |")
+          PY
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
