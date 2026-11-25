@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Pulso Energético de EE. UU. — pipeline medallón (Bronze/Silver/Gold) de petróleo y gas con la API de la EIA"
 authors = [{ name = "German Cardenas" }]
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "requests>=2.31",
