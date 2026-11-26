@@ -354,25 +354,32 @@ def paginas() -> list[Pagina]:
                "Último dato publicado de cada serie de la EIA")
     p.encabezado()
     w, xs = _fila(5)
-    p.texto(M, Y0, 400, 22, [("PETRÓLEO", 10, NARANJA, True)])
-    for x, (m, e, n) in zip(xs, [
-            ("Último WTI", "WTI", "US$ por barril"),
-            ("WTI vs promedio 12 meses %", "WTI vs. promedio 12 m", "variación"),
-            ("Diferencial Brent-WTI", "Brent − WTI", "US$ por barril"),
-            ("Stock crudo comercial", "Crudo comercial", "miles de barriles"),
-            ("Crudo comercial vs año anterior %", "Crudo vs. año anterior", "misma semana")],
-            strict=True):
-        p.kpi(x, Y0 + 26, w, 112, m, e, n, NARANJA)
+    p.imagen(M, Y0 + 1, 18, 18, "Ícono sección petróleo")
+    p.texto(M + 24, Y0, 400, 22, [("PETRÓLEO", 10, NARANJA, True)])
+    for x, (m, e, n, ic) in zip(xs, [
+            ("Último WTI", "WTI", "US$ por barril", "Ícono WTI"),
+            ("WTI vs promedio 12 meses %", "WTI vs. promedio 12 m", "variación",
+             "Flecha WTI vs promedio 12 meses"),
+            ("Diferencial Brent-WTI", "Brent − WTI", "US$ por barril", "Ícono Brent-WTI"),
+            ("Stock crudo comercial", "Crudo comercial", "miles de barriles",
+             "Ícono crudo comercial"),
+            ("Crudo comercial vs año anterior %", "Crudo vs. año anterior", "misma semana",
+             "Flecha crudo vs año anterior")], strict=True):
+        p.kpi(x, Y0 + 26, w, 112, m, e, n, NARANJA, icono=ic)
     y2 = Y0 + 26 + 112 + 20
-    p.texto(M, y2, 400, 22, [("GAS NATURAL", 10, AZUL, True)])
-    for x, (m, e, n) in zip(xs, [
-            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu"),
-            ("Henry Hub vs promedio 12 meses %", "Henry Hub vs. prom. 12 m", "variación"),
-            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48"),
-            ("Inyección neta semanal", "Inyección neta", "Bcf en la semana"),
+    p.imagen(M, y2 + 1, 18, 18, "Ícono sección gas")
+    p.texto(M + 24, y2, 400, 22, [("GAS NATURAL", 10, AZUL, True)])
+    for x, (m, e, n, ic) in zip(xs, [
+            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu", "Ícono Henry Hub"),
+            ("Henry Hub vs promedio 12 meses %", "Henry Hub vs. prom. 12 m", "variación",
+             "Flecha Henry Hub vs promedio 12 meses"),
+            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48",
+             "Ícono gas almacenado"),
+            ("Inyección neta semanal", "Inyección neta", "Bcf en la semana",
+             "Ícono inyección neta"),
             ("Participación generación eléctrica %", "Generación eléctrica",
-             "del consumo de gas")], strict=True):
-        p.kpi(x, y2 + 26, w, 112, m, e, n, AZUL)
+             "del consumo de gas", "Ícono generación eléctrica")], strict=True):
+        p.kpi(x, y2 + 26, w, 112, m, e, n, AZUL, icono=ic)
     y3 = y2 + 26 + 112 + 18
     hc = FIN - y3
     w2, xs2 = _fila(2)
