@@ -274,7 +274,7 @@ class Pagina:
                                            "backColorPrimary": color(BLANCO),
                                            "backColorSecondary": color("#F7F4EE")}}],
                 "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(10.0),
-                                         "imageHeight": lit(20.0)}}],
+                                         "imageHeight": lit(20.0), "imageWidth": lit(110.0)}}],
                 "total": [{"properties": {"totals": lit(False)}}]}
         self._agregar(x, y, w, h, {"visualType": "tableEx", "query": {"queryState": {
             "Values": {"projections": [proy(c, a) for c, a in campos]}}}, "objects": objs,
@@ -334,7 +334,7 @@ class Pagina:
             self.boton(bx, 14, bw, 36, destino, texto, destino == self.nombre)
             # el texto va centrado: el ícono se ubica justo a la izquierda de la palabra
             ancho_txt = len(texto) * 6.4 + 11
-            ix = bx + int((bw - ancho_txt) / 2) - 8
+            ix = bx + int((bw - ancho_txt) / 2) - 12
             self.imagen(ix, 24, 16, 16, f"Ícono página {texto}", pagina=destino)
         self.pie()
         # estado de los datos
@@ -467,7 +467,7 @@ def paginas() -> list[Pagina]:
               ["Consumo por sector"], "Consumo de gas por sector", "participación anual",
               serie=columna(S, "nombre"), leyenda=False,
               filtros=[filtro_en(S, "categoria", ["consumo"], "f_consumo")] + sin_blanco)
-    p.imagen(xs2[0] + 22, yb + 62, 440, 22, "Leyenda consumo por sector")
+    p.imagen(xs2[0] + 150, yb + 36, w2 - 172, 20, "Leyenda consumo por sector")
     p.grafico("lineChart", xs2[1], yb, w2, ha, fecha, ["Gas almacenado Lower 48"],
               "Gas almacenado Lower 48", "Bcf · el ciclo de inyección y extracción",
               colores=[AZUL])
@@ -534,7 +534,7 @@ def paginas() -> list[Pagina]:
             p.imagen(x + 24, Y0 + 50, 40, 40, ic)
     fr = "frescura"
     yt = Y0 + 100 + G
-    p.tabla(M, yt, 860, FIN - yt,
+    p.tabla(M, yt, W - 2 * M, FIN - yt,
             [(medida("Ícono frecuencia"), " "), (columna(fr, "dataset"), "Dataset"),
              (columna(fr, "frecuencia"), "Frecuencia"),
              (columna(fr, "ultimo_periodo"), "Último período"),
@@ -543,17 +543,8 @@ def paginas() -> list[Pagina]:
              (columna(fr, "umbral_dias"), "Umbral (días)"),
              (medida("Semáforo de frescura"), "Estado")],
             "Frescura de cada fuente",
-            "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada")
-    p.texto(M + 860 + G, yt, W - 2 * M - 860 - G, FIN - yt, [
-        ("Umbrales de atraso", 12, TINTA, True),
-        ("Diaria: 10 días", 10, TINTA_2, False),
-        ("Semanal: 14 días", 10, TINTA_2, False),
-        ("Mensual: 120 días", 10, TINTA_2, False),
-        (" ", 6, TINTA_2, False),
-        ("Los datos mensuales de la EIA salen con unos 2 a 3 meses de demora: por eso su "
-         "umbral es más amplio.", 10, TINTA_3, False),
-        ("Las revisiones que hace la EIA sobre datos ya cargados se auditan en "
-         "silver_auditoria_revisiones y nunca se pisan.", 10, TINTA_3, False)], fondo=BLANCO)
+            "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada · umbral: diaria 10 días, "
+            "semanal 14, mensual 120 (la EIA publica los mensuales con 2 a 3 meses de demora)")
     ps.append(p)
     return ps
 
