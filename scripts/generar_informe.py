@@ -25,6 +25,11 @@ W, H, M, G = 1280, 720, 24, 16
 BANDA = 92  # alto de la banda de encabezado
 Y0 = BANDA + 16  # primera fila de contenido
 ALTO_KPI = 100
+FIN = H - 30  # borde inferior del contenido (debajo va el pie)
+PIE = ("Fuente: U.S. Energy Information Administration (EIA) · API v2 · "
+       "Autor: Germán Cárdenas")
+PAGINAS = [("resumen", "Resumen"), ("petroleo", "Petróleo"), ("gas", "Gas"),
+           ("rezago", "Rezago"), ("calidad", "Calidad")]
 
 # Paleta (misma que la web y el tema)
 NAVY, NAVY_2 = "#0B1F3A", "#16335C"
@@ -163,7 +168,32 @@ class Pagina:
              "visualContainerObjects": vco}
         self._agregar(x, y, w, h, v)
 
-    def kpi(self, x, y, w, h, m, etiqueta, nota, acento=AZUL, tam=26.0):
+    def imagen(self, x, y, w, h, m: str, titulo=None, subtitulo=None, pagina: str | None = None,
+               tarjeta=False):
+        """Visual de imagen cuya URL sale de una medida (data URI SVG de dax/iconos.dax)."""
+        if tarjeta:
+            vco = contenedor(titulo, subtitulo)
+        else:
+            vco = {"background": [{"properties": {"show": lit(False)}}],
+                   "title": [{"properties": {"show": lit(False)}}],
+                   "border": [{"properties": {"show": lit(False)}}],
+                   "dropShadow": [{"properties": {"show": lit(False)}}],
+                   "visualHeader": [{"properties": {"show": lit(False)}}],
+                   "padding": [{"properties": {"top": lit(0.0), "bottom": lit(0.0),
+                                               "left": lit(0.0), "right": lit(0.0)}}]}
+        if pagina:
+            vco["visualLink"] = [{"properties": {"show": lit(True), "type": lit("PageNavigation"),
+                                                 "navigationSection": lit(pagina)}}]
+        self._agregar(x, y, w, h, {
+            "visualType": "image",
+            "objects": {"general": [{"properties": {"imageUrl": {"expr": medida(m)}}}]},
+            "visualContainerObjects": vco})
+
+    def icono_titulo(self, x, y, w, m: str):
+        """Ícono de 20 px en la esquina superior derecha de un contenedor."""
+        self.imagen(x + w - 38, y + 12, 22, 22, m)
+
+    def kpi(self, x, y, w, h, m, etiqueta, nota, acento=AZUL, tam=26.0, icono: str | None = None):
         objs = {
             "labels": [{"properties": {"fontSize": lit(tam), "color": color(TINTA),
                                        "fontFamily": lit(FUENTE_FUERTE),
@@ -179,6 +209,8 @@ class Pagina:
         self._agregar(x, y, w, h, {"visualType": "card", "query": {"queryState": {
             "Values": {"projections": [proy(medida(m))]}}}, "objects": objs,
             "visualContainerObjects": vco})
+        if icono:
+            self.icono_titulo(x, y, w, icono)
 
     def grafico(self, tipo, x, y, w, h, eje, valores, titulo, subtitulo=None, serie=None,
                 filtros=None, etiquetas=False, leyenda=True, colores=None, relleno=None):
@@ -234,33 +266,65 @@ class Pagina:
             "Values": {"projections": [proy(c, a) for c, a in campos]}}}, "objects": objs,
             "visualContainerObjects": contenedor(titulo, subtitulo)})
 
-    def encabezado(self):
-        # banda oscura a todo el ancho
-        self.texto(0, 0, W, BANDA, [(" ", 8, NAVY, False)], fondo=NAVY)
-        self.texto(M, 12, 720, 18, [("PULSO ENERGÉTICO DE EE. UU.  ·  " + self.menu.upper(),
-                                     8.5, "#9DB7DD", True)])
-        self.texto(M, 30, 720, 34, [(self.titulo, 18, BLANCO, True)])
-        self.texto(M, 66, 720, 20, [(self.bajada, 9, "#C9D4E5", False)])
-        # navegación
-        self._agregar(760, 14, W - 760 - M, 36, {
-            "visualType": "pageNavigator",
+    def pie(self):
+        self.texto(M, H - 22, W - 2 * M, 18, [(PIE, 8.5, TINTA_3, False)])
+
+    def boton(self, x, y, w, h, destino: str, texto: str, activo: bool):
+        """Botón de navegación con estados normal, hover, presionado y activo."""
+        fondo, letra = (AZUL, BLANCO) if activo else (NAVY_2, "#C9D4E5")
+        hover, presion = ("#2F7DDB", "#1A5FB4") if activo else ("#23446F", "#2B5689")
+        self._agregar(x, y, w, h, {
+            "visualType": "actionButton",
             "objects": {
-                "fill": [{"properties": {"fillColor": color(NAVY_2)}, "selector": SEL_DEF},
-                         {"properties": {"fillColor": color(AZUL)}, "selector": {"id": "selected"}},
-                         {"properties": {"fillColor": color("#23446F")}, "selector": SEL_HOVER}],
-                "text": [{"properties": {"fontColor": color("#C9D4E5"), "fontSize": lit(10.0),
-                                         "fontFamily": lit(FUENTE_FUERTE)},
-                          "selector": {"id": "default"}},
-                         {"properties": {"fontColor": color(BLANCO)}, "selector": SEL_SEL}],
-                "outline": [{"properties": {"show": lit(False)}, "selector": {"id": "default"}}],
+                "icon": [{"properties": {"shapeType": lit("blank")}, "selector": SEL_DEF}],
+                "text": [{"properties": {"show": lit(True)}},
+                         {"properties": {"text": lit(" " * 4 + texto), "fontColor": color(letra),
+                                         "fontSize": lit(10.0),
+                                         "fontFamily": lit(FUENTE_FUERTE)}, "selector": SEL_DEF},
+                         {"properties": {"fontColor": color(BLANCO)}, "selector": SEL_HOVER}],
+                "fill": [{"properties": {"show": lit(True)}},
+                         {"properties": {"fillColor": color(fondo), "transparency": lit(0.0)},
+                          "selector": SEL_DEF},
+                         {"properties": {"fillColor": color(hover), "transparency": lit(0.0)},
+                          "selector": SEL_HOVER},
+                         {"properties": {"fillColor": color(presion), "transparency": lit(0.0)},
+                          "selector": {"id": "press"}}],
+                "outline": [{"properties": {"show": lit(activo), "lineColor": color("#9DB7DD"),
+                                            "weight": lit(1.0)}, "selector": SEL_DEF}],
                 "shape": [{"properties": {"tileShape": lit("roundedRectangle"),
                                           "rectangleRoundedCurve": lit(8)}}],
             },
-            "visualContainerObjects": {"background": [{"properties": {"show": lit(False)}}],
-                                       "title": [{"properties": {"show": lit(False)}}],
-                                       "visualHeader": [{"properties": {"show": lit(False)}}]}})
+            "visualContainerObjects": {
+                "visualLink": [{"properties": {"show": lit(True), "type": lit("PageNavigation"),
+                                               "navigationSection": lit(destino)}}],
+                "title": [{"properties": {"show": lit(False)}}],
+                "background": [{"properties": {"show": lit(False)}}],
+                "border": [{"properties": {"show": lit(False)}}],
+                "dropShadow": [{"properties": {"show": lit(False)}}],
+                "visualHeader": [{"properties": {"show": lit(False)}}]}})
+
+    def encabezado(self):
+        # banda oscura a todo el ancho con textura topográfica sutil
+        self.texto(0, 0, W, BANDA, [(" ", 8, NAVY, False)], fondo=NAVY)
+        self.imagen(0, 0, W, BANDA, "Textura encabezado")
+        self.imagen(M, 34, 26, 26, f"Ícono página {self.menu}")
+        self.texto(M, 12, 640, 18, [("PULSO ENERGÉTICO DE EE. UU.  ·  " + self.menu.upper(),
+                                     8.5, "#9DB7DD", True)])
+        self.texto(M + 36, 30, 620, 34, [(self.titulo, 18, BLANCO, True)])
+        self.texto(M, 66, 640, 20, [(self.bajada, 9, "#C9D4E5", False)])
+        # navegación: botones propios con ícono
+        nav_x, nav_w = 680, W - 680 - M
+        bw = (nav_w - 4 * 6) // 5
+        for i, (destino, texto) in enumerate(PAGINAS):
+            bx = nav_x + i * (bw + 6)
+            self.boton(bx, 14, bw, 36, destino, texto, destino == self.nombre)
+            # el texto va centrado: el ícono se ubica justo a la izquierda de la palabra
+            ancho_txt = len(texto) * 6.4 + 11
+            ix = bx + int((bw - ancho_txt) / 2) - 8
+            self.imagen(ix, 24, 16, 16, f"Ícono página {texto}", pagina=destino)
+        self.pie()
         # estado de los datos
-        self._agregar(760, 56, W - 760 - M, 28, {
+        self._agregar(nav_x, 56, nav_w, 28, {
             "visualType": "card",
             "query": {"queryState": {"Values": {"projections": [
                 proy(medida("Estado de los datos"))]}}},
@@ -287,7 +351,7 @@ def paginas() -> list[Pagina]:
 
     # 1 · Resumen
     p = Pagina("resumen", "Resumen", "El pulso hoy",
-               "Último dato publicado de cada serie · Fuente: EIA, API v2 · Autor: German Cardenas")
+               "Último dato publicado de cada serie de la EIA")
     p.encabezado()
     w, xs = _fila(5)
     p.texto(M, Y0, 400, 22, [("PETRÓLEO", 10, NARANJA, True)])
@@ -310,7 +374,7 @@ def paginas() -> list[Pagina]:
              "del consumo de gas")], strict=True):
         p.kpi(x, y2 + 26, w, 112, m, e, n, AZUL)
     y3 = y2 + 26 + 112 + 18
-    hc = H - y3 - M
+    hc = FIN - y3
     w2, xs2 = _fila(2)
     p.grafico("lineChart", xs2[0], y3, w2, hc, fecha, ["Precio WTI", "Precio Brent"],
               "Precio spot del crudo", "US$ por barril", colores=[AZUL, NARANJA])
@@ -332,7 +396,7 @@ def paginas() -> list[Pagina]:
             strict=True):
         p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, NARANJA, tam=22.0)
     ya = Y0 + ALTO_KPI + G
-    ha = (H - ya - M - G) // 2
+    ha = (FIN - ya - G) // 2
     p.grafico("lineChart", M, ya, 800, ha, fecha, ["Precio WTI", "Precio Brent"],
               "Precio spot WTI y Brent", "US$ por barril", colores=[AZUL, NARANJA])
     p.grafico("clusteredBarChart", M + 800 + G, ya, W - 2 * M - 800 - G, ha,
@@ -401,7 +465,7 @@ def paginas() -> list[Pagina]:
         ("Que el resultado cambie tanto entre escenarios muestra que ninguna cifra es una regla "
          "fija. Es correlación, no causalidad.", 10, TINTA_2, False)], fondo=BLANCO)
     yd = yc + hc + G
-    hd = H - yd - M
+    hd = FIN - yd
     p.grafico("lineChart", xs2[0], yd, w2, hd, fecha, ["Precio WTI mensual"],
               "Precio WTI mensual", "US$ por barril", colores=[AZUL])
     p.grafico("lineChart", xs2[1], yd, w2, hd, fecha, ["Producción de crudo"],
@@ -421,14 +485,14 @@ def paginas() -> list[Pagina]:
         p.kpi(x, Y0, w3, 100, m, e, n, a, tam=30.0)
     fr = "frescura"
     yt = Y0 + 100 + G
-    p.tabla(M, yt, 860, H - yt - M,
+    p.tabla(M, yt, 860, FIN - yt,
             [(columna(fr, "dataset"), "Dataset"), (columna(fr, "frecuencia"), "Frecuencia"),
              (columna(fr, "ultimo_periodo"), "Último período"),
              (columna(fr, "dias_atraso"), "Días de atraso"),
              (columna(fr, "umbral_dias"), "Umbral (días)"),
              (medida("Icono de estado"), "Estado")],
             "Frescura de cada fuente", "una fila por dataset de la EIA")
-    p.texto(M + 860 + G, yt, W - 2 * M - 860 - G, H - yt - M, [
+    p.texto(M + 860 + G, yt, W - 2 * M - 860 - G, FIN - yt, [
         ("Umbrales de atraso", 12, TINTA, True),
         ("Diaria: 10 días", 10, TINTA_2, False),
         ("Semanal: 14 días", 10, TINTA_2, False),

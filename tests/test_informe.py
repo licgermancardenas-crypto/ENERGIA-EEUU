@@ -10,7 +10,6 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "scripts"))
 import generar_informe as gi  # noqa: E402
 import generar_modelo_semantico as gm  # noqa: E402
-import generar_powerbi as gp  # noqa: E402
 
 
 def _campos(obj):
@@ -31,7 +30,7 @@ def test_informe_referencia_campos_existentes(tmp_path):
     paginas = json.loads((raiz / "definition/pages/pages.json").read_text(encoding="utf-8"))
     assert len(paginas["pageOrder"]) == 5
 
-    medidas = {m.nombre for m in gp.leer_medidas(gp.SPEC.read_text(encoding="utf-8"))}
+    medidas = {m.nombre for m in gm.todas_las_medidas()}
     columnas = {(t, c) for t, cols in gm.TABLAS.items() for c, _ in cols}
     visuales = list(raiz.glob("definition/pages/*/visuals/*/visual.json"))
     assert len(visuales) > 30
