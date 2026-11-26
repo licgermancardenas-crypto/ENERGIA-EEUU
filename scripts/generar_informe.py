@@ -1,8 +1,8 @@
 """Genera el informe Power BI (formato PBIR) de 5 páginas sobre el modelo sm_pulso_energetico.
 
-Sigue la §5 de powerbi/ESPECIFICACION_POWERBI.md con visuales nativos. Los visuales
-*HTML Content* (AppSource) no se pueden instalar por CLI: los banners se reemplazan por
-tarjetas y cuadros de texto. Uso:
+Sigue la §5 de powerbi/ESPECIFICACION_POWERBI.md con visuales nativos: banda de encabezado,
+navegación entre páginas, tarjetas KPI con jerarquía y gráficos con la paleta del proyecto.
+Los visuales *HTML Content* (AppSource) no se pueden instalar por CLI. Uso:
 
     python scripts/generar_informe.py --workspace "<nombre>" --model-id <id> --out <carpeta>
     fab import "<ws>.Workspace/Pulso Energetico EEUU.Report" -i <carpeta>/rp_pulso.Report -f
@@ -21,10 +21,35 @@ MED = "dim_serie"  # tabla que aloja las medidas (ver generar_modelo_semantico.p
 SCH = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition"
 NOMBRE = "rp_pulso"
 
-W, H, M = 1280, 720, 24
+W, H, M, G = 1280, 720, 24, 16
+BANDA = 92  # alto de la banda de encabezado
+Y0 = BANDA + 16  # primera fila de contenido
+ALTO_KPI = 100
+
+# Paleta (misma que la web y el tema)
+NAVY, NAVY_2 = "#0B1F3A", "#16335C"
+AZUL, NARANJA, VIOLETA, OCRE = "#1F6FD1", "#C4531A", "#7A45C2", "#A87D00"
+TINTA, TINTA_2, TINTA_3 = "#1B1F24", "#4A5260", "#7A8394"
+BLANCO, PAPEL, LINEA = "#FFFFFF", "#F4F1EA", "#E4DED2"
+FUENTE, FUENTE_FUERTE = "Segoe UI", "Segoe UI Semibold"
+SEL_DEF, SEL_HOVER, SEL_SEL = {"id": "default"}, {"id": "hover"}, {"id": "selected"}
 
 
-# ---------- campos ----------
+# ---------- expresiones ----------
+def lit(v) -> dict:
+    if isinstance(v, bool):
+        return {"expr": {"Literal": {"Value": "true" if v else "false"}}}
+    if isinstance(v, int):
+        return {"expr": {"Literal": {"Value": f"{v}L"}}}
+    if isinstance(v, float):
+        return {"expr": {"Literal": {"Value": f"{v}D"}}}
+    return {"expr": {"Literal": {"Value": "'" + str(v).replace("'", "''") + "'"}}}
+
+
+def color(hex_: str) -> dict:
+    return {"solid": {"color": lit(hex_)}}
+
+
 def medida(nombre: str) -> dict:
     return {"Measure": {"Expression": {"SourceRef": {"Entity": MED}}, "Property": nombre}}
 
@@ -33,166 +58,386 @@ def columna(tabla: str, col: str) -> dict:
     return {"Column": {"Expression": {"SourceRef": {"Entity": tabla}}, "Property": col}}
 
 
-def proy(campo: dict) -> dict:
+def proy(campo: dict, alias: str | None = None) -> dict:
     k = "Measure" if "Measure" in campo else "Column"
     ent = campo[k]["Expression"]["SourceRef"]["Entity"]
     prop = campo[k]["Property"]
-    return {"field": campo, "queryRef": f"{ent}.{prop}", "nativeQueryRef": prop}
+    p = {"field": campo, "queryRef": f"{ent}.{prop}", "nativeQueryRef": prop}
+    if alias:
+        p["displayName"] = alias
+    return p
 
 
-def lit(v) -> dict:
-    if isinstance(v, bool):
-        return {"expr": {"Literal": {"Value": "true" if v else "false"}}}
-    if isinstance(v, (int, float)):
-        return {"expr": {"Literal": {"Value": f"{v}D"}}}
-    return {"expr": {"Literal": {"Value": "'" + str(v).replace("'", "''") + "'"}}}
+def _col_src(col: str) -> dict:
+    return {"Column": {"Expression": {"SourceRef": {"Source": "t"}}, "Property": col}}
 
 
 def filtro_en(tabla: str, col: str, valores: list[str], nombre: str) -> dict:
+    return {"name": nombre, "field": columna(tabla, col), "type": "Categorical",
+            "filter": {"Version": 2, "From": [{"Name": "t", "Entity": tabla, "Type": 0}],
+                       "Where": [{"Condition": {"In": {
+                           "Expressions": [_col_src(col)],
+                           "Values": [[{"Literal": {"Value": f"'{v}'"}}] for v in valores]}}}]}}
+
+
+def filtro_desde(tabla: str, col: str, minimo: int, nombre: str) -> dict:
+    """col >= minimo (saca el miembro en blanco de los segmentadores de año)."""
+    return {"name": nombre, "field": columna(tabla, col), "type": "Advanced",
+            "filter": {"Version": 2, "From": [{"Name": "t", "Entity": tabla, "Type": 0}],
+                       "Where": [{"Condition": {"Comparison": {
+                           "ComparisonKind": 2, "Left": _col_src(col),
+                           "Right": {"Literal": {"Value": f"{minimo}L"}}}}}]}}
+
+
+# ---------- estilo de contenedores ----------
+def contenedor(titulo: str | None = None, subtitulo: str | None = None, fondo: str = BLANCO,
+               borde: bool = True, sombra: bool = True, radio: int = 12) -> dict:
+    o: dict = {
+        "background": [{"properties": {"show": lit(True), "color": color(fondo),
+                                       "transparency": lit(0.0)}}],
+        "border": [{"properties": {"show": lit(borde), "color": color(LINEA),
+                                   "radius": lit(float(radio))}}],
+        "dropShadow": [{"properties": {"show": lit(sombra), "color": color("#0B1F3A"),
+                                       "transparency": lit(88.0), "preset": lit("BottomRight")}}],
+        "padding": [{"properties": {"top": lit(10.0), "bottom": lit(10.0), "left": lit(14.0),
+                                    "right": lit(14.0)}}],
+        "visualHeader": [{"properties": {"show": lit(False)}}],
+    }
+    if titulo:
+        o["title"] = [{"properties": {"show": lit(True), "text": lit(titulo),
+                                      "fontColor": color(TINTA), "fontSize": lit(12.0),
+                                      "fontFamily": lit(FUENTE_FUERTE), "bold": lit(False)}}]
+    else:
+        o["title"] = [{"properties": {"show": lit(False)}}]
+    if subtitulo:
+        o["subTitle"] = [{"properties": {"show": lit(True), "text": lit(subtitulo),
+                                         "fontColor": color(TINTA_3), "fontSize": lit(9.0)}}]
+    return o
+
+
+def ejes_limpios(leyenda: bool = True) -> dict:
     return {
-        "name": nombre, "field": columna(tabla, col), "type": "Categorical",
-        "filter": {"Version": 2, "From": [{"Name": "t", "Entity": tabla, "Type": 0}],
-                   "Where": [{"Condition": {"In": {
-                       "Expressions": [{"Column": {"Expression": {"SourceRef": {"Source": "t"}},
-                                                   "Property": col}}],
-                       "Values": [[{"Literal": {"Value": f"'{v}'"}}] for v in valores]}}}]},
+        "legend": [{"properties": {"show": lit(leyenda), "position": lit("Top"),
+                                   "showTitle": lit(False), "fontSize": lit(9.0),
+                                   "labelColor": color(TINTA_2)}}],
+        "categoryAxis": [{"properties": {"showAxisTitle": lit(False), "fontSize": lit(9.0),
+                                         "labelColor": color(TINTA_3)}}],
+        "valueAxis": [{"properties": {"showAxisTitle": lit(False), "fontSize": lit(9.0),
+                                      "labelColor": color(TINTA_3), "gridlineShow": lit(True),
+                                      "gridlineColor": color("#ECE7DD")}}],
     }
 
 
-# ---------- visuales ----------
+# ---------- páginas ----------
 class Pagina:
-    def __init__(self, nombre: str, titulo: str):
-        self.nombre, self.titulo, self.visuales = nombre, titulo, []
+    def __init__(self, nombre: str, menu: str, titulo: str, bajada: str):
+        self.nombre, self.menu, self.titulo, self.bajada = nombre, menu, titulo, bajada
+        self.visuales: list[dict] = []
 
-    def _agregar(self, x, y, w, h, visual, titulo=None, filtros=None):
+    def _agregar(self, x, y, w, h, visual, filtros=None):
         n = f"{self.nombre}_v{len(self.visuales):02d}"
         cont = {"$schema": f"{SCH}/visualContainer/1.0.0/schema.json", "name": n,
-                "position": {"x": x, "y": y, "z": len(self.visuales), "width": w, "height": h},
+                "position": {"x": x, "y": y, "z": len(self.visuales) * 1000, "width": w,
+                             "height": h},
                 "visual": visual}
-        if titulo:
-            visual["visualContainerObjects"] = {"title": [{"properties": {
-                "show": lit(True), "text": lit(titulo)}}]}
         if filtros:
             cont["filterConfig"] = {"filters": filtros}
         self.visuales.append(cont)
 
-    def texto(self, x, y, w, h, texto, tam=11, negrita=False):
-        estilo = {"fontSize": f"{tam}pt"} | ({"fontWeight": "bold"} if negrita else {})
-        self._agregar(x, y, w, h, {"visualType": "textbox", "objects": {"general": [{"properties": {
-            "paragraphs": [{"textRuns": [{"value": p, "textStyle": estilo}]}
-                           for p in texto.split("\n")]}}]}})
+    # -- piezas
+    def texto(self, x, y, w, h, parrafos: list[tuple[str, float, str, bool]], fondo=None):
+        """parrafos: (texto, tamaño pt, color, negrita)."""
+        runs = [{"textRuns": [{"value": t, "textStyle": {
+            "fontSize": f"{tam}pt", "color": col,
+            "fontFamily": FUENTE_FUERTE if neg else FUENTE}}]} for t, tam, col, neg in parrafos]
+        tarjeta = fondo == BLANCO
+        vco = contenedor(fondo=fondo or BLANCO, borde=tarjeta, sombra=tarjeta,
+                         radio=12 if tarjeta else 0)
+        if not tarjeta:
+            vco["padding"] = [{"properties": {"top": lit(0.0), "bottom": lit(0.0),
+                                              "left": lit(0.0), "right": lit(0.0)}}]
+        if fondo is None:
+            vco["background"] = [{"properties": {"show": lit(False)}}]
+        general = [{"properties": {"paragraphs": runs}}]
+        v = {"visualType": "textbox", "objects": {"general": general},
+             "visualContainerObjects": vco}
+        self._agregar(x, y, w, h, v)
 
-    def tarjeta(self, x, y, w, h, m, titulo=None):
+    def kpi(self, x, y, w, h, m, etiqueta, nota, acento=AZUL, tam=26.0):
+        objs = {
+            "labels": [{"properties": {"fontSize": lit(tam), "color": color(TINTA),
+                                       "fontFamily": lit(FUENTE_FUERTE),
+                                       "labelDisplayUnits": lit(1.0)}}],
+            "categoryLabels": [{"properties": {"show": lit(False)}}],
+            "wordWrap": [{"properties": {"show": lit(True)}}],
+        }
+        vco = contenedor(etiqueta.upper(), nota)
+        vco["title"][0]["properties"].update({"fontSize": lit(9.0), "fontColor": color(acento),
+                                              "fontFamily": lit(FUENTE_FUERTE)})
+        vco["border"] = [{"properties": {"show": lit(True), "color": color(LINEA),
+                                         "radius": lit(12.0)}}]
         self._agregar(x, y, w, h, {"visualType": "card", "query": {"queryState": {
-            "Values": {"projections": [proy(medida(m))]}}}}, titulo or m)
+            "Values": {"projections": [proy(medida(m))]}}}, "objects": objs,
+            "visualContainerObjects": vco})
 
-    def grafico(self, tipo, x, y, w, h, eje, valores, titulo, serie=None, filtros=None):
+    def grafico(self, tipo, x, y, w, h, eje, valores, titulo, subtitulo=None, serie=None,
+                filtros=None, etiquetas=False, leyenda=True, colores=None, relleno=None):
         qs = {"Category": {"projections": [proy(eje)]},
               "Y": {"projections": [proy(medida(v)) for v in valores]}}
         if serie:
             qs["Series"] = {"projections": [proy(serie)]}
-        self._agregar(x, y, w, h, {"visualType": tipo, "query": {"queryState": qs}}, titulo,
+        objs = ejes_limpios(leyenda and (len(valores) > 1 or serie is not None))
+        if tipo == "lineChart":
+            objs["lineStyles"] = [{"properties": {"strokeWidth": lit(2.0)}}]
+        if etiquetas:
+            objs["labels"] = [{"properties": {"show": lit(True), "fontSize": lit(9.0),
+                                              "color": color(TINTA_2)}}]
+        if colores:
+            objs["dataPoint"] = [{"properties": {"fill": color(c)},
+                                  "selector": {"metadata": f"{MED}.{v}"}}
+                                 for v, c in zip(valores, colores, strict=True)]
+        if relleno:  # color por valor de campo (medida que devuelve un hex)
+            objs["dataPoint"] = [{"properties": {"fill": {"solid": {"color": {"expr": medida(
+                relleno)}}}}, "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}]
+        self._agregar(x, y, w, h, {"visualType": tipo, "query": {"queryState": qs},
+                                   "objects": objs,
+                                   "visualContainerObjects": contenedor(titulo, subtitulo)},
                       filtros)
 
-    def segmentador(self, x, y, w, h, campo, titulo):
+    def segmentador(self, x, y, w, h, campo, titulo, desplegable=True, filtros=None,
+                    seleccion: str | None = None):
+        objs: dict = {"data": [{"properties": {"mode": lit("Dropdown" if desplegable
+                                                           else "Basic")}}],
+                      "header": [{"properties": {"show": lit(False)}}],
+                      "items": [{"properties": {"fontColor": color(TINTA), "textSize": lit(10.0)}}]}
+        if seleccion:
+            ent = campo["Column"]["Expression"]["SourceRef"]["Entity"]
+            col = campo["Column"]["Property"]
+            objs["selection"] = [{"properties": {"singleSelect": lit(True),
+                                                 "strictSingleSelect": lit(True)}}]
+            objs["general"] = [{"properties": {"filter": {"filter": filtro_en(
+                ent, col, [seleccion], "sel")["filter"]}}}]
         self._agregar(x, y, w, h, {"visualType": "slicer", "query": {"queryState": {
-            "Values": {"projections": [proy(campo)]}}}}, titulo)
+            "Values": {"projections": [proy(campo)]}}}, "objects": objs,
+            "visualContainerObjects": contenedor(titulo)}, filtros)
 
-    def tabla(self, x, y, w, h, campos, titulo):
+    def tabla(self, x, y, w, h, campos: list[tuple[dict, str]], titulo, subtitulo=None):
+        objs = {"columnHeaders": [{"properties": {"fontColor": color(BLANCO),
+                                                  "backColor": color(NAVY),
+                                                  "fontFamily": lit(FUENTE_FUERTE)}}],
+                "values": [{"properties": {"fontColorPrimary": color(TINTA),
+                                           "backColorPrimary": color(BLANCO),
+                                           "backColorSecondary": color("#F7F4EE")}}],
+                "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(10.0)}}],
+                "total": [{"properties": {"totals": lit(False)}}]}
         self._agregar(x, y, w, h, {"visualType": "tableEx", "query": {"queryState": {
-            "Values": {"projections": [proy(c) for c in campos]}}}}, titulo)
+            "Values": {"projections": [proy(c, a) for c, a in campos]}}}, "objects": objs,
+            "visualContainerObjects": contenedor(titulo, subtitulo)})
 
     def encabezado(self):
-        self.texto(M, 12, 760, 44, self.titulo, tam=20, negrita=True)
-        self.tarjeta(800, 12, W - 800 - M, 52, "Estado de los datos", "Fuente: EIA, API v2")
+        # banda oscura a todo el ancho
+        self.texto(0, 0, W, BANDA, [(" ", 8, NAVY, False)], fondo=NAVY)
+        self.texto(M, 12, 720, 18, [("PULSO ENERGÉTICO DE EE. UU.  ·  " + self.menu.upper(),
+                                     8.5, "#9DB7DD", True)])
+        self.texto(M, 30, 720, 34, [(self.titulo, 18, BLANCO, True)])
+        self.texto(M, 66, 720, 20, [(self.bajada, 9, "#C9D4E5", False)])
+        # navegación
+        self._agregar(760, 14, W - 760 - M, 36, {
+            "visualType": "pageNavigator",
+            "objects": {
+                "fill": [{"properties": {"fillColor": color(NAVY_2)}, "selector": SEL_DEF},
+                         {"properties": {"fillColor": color(AZUL)}, "selector": {"id": "selected"}},
+                         {"properties": {"fillColor": color("#23446F")}, "selector": SEL_HOVER}],
+                "text": [{"properties": {"fontColor": color("#C9D4E5"), "fontSize": lit(10.0),
+                                         "fontFamily": lit(FUENTE_FUERTE)},
+                          "selector": {"id": "default"}},
+                         {"properties": {"fontColor": color(BLANCO)}, "selector": SEL_SEL}],
+                "outline": [{"properties": {"show": lit(False)}, "selector": {"id": "default"}}],
+                "shape": [{"properties": {"tileShape": lit("roundedRectangle"),
+                                          "rectangleRoundedCurve": lit(8)}}],
+            },
+            "visualContainerObjects": {"background": [{"properties": {"show": lit(False)}}],
+                                       "title": [{"properties": {"show": lit(False)}}],
+                                       "visualHeader": [{"properties": {"show": lit(False)}}]}})
+        # estado de los datos
+        self._agregar(760, 56, W - 760 - M, 28, {
+            "visualType": "card",
+            "query": {"queryState": {"Values": {"projections": [
+                proy(medida("Estado de los datos"))]}}},
+            "objects": {"labels": [{"properties": {"fontSize": lit(9.5), "color": color("#8FD3A8"),
+                                                   "fontFamily": lit(FUENTE)}}],
+                        "categoryLabels": [{"properties": {"show": lit(False)}}]},
+            "visualContainerObjects": {"background": [{"properties": {"show": lit(False)}}],
+                                       "title": [{"properties": {"show": lit(False)}}],
+                                       "visualHeader": [{"properties": {"show": lit(False)}}],
+                                       "padding": [{"properties": {"top": lit(0.0),
+                                                                   "bottom": lit(0.0)}}]}})
+
+
+def _fila(n: int, x0: int = M, ancho: int = W - 2 * M) -> tuple[int, list[int]]:
+    w = (ancho - (n - 1) * G) // n
+    return w, [x0 + i * (w + G) for i in range(n)]
 
 
 def paginas() -> list[Pagina]:
-    F, S, R = "dim_fecha", "dim_serie", "dim_region"
+    F, S, R, AR = "dim_fecha", "dim_serie", "dim_region", "analisis_rezago"
+    fecha = columna(F, "fecha")
+    sin_blanco = [filtro_desde(F, "anio", 2000, "f_anio")]
     ps = []
 
-    p = Pagina("resumen", "Pulso energético de EE. UU. — El pulso hoy")
+    # 1 · Resumen
+    p = Pagina("resumen", "Resumen", "El pulso hoy",
+               "Último dato publicado de cada serie · Fuente: EIA, API v2 · Autor: German Cardenas")
     p.encabezado()
-    cw, y = (W - 2 * M - 3 * 16) // 4, 84
-    for i, m in enumerate(["Último WTI", "WTI vs promedio 12 meses %", "Diferencial Brent-WTI",
-                           "Stock crudo comercial"]):
-        p.tarjeta(M + i * (cw + 16), y, cw, 120, m)
-    for i, m in enumerate(["Último Henry Hub", "Henry Hub vs promedio 12 meses %",
-                           "Gas almacenado Lower 48", "Participación generación eléctrica %"]):
-        p.tarjeta(M + i * (cw + 16), y + 136, cw, 120, m)
-    for i, m in enumerate(["Crudo comercial vs año anterior %", "Almacenamiento vs año anterior %",
-                           "Inyección neta semanal", "Último mes de producción"]):
-        p.tarjeta(M + i * (cw + 16), y + 272, cw, 120, m)
-    p.texto(M, y + 412, W - 2 * M, 150,
-            "Cada tarjeta muestra el último dato publicado de su serie.\n"
-            "Precios en US$ (barril o MMBtu); inventarios en miles de barriles; gas en Bcf.\n"
-            "Datos: U.S. Energy Information Administration (EIA), API v2. Autor: German Cardenas.",
-            tam=10)
+    w, xs = _fila(5)
+    p.texto(M, Y0, 400, 22, [("PETRÓLEO", 10, NARANJA, True)])
+    for x, (m, e, n) in zip(xs, [
+            ("Último WTI", "WTI", "US$ por barril"),
+            ("WTI vs promedio 12 meses %", "WTI vs. promedio 12 m", "variación"),
+            ("Diferencial Brent-WTI", "Brent − WTI", "US$ por barril"),
+            ("Stock crudo comercial", "Crudo comercial", "miles de barriles"),
+            ("Crudo comercial vs año anterior %", "Crudo vs. año anterior", "misma semana")],
+            strict=True):
+        p.kpi(x, Y0 + 26, w, 112, m, e, n, NARANJA)
+    y2 = Y0 + 26 + 112 + 20
+    p.texto(M, y2, 400, 22, [("GAS NATURAL", 10, AZUL, True)])
+    for x, (m, e, n) in zip(xs, [
+            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu"),
+            ("Henry Hub vs promedio 12 meses %", "Henry Hub vs. prom. 12 m", "variación"),
+            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48"),
+            ("Inyección neta semanal", "Inyección neta", "Bcf en la semana"),
+            ("Participación generación eléctrica %", "Generación eléctrica",
+             "del consumo de gas")], strict=True):
+        p.kpi(x, y2 + 26, w, 112, m, e, n, AZUL)
+    y3 = y2 + 26 + 112 + 18
+    hc = H - y3 - M
+    w2, xs2 = _fila(2)
+    p.grafico("lineChart", xs2[0], y3, w2, hc, fecha, ["Precio WTI", "Precio Brent"],
+              "Precio spot del crudo", "US$ por barril", colores=[AZUL, NARANJA])
+    p.grafico("lineChart", xs2[1], y3, w2, hc, fecha, ["Gas almacenado Lower 48"],
+              "Gas natural almacenado", "Bcf · Lower 48", colores=[AZUL])
     ps.append(p)
 
-    p = Pagina("petroleo", "Petróleo")
+    # 2 · Petróleo
+    p = Pagina("petroleo", "Petróleo", "Petróleo: precios, inventarios y producción",
+               "Precios diarios, inventarios semanales y producción mensual")
     p.encabezado()
-    p.segmentador(M, 76, 180, 300, columna(F, "anio"), "Año")
-    p.grafico("lineChart", 220, 76, 640, 300, columna(F, "fecha"), ["Precio WTI", "Precio Brent"],
-              "Precio spot WTI y Brent (US$/barril)")
-    p.grafico("clusteredBarChart", 876, 76, W - 876 - M, 300, columna(S, "nombre"),
-              ["Último valor"], "Precio en surtidor, última semana (US$/galón)",
+    p.segmentador(M, Y0, 200, ALTO_KPI, columna(F, "anio"), "Año", filtros=sin_blanco)
+    w4, xs4 = _fila(4, M + 216, W - 2 * M - 216)
+    for x, (m, e, n) in zip(xs4, [
+            ("Último WTI", "WTI", "US$ por barril"),
+            ("Stock crudo comercial", "Crudo comercial", "miles de barriles"),
+            ("Stock SPR", "Reserva estratégica", "miles de barriles"),
+            ("Variación semanal crudo comercial", "Variación semanal", "miles de barriles")],
+            strict=True):
+        p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, NARANJA, tam=22.0)
+    ya = Y0 + ALTO_KPI + G
+    ha = (H - ya - M - G) // 2
+    p.grafico("lineChart", M, ya, 800, ha, fecha, ["Precio WTI", "Precio Brent"],
+              "Precio spot WTI y Brent", "US$ por barril", colores=[AZUL, NARANJA])
+    p.grafico("clusteredBarChart", M + 800 + G, ya, W - 2 * M - 800 - G, ha,
+              columna(S, "nombre"), ["Último valor"], "Precio en surtidor",
+              "US$ por galón · última semana", etiquetas=True, colores=[NARANJA],
               filtros=[filtro_en(S, "categoria", ["precio_surtidor"], "f_surtidor")])
-    p.grafico("lineChart", M, 392, 600, 300, columna(F, "fecha"),
-              ["Stock crudo comercial", "Stock SPR"], "Inventarios de crudo (miles de barriles)")
-    p.grafico("lineChart", 640, 392, W - 640 - M, 300, columna(F, "anio_mes"),
-              ["Producción de crudo"], "Producción de crudo (miles de barriles por día)")
+    yb = ya + ha + G
+    w2, xs2 = _fila(2)
+    p.grafico("lineChart", xs2[0], yb, w2, ha, fecha, ["Stock crudo comercial", "Stock SPR"],
+              "Inventarios de crudo", "miles de barriles", colores=[AZUL, NARANJA])
+    p.grafico("lineChart", xs2[1], yb, w2, ha, fecha, ["Producción de crudo"],
+              "Producción de crudo", "miles de barriles por día", colores=[NARANJA])
     ps.append(p)
 
-    p = Pagina("gas", "Gas natural")
+    # 3 · Gas
+    p = Pagina("gas", "Gas", "Gas natural: precio, almacenamiento y consumo",
+               "Henry Hub diario, almacenamiento semanal y consumo mensual por sector")
     p.encabezado()
-    p.segmentador(M, 76, 180, 300, columna(F, "anio"), "Año")
-    p.grafico("lineChart", 220, 76, 600, 300, columna(F, "fecha"), ["Precio Henry Hub"],
-              "Precio Henry Hub (US$/MMBtu)")
-    p.grafico("clusteredBarChart", 836, 76, W - 836 - M, 300, columna(R, "nombre"),
-              ["Gas almacenado por región"], "Gas almacenado por región, última semana (Bcf)",
+    p.segmentador(M, Y0, 200, ALTO_KPI, columna(F, "anio"), "Año", filtros=sin_blanco)
+    for x, (m, e, n) in zip(xs4, [
+            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu"),
+            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48"),
+            ("Almacenamiento vs año anterior %", "Vs. año anterior", "misma semana"),
+            ("Inyección neta semanal", "Inyección neta", "Bcf en la semana")], strict=True):
+        p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, AZUL, tam=22.0)
+    p.grafico("lineChart", M, ya, 800, ha, fecha, ["Precio Henry Hub"], "Precio Henry Hub",
+              "US$ por MMBtu", colores=[AZUL])
+    p.grafico("clusteredBarChart", M + 800 + G, ya, W - 2 * M - 800 - G, ha,
+              columna(R, "nombre"), ["Gas almacenado por región"], "Almacenamiento por región",
+              "Bcf · última semana", etiquetas=True, colores=[AZUL],
               filtros=[filtro_en(R, "tipo", ["region_almacenamiento"], "f_region")])
-    p.grafico("hundredPercentStackedColumnChart", M, 392, 600, 300, columna(F, "anio"),
-              ["Consumo por sector"], "Consumo de gas por sector (participación anual)",
+    p.grafico("hundredPercentStackedColumnChart", xs2[0], yb, w2, ha, columna(F, "anio"),
+              ["Consumo por sector"], "Consumo de gas por sector", "participación anual",
               serie=columna(S, "nombre"),
-              filtros=[filtro_en(S, "categoria", ["consumo"], "f_consumo")])
-    p.grafico("lineChart", 640, 392, 420, 300, columna(F, "fecha"), ["Gas almacenado Lower 48"],
-              "Gas almacenado Lower 48 (Bcf)")
-    for i, m in enumerate(["Inyección neta semanal", "Producción de gas seco",
-                           "Consumo total de gas"]):
-        p.tarjeta(1076, 392 + i * 104, W - 1076 - M, 92, m)
+              filtros=[filtro_en(S, "categoria", ["consumo"], "f_consumo")] + sin_blanco)
+    p.grafico("lineChart", xs2[1], yb, w2, ha, fecha, ["Gas almacenado Lower 48"],
+              "Gas almacenado Lower 48", "Bcf · el ciclo de inyección y extracción",
+              colores=[AZUL])
     ps.append(p)
 
-    p = Pagina("rezago", "¿Cuánto tarda la producción en reaccionar al precio?")
+    # 4 · Rezago
+    p = Pagina("rezago", "Rezago", "¿Cuánto tarda la producción en reaccionar al precio?",
+               "Correlación entre la variación mensual del WTI y la de la producción, 0 a 12 meses "
+               "después")
     p.encabezado()
-    p.segmentador(M, 76, 260, 110, columna("analisis_rezago", "escenario"), "Escenario")
-    p.tarjeta(300, 76, 220, 110, "Rezago óptimo (meses)")
-    p.tarjeta(536, 76, 220, 110, "Correlación en el óptimo")
-    p.tarjeta(772, 76, W - 772 - M, 110, "Texto rezago", "Lectura")
-    p.grafico("clusteredColumnChart", M, 200, 600, 260, columna("analisis_rezago", "rezago_meses"),
-              ["Correlación"], "Correlación WTI → producción según meses de rezago")
-    p.texto(640, 200, W - 640 - M, 260,
-            "Comparamos la variación mensual del WTI con la de la producción de crudo entre 0 y 12 "
-            "meses después. Lo calculamos de dos maneras porque 2020 fue un año extremo: precio y "
-            "producción se desplomaron y rebotaron casi a la vez. Que el resultado cambie tanto "
-            "entre escenarios muestra que ninguna de las dos cifras es una regla fija.\n"
-            "Es correlación, no causalidad.", tam=11)
-    p.grafico("lineChart", M, 476, 600, 220, columna(F, "anio_mes"), ["Precio WTI mensual"],
-              "Precio WTI mensual (US$/barril)")
-    p.grafico("lineChart", 640, 476, W - 640 - M, 220, columna(F, "anio_mes"),
-              ["Producción de crudo"], "Producción de crudo (miles de barriles por día)")
+    p.segmentador(M, Y0, 260, 96, columna(AR, "escenario"), "Escenario", desplegable=False,
+                  seleccion="completo")
+    p.kpi(M + 260 + G, Y0, 200, 96, "Rezago óptimo (meses)", "Rezago óptimo", "meses", NARANJA)
+    p.kpi(M + 476 + G, Y0, 200, 96, "Correlación en el óptimo", "Correlación", "r de Pearson",
+          NARANJA)
+    xl = M + 692 + G
+    p.kpi(xl, Y0, W - M - xl, 96, "Texto rezago", "Lectura", "correlación, no causalidad",
+          NARANJA, tam=13.0)
+    yc = Y0 + 96 + G
+    hc = 250
+    p.grafico("clusteredColumnChart", M, yc, 800, hc, columna(AR, "rezago_meses"),
+              ["Correlación"], "Correlación según meses de rezago",
+              "naranja = rezago con mayor correlación", relleno="Color barra rezago",
+              etiquetas=True)
+    p.texto(M + 800 + G, yc, W - 2 * M - 800 - G, hc, [
+        ("Cómo leerlo", 12, TINTA, True),
+        ("Comparamos la variación mensual del WTI con la de la producción de crudo entre 0 y 12 "
+         "meses después.", 10, TINTA_2, False),
+        ("Lo calculamos de dos maneras porque 2020 fue un año extremo: precio y producción se "
+         "desplomaron y rebotaron casi a la vez.", 10, TINTA_2, False),
+        ("Que el resultado cambie tanto entre escenarios muestra que ninguna cifra es una regla "
+         "fija. Es correlación, no causalidad.", 10, TINTA_2, False)], fondo=BLANCO)
+    yd = yc + hc + G
+    hd = H - yd - M
+    p.grafico("lineChart", xs2[0], yd, w2, hd, fecha, ["Precio WTI mensual"],
+              "Precio WTI mensual", "US$ por barril", colores=[AZUL])
+    p.grafico("lineChart", xs2[1], yd, w2, hd, fecha, ["Producción de crudo"],
+              "Producción de crudo", "miles de barriles por día", colores=[NARANJA])
     ps.append(p)
 
-    p = Pagina("calidad", "Calidad de los datos")
+    # 5 · Calidad
+    p = Pagina("calidad", "Calidad", "Calidad y frescura de los datos",
+               "Cada fuente se compara con un umbral de atraso según su frecuencia")
     p.encabezado()
-    cw = (W - 2 * M - 2 * 16) // 3
-    for i, m in enumerate(["Fuentes al día", "Fuentes atrasadas", "Máximo atraso (días)"]):
-        p.tarjeta(M + i * (cw + 16), 76, cw, 110, m)
+    w3, xs3 = _fila(3)
+    for x, (m, e, n, a) in zip(xs3, [
+            ("Fuentes al día", "Fuentes al día", "de 10 datasets", "#1D7A3B"),
+            ("Fuentes atrasadas", "Fuentes atrasadas", "superan su umbral", "#A35400"),
+            ("Máximo atraso (días)", "Máximo atraso", "días desde el último período", AZUL)],
+            strict=True):
+        p.kpi(x, Y0, w3, 100, m, e, n, a, tam=30.0)
     fr = "frescura"
-    p.tabla(M, 202, W - 2 * M, 494,
-            [columna(fr, "dataset"), columna(fr, "frecuencia"), columna(fr, "ultimo_periodo"),
-             columna(fr, "dias_atraso"), columna(fr, "umbral_dias"), medida("Icono de estado")],
-            "Frescura de cada fuente")
+    yt = Y0 + 100 + G
+    p.tabla(M, yt, 860, H - yt - M,
+            [(columna(fr, "dataset"), "Dataset"), (columna(fr, "frecuencia"), "Frecuencia"),
+             (columna(fr, "ultimo_periodo"), "Último período"),
+             (columna(fr, "dias_atraso"), "Días de atraso"),
+             (columna(fr, "umbral_dias"), "Umbral (días)"),
+             (medida("Icono de estado"), "Estado")],
+            "Frescura de cada fuente", "una fila por dataset de la EIA")
+    p.texto(M + 860 + G, yt, W - 2 * M - 860 - G, H - yt - M, [
+        ("Umbrales de atraso", 12, TINTA, True),
+        ("Diaria: 10 días", 10, TINTA_2, False),
+        ("Semanal: 14 días", 10, TINTA_2, False),
+        ("Mensual: 120 días", 10, TINTA_2, False),
+        (" ", 6, TINTA_2, False),
+        ("Los datos mensuales de la EIA salen con unos 2 a 3 meses de demora: por eso su "
+         "umbral es más amplio.", 10, TINTA_3, False),
+        ("Las revisiones que hace la EIA sobre datos ya cargados se auditan en "
+         "silver_auditoria_revisiones y nunca se pisan.", 10, TINTA_3, False)], fondo=BLANCO)
     ps.append(p)
     return ps
 
@@ -209,7 +454,8 @@ def generar(workspace: str, model_id: str, out: Path) -> Path:
         ruta.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
 
     escribir(raiz / ".platform", {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+        "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/"
+                   "platformProperties/2.0.0/schema.json",
         "metadata": {"type": "Report", "displayName": "Pulso Energetico EEUU"},
         "config": {"version": "2.0", "logicalId": "6f1e9a52-6c1b-4f3e-9d0a-5b8f2c7e4a10"}})
     escribir(raiz / "definition.pbir", {"version": "4.0", "datasetReference": {"byConnection": {
@@ -226,9 +472,9 @@ def generar(workspace: str, model_id: str, out: Path) -> Path:
         "$schema": f"{SCH}/report/1.0.0/schema.json",
         "themeCollection": {"customTheme": {"name": tema, "reportVersionAtImport": "5.59",
                                             "type": "RegisteredResources"}},
+        "layoutOptimization": "None",
         "resourcePackages": [{"name": "RegisteredResources", "type": "RegisteredResources",
                               "items": [{"name": tema, "path": tema, "type": "CustomTheme"}]}],
-        "layoutOptimization": "None",
         "settings": {"useStylableVisualContainerHeader": True,
                      "defaultDrillFilterOtherVisuals": True}})
     dst = raiz / "StaticResources" / "RegisteredResources" / tema
@@ -239,13 +485,14 @@ def generar(workspace: str, model_id: str, out: Path) -> Path:
     escribir(d / "pages" / "pages.json", {"$schema": f"{SCH}/pagesMetadata/1.0.0/schema.json",
                                           "pageOrder": [p.nombre for p in ps],
                                           "activePageName": ps[0].nombre})
-    nombres = {"resumen": "Resumen", "petroleo": "Petróleo", "gas": "Gas", "rezago": "Rezago",
-               "calidad": "Calidad"}
     for p in ps:
         base = d / "pages" / p.nombre
-        escribir(base / "page.json", {"$schema": f"{SCH}/page/1.0.0/schema.json",
-                                      "name": p.nombre, "displayName": nombres[p.nombre],
-                                      "displayOption": "FitToPage", "height": H, "width": W})
+        escribir(base / "page.json", {
+            "$schema": f"{SCH}/page/1.0.0/schema.json", "name": p.nombre,
+            "displayName": p.menu, "displayOption": "FitToPage", "height": H, "width": W,
+            "objects": {"background": [{"properties": {"color": color(PAPEL),
+                                                       "transparency": lit(0.0)}}],
+                        "outspace": [{"properties": {"color": color(PAPEL)}}]}})
         for v in p.visuales:
             escribir(base / "visuals" / v["name"] / "visual.json", v)
     return raiz

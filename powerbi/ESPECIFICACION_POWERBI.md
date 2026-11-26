@@ -520,6 +520,10 @@ Es rezago óptimo =
 -- 1 en la barra del óptimo: usalo en el formato condicional del color de las barras
 IF ( SELECTEDVALUE ( analisis_rezago[rezago_meses] ) = [Rezago óptimo (meses)], 1, 0 )
 
+Color barra rezago =
+-- Color de relleno por valor de campo: naranja en el óptimo, gris en el resto
+IF ( [Es rezago óptimo] = 1, "#C4531A", "#B9B3A8" )
+
 Texto rezago =
 VAR k = [Rezago óptimo (meses)]
 RETURN

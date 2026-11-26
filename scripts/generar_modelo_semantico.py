@@ -1,6 +1,6 @@
 """Genera el modelo semántico Direct Lake (TMDL) desde la especificación de Power BI.
 
-Toma las tablas y relaciones de la §2 y las 53 medidas de la §4 de
+Toma las tablas y relaciones de la §2 y las 54 medidas de la §4 de
 powerbi/ESPECIFICACION_POWERBI.md, y escribe una carpeta `<nombre>.SemanticModel`
 importable con la Fabric CLI:
 
@@ -63,9 +63,11 @@ FORMATO_CARPETA = {
     "Inventarios de petróleo": "#,0", "Almacenamiento de gas": "#,0", "Producción": "#,0",
     "Consumo de gas": "#,0", "Último dato (tarjetas)": "#,0.00", "Frescura y calidad": "0",
 }
-FORMATO_NOMBRE = {"Correlación": "0.000", "Correlación en el óptimo": "0.000",
+FORMATO_NOMBRE: dict[str, str | None] = {
+                  "Correlación": "0.000", "Correlación en el óptimo": "0.000",
                   "Rezago óptimo (meses)": "0", "Es rezago óptimo": "0",
-                  "Último mes de producción": "mmmm yyyy", "Fecha del último dato": "dd/mm/yyyy"}
+                  "Último mes de producción": "mmmm yyyy", "Fecha del último dato": "dd/mm/yyyy",
+                  "Color barra rezago": None}
 
 
 def relaciones() -> list[tuple[str, str, str, str]]:
