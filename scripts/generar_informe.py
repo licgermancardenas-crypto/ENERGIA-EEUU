@@ -34,6 +34,7 @@ PAGINAS = [("resumen", "Resumen"), ("petroleo", "Petróleo"), ("gas", "Gas"),
 # Paleta (misma que la web y el tema)
 NAVY, NAVY_2 = "#0B1F3A", "#16335C"
 AZUL, NARANJA, VIOLETA, OCRE = "#1F6FD1", "#C4531A", "#7A45C2", "#A87D00"
+VERDE, ALERTA, ERROR = "#1D7A3B", "#A35400", "#B42318"
 TINTA, TINTA_2, TINTA_3 = "#1B1F24", "#4A5260", "#7A8394"
 BLANCO, PAPEL, LINEA = "#FFFFFF", "#F4F1EA", "#E4DED2"
 FUENTE, FUENTE_FUERTE = "Segoe UI", "Segoe UI Semibold"
@@ -212,8 +213,14 @@ class Pagina:
         if icono:
             self.icono_titulo(x, y, w, icono)
 
+    def nota(self, x, y, w, icono: str, texto: str, color_txt: str = TINTA_2):
+        """Anotación fija: ícono de 16 px + texto breve (va dentro de un contenedor)."""
+        self.imagen(x, y + 1, 16, 16, icono)
+        self.texto(x + 22, y, w - 22, 20, [(texto, 9, color_txt, False)])
+
     def grafico(self, tipo, x, y, w, h, eje, valores, titulo, subtitulo=None, serie=None,
-                filtros=None, etiquetas=False, leyenda=True, colores=None, relleno=None):
+                filtros=None, etiquetas=False, leyenda=True, colores=None, relleno=None,
+                por_categoria: dict[str, str] | None = None):
         qs = {"Category": {"projections": [proy(eje)]},
               "Y": {"projections": [proy(medida(v)) for v in valores]}}
         if serie:
@@ -228,6 +235,12 @@ class Pagina:
             objs["dataPoint"] = [{"properties": {"fill": color(c)},
                                   "selector": {"metadata": f"{MED}.{v}"}}
                                  for v, c in zip(valores, colores, strict=True)]
+        if por_categoria:  # un color por valor del eje (p. ej. diésel vs. gasolinas)
+            col = eje["Column"]
+            objs["dataPoint"] = [{"properties": {"fill": color(c)}, "selector": {"data": [{
+                "scopeId": {"Comparison": {"ComparisonKind": 0, "Left": {"Column": col},
+                                           "Right": {"Literal": {"Value": f"'{k}'"}}}}}]}}
+                for k, c in por_categoria.items()]
         if relleno:  # color por valor de campo (medida que devuelve un hex)
             objs["dataPoint"] = [{"properties": {"fill": {"solid": {"color": {"expr": medida(
                 relleno)}}}}, "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}]
@@ -395,27 +408,37 @@ def paginas() -> list[Pagina]:
     p.encabezado()
     p.segmentador(M, Y0, 200, ALTO_KPI, columna(F, "anio"), "Año", filtros=sin_blanco)
     w4, xs4 = _fila(4, M + 216, W - 2 * M - 216)
-    for x, (m, e, n) in zip(xs4, [
-            ("Último WTI", "WTI", "US$ por barril"),
-            ("Stock crudo comercial", "Crudo comercial", "miles de barriles"),
-            ("Stock SPR", "Reserva estratégica", "miles de barriles"),
-            ("Variación semanal crudo comercial", "Variación semanal", "miles de barriles")],
-            strict=True):
-        p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, NARANJA, tam=22.0)
+    for x, (m, e, n, ic) in zip(xs4, [
+            ("Último WTI", "WTI", "US$ por barril", "Ícono WTI"),
+            ("Stock crudo comercial", "Crudo comercial", "miles de barriles",
+             "Ícono crudo comercial"),
+            ("Stock SPR", "Reserva estratégica", "miles de barriles", "Ícono reserva estratégica"),
+            ("Variación semanal crudo comercial", "Variación semanal", "miles de barriles",
+             "Flecha variación semanal crudo")], strict=True):
+        p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, NARANJA, tam=22.0, icono=ic)
     ya = Y0 + ALTO_KPI + G
     ha = (FIN - ya - G) // 2
     p.grafico("lineChart", M, ya, 800, ha, fecha, ["Precio WTI", "Precio Brent"],
               "Precio spot WTI y Brent", "US$ por barril", colores=[AZUL, NARANJA])
-    p.grafico("clusteredBarChart", M + 800 + G, ya, W - 2 * M - 800 - G, ha,
+    xs_ = M + 800 + G
+    ws_ = W - 2 * M - 800 - G
+    p.grafico("clusteredBarChart", xs_, ya, ws_, ha,
               columna(S, "nombre"), ["Último valor"], "Precio en surtidor",
-              "US$ por galón · última semana", etiquetas=True, colores=[NARANJA],
+              "US$ por galón · última semana · diésel en ocre", etiquetas=True,
+              por_categoria={"Gasolina regular": NARANJA, "Gasolina media": NARANJA,
+                             "Gasolina premium": NARANJA, "Diésel": OCRE},
               filtros=[filtro_en(S, "categoria", ["precio_surtidor"], "f_surtidor")])
+    p.icono_titulo(xs_, ya, ws_, "Ícono surtidor")
     yb = ya + ha + G
     w2, xs2 = _fila(2)
     p.grafico("lineChart", xs2[0], yb, w2, ha, fecha, ["Stock crudo comercial", "Stock SPR"],
               "Inventarios de crudo", "miles de barriles", colores=[AZUL, NARANJA])
+    p.nota(xs2[0] + w2 - 300, yb + 14, 286, "Ícono alerta",
+           "2026: fuerte caída de la reserva estratégica", ALERTA)
     p.grafico("lineChart", xs2[1], yb, w2, ha, fecha, ["Producción de crudo"],
               "Producción de crudo", "miles de barriles por día", colores=[NARANJA])
+    p.nota(xs2[1] + w2 - 300, yb + 14, 286, "Ícono info",
+           "2020: COVID, caída y rebote de la producción")
     ps.append(p)
 
     # 3 · Gas
