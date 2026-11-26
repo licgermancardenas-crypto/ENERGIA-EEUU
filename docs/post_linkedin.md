@@ -1,6 +1,6 @@
 # Borrador del post de LinkedIn
 
-> Antes de publicar, reemplazá `[URL del dashboard]` con la URL de Vercel. Si el post sale después de otra corrida, revisá también las cifras: son del corte del 25/11/2026.
+> Si el post sale después de otra corrida, revisá las cifras: son del corte del 25/11/2026.
 
 ---
 
@@ -29,7 +29,7 @@ Algunos datos del último corte:
 - Inventarios comerciales de crudo: **417,8 millones de barriles**.
 - La **generación eléctrica** se lleva el **55,4 %** del gas que consume el país.
 
-🔗 Dashboard: [URL del dashboard]
+🔗 Dashboard: https://energia-eeuu.vercel.app
 💻 Código: https://github.com/licgermancardenas-crypto/ENERGIA-EEUU
 
 Gracias a Edgar Saico Zea y Vicente Antonio Juan Magallanes: su proyecto sobre la EIA fue la inspiración para este.
