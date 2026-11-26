@@ -273,7 +273,8 @@ class Pagina:
                 "values": [{"properties": {"fontColorPrimary": color(TINTA),
                                            "backColorPrimary": color(BLANCO),
                                            "backColorSecondary": color("#F7F4EE")}}],
-                "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(10.0)}}],
+                "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(10.0),
+                                         "imageHeight": lit(20.0)}}],
                 "total": [{"properties": {"totals": lit(False)}}]}
         self._agregar(x, y, w, h, {"visualType": "tableEx", "query": {"queryState": {
             "Values": {"projections": [proy(c, a) for c, a in campos]}}}, "objects": objs,
@@ -521,21 +522,28 @@ def paginas() -> list[Pagina]:
                "Cada fuente se compara con un umbral de atraso según su frecuencia")
     p.encabezado()
     w3, xs3 = _fila(3)
-    for x, (m, e, n, a) in zip(xs3, [
-            ("Fuentes al día", "Fuentes al día", "de 10 datasets", "#1D7A3B"),
-            ("Fuentes atrasadas", "Fuentes atrasadas", "superan su umbral", "#A35400"),
-            ("Máximo atraso (días)", "Máximo atraso", "días desde el último período", AZUL)],
-            strict=True):
+    for x, (m, e, n, a, ic) in zip(xs3, [
+            ("Fuentes al día de total", "Fuentes al día", "datasets dentro de su umbral", VERDE,
+             "Ícono fuentes al día"),
+            ("Fuentes atrasadas", "Fuentes atrasadas", "superan su umbral", ALERTA,
+             "Ícono fuentes atrasadas"),
+            ("Máximo atraso (días)", "Máximo atraso", "días desde el último período", AZUL,
+             None)], strict=True):
         p.kpi(x, Y0, w3, 100, m, e, n, a, tam=30.0)
+        if ic:  # ícono grande a la izquierda del valor
+            p.imagen(x + 24, Y0 + 50, 40, 40, ic)
     fr = "frescura"
     yt = Y0 + 100 + G
     p.tabla(M, yt, 860, FIN - yt,
-            [(columna(fr, "dataset"), "Dataset"), (columna(fr, "frecuencia"), "Frecuencia"),
+            [(medida("Ícono frecuencia"), " "), (columna(fr, "dataset"), "Dataset"),
+             (columna(fr, "frecuencia"), "Frecuencia"),
              (columna(fr, "ultimo_periodo"), "Último período"),
              (columna(fr, "dias_atraso"), "Días de atraso"),
+             (medida("Barra de atraso"), "Atraso vs. umbral"),
              (columna(fr, "umbral_dias"), "Umbral (días)"),
-             (medida("Icono de estado"), "Estado")],
-            "Frescura de cada fuente", "una fila por dataset de la EIA")
+             (medida("Semáforo de frescura"), "Estado")],
+            "Frescura de cada fuente",
+            "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada")
     p.texto(M + 860 + G, yt, W - 2 * M - 860 - G, FIN - yt, [
         ("Umbrales de atraso", 12, TINTA, True),
         ("Diaria: 10 días", 10, TINTA_2, False),
