@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "eia-pulso"
 version = "0.1.0"
 description = "Pulso Energético de EE. UU. — pipeline medallón (Bronze/Silver/Gold) de petróleo y gas con la API de la EIA"
-authors = [{ name = "German Cardenas" }]
+authors = [{ name = "Germán Cárdenas" }]
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"

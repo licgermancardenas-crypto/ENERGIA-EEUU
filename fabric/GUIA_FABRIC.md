@@ -1,6 +1,6 @@
 # Guía paso a paso: Pulso Energético de EE. UU. en Microsoft Fabric
 
-**Autor:** German Cardenas
+**Autor:** Germán Cárdenas
 
 Esta guía reproduce en Microsoft Fabric el mismo pipeline medallón que corre localmente:
 

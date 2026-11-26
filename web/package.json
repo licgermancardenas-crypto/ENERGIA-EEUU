@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Dashboard estático del Pulso Energético de EE. UU. (petróleo y gas) a partir de la capa Gold",
-  "author": "German Cardenas",
+  "author": "Germán Cárdenas",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",

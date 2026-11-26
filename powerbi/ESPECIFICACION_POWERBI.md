@@ -1,6 +1,6 @@
 # Pulso Energético de EE. UU. — Especificación del informe Power BI
 
-**Autor:** German Cardenas · **Fase:** F4 · **Fuente de datos:** capa Gold del Lakehouse `lh_pulso_energetico` (ver `fabric/GUIA_FABRIC.md`)
+**Autor:** Germán Cárdenas · **Fase:** F4 · **Fuente de datos:** capa Gold del Lakehouse `lh_pulso_energetico` (ver `fabric/GUIA_FABRIC.md`)
 
 Este documento alcanza para armar el informe de punta a punta sin un `.pbix`: modelo estrella, relaciones, medidas DAX, páginas, tema visual y validación. Las medidas también están en `powerbi/medidas.dax`, listas para pegar en la **vista de consultas DAX** de Power BI Desktop. Ese archivo se genera desde este documento con `python scripts/generar_powerbi.py`.
 

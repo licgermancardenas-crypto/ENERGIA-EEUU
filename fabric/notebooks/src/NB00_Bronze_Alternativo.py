@@ -1,7 +1,7 @@
 # %% [markdown]
 # # NB00_Bronze_Alternativo — Pulso Energético de EE. UU.
 #
-# **Autor:** German Cardenas · **Plan B** para la capa Bronze.
+# **Autor:** Germán Cárdenas · **Plan B** para la capa Bronze.
 #
 # El camino principal es la actividad **Copy** del pipeline (conexión REST anónima). Usá este
 # notebook solo si la paginación de Copy no se comporta como se espera en tu capacidad de Fabric:

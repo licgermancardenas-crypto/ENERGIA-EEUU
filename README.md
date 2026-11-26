@@ -7,7 +7,7 @@ Pipeline medallón (**Bronze → Silver → Gold**) sobre la API abierta de la *
 
 **Pregunta de negocio:** ¿cómo están hoy el petróleo y el gas natural de EE. UU. (precios, inventarios, producción y consumo) y cuánto tarda la producción de crudo en reaccionar al precio?
 
-Autor: **German Cardenas** · Licencia MIT
+Autor: **Germán Cárdenas** · Licencia MIT
 
 ---
 
@@ -18,7 +18,7 @@ Autor: **German Cardenas** · Licencia MIT
 | Pipeline local | `src/eia_pulso/` | Descarga 10 datasets de la EIA y arma la carga histórica acumulativa (append-only, sin duplicados). Publica un modelo estrella en Parquet y DuckDB. |
 | Dashboard web | `web/` | Next.js con export estático, Tailwind y Recharts, en Vercel. Lee JSON generados desde Gold. |
 | Fabric | `fabric/` | Notebooks PySpark/Delta (`NB01_Silver`, `NB02_Gold`) con `MERGE` real, y la guía de Lakehouse, pipeline de Data Factory y refresh. |
-| Power BI | `powerbi/` | Especificación del informe, 55 medidas DAX, tema visual y valores para validar. |
+| Power BI | `powerbi/`, `dax/`, `assets/icons/` | Especificación del informe, 55 medidas DAX, tema visual y valores para validar; 27 íconos SVG propios y 35 medidas de imagen (`dax/iconos.dax`). |
 | Automatización | `.github/workflows/` | Corrida diaria (pipeline → JSON → deploy) y CI de tests y lint. |
 
 ### Datasets (solo petróleo y gas natural)
@@ -224,4 +224,4 @@ Los archivos de `fabric/notebooks/*.ipynb`, `fabric/config/*.json` y `powerbi/me
 - **Inspiración:** el proyecto [02_EIA de Data-Days-Projects](https://github.com/Edgar-sz/Data-Days-Projects/tree/main/02_EIA) de **Edgar Saico Zea** y **Vicente Antonio Juan Magallanes**. Lo usé como referencia de arquitectura y de contenido del dashboard. El código, los notebooks, las medidas DAX, el diseño visual y los textos de este repositorio son propios.
 - **Herramientas:** pandas, DuckDB, PyArrow, pytest, Ruff, Next.js, Tailwind CSS, Recharts, Microsoft Fabric y Power BI.
 
-Hecho por **German Cardenas**.
+Hecho por **Germán Cárdenas**.

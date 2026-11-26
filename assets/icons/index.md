@@ -33,3 +33,11 @@ Generados por `scripts/generar_iconos.py`: no los edites a mano.
 | `calendario.svg` | Calendario (frecuencia) | Tabla de frescura: frecuencia |
 | `check-circulo.svg` | Check (al día) | Tabla de frescura: al día; KPI fuentes al día |
 | `x-circulo.svg` | X (atrasada) | Tabla de frescura: atrasada |
+
+## Medidas de imagen
+
+`dax/iconos.dax` define las medidas que devuelven estos íconos (y el mapa, el diagrama del rezago, la textura y la leyenda) como `data:image/svg+xml;utf8,…`. En el modelo llevan la categoría *Image URL* y viven en la carpeta *Íconos e imágenes* de `dim_serie`.
+
+## Foto del encabezado (pendiente)
+
+El encabezado del Resumen usa solo la textura SVG. Si se suma una foto libre de derechos (refinería o campo de gas), debe ir muy oscura y con overlay navy (`#0B1F3A` al 85 %), detrás de la textura: un visual de imagen de 1280×92 en la posición (0, 0) de la página Resumen, agregado en `scripts/generar_informe.py` justo después de la banda y antes de la textura.

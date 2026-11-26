@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Pulso Energético de EE. UU. — Petróleo y gas",
   description:
     "Precios, inventarios, producción y consumo de petróleo y gas natural de EE. UU., actualizados con datos oficiales de la EIA.",
-  authors: [{ name: "German Cardenas" }],
+  authors: [{ name: "Germán Cárdenas" }],
 };
 
 export const viewport: Viewport = {

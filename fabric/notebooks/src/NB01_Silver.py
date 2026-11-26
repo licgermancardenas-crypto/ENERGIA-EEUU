@@ -1,7 +1,7 @@
 # %% [markdown]
 # # NB01_Silver — Pulso Energético de EE. UU. (Petróleo y Gas)
 #
-# **Autor:** German Cardenas · Capa **Silver** del pipeline medallón en Microsoft Fabric.
+# **Autor:** Germán Cárdenas · Capa **Silver** del pipeline medallón en Microsoft Fabric.
 #
 # Qué hace:
 # 1. Lee los JSON nuevos de `Files/bronze/<dataset>/` (los deja el pipeline de Data Factory).

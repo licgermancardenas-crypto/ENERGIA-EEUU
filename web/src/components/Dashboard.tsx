@@ -125,7 +125,7 @@ export function Dashboard({ datos }: { datos: Datos }) {
             {fechaCorta(datos.meta.gold_generado_utc)}.
           </p>
           <p>
-            Proyecto de portfolio de German Cardenas ·{" "}
+            Proyecto de portfolio de Germán Cárdenas ·{" "}
             <a className="underline underline-offset-2" href="https://github.com/licgermancardenas-crypto/ENERGIA-EEUU">
               código en GitHub
             </a>

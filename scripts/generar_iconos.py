@@ -382,6 +382,17 @@ def escribir_iconos() -> None:
              "", "Generados por `scripts/generar_iconos.py`: no los edites a mano.", "",
              "| Archivo | Qué representa | Dónde se usa |", "|---|---|---|"]
     filas += [f"| `{n}.svg` | {ICONOS[n][1]} | {USOS[n]} |" for n in ICONOS]
+    filas += ["", "## Medidas de imagen", "",
+              "`dax/iconos.dax` define las medidas que devuelven estos íconos (y el mapa, el "
+              "diagrama del rezago, la textura y la leyenda) como `data:image/svg+xml;utf8,…`. "
+              "En el modelo llevan la categoría *Image URL* y viven en la carpeta "
+              "*Íconos e imágenes* de `dim_serie`.", "",
+              "## Foto del encabezado (pendiente)", "",
+              "El encabezado del Resumen usa solo la textura SVG. Si se suma una foto libre de "
+              "derechos (refinería o campo de gas), debe ir muy oscura y con overlay navy "
+              "(`#0B1F3A` al 85 %), detrás de la textura: un visual de imagen de 1280×92 en la "
+              "posición (0, 0) de la página Resumen, agregado en `scripts/generar_informe.py` "
+              "justo después de la banda y antes de la textura."]
     (DIR_ICONOS / "index.md").write_text("\n".join(filas) + "\n", encoding="utf-8")
 
 

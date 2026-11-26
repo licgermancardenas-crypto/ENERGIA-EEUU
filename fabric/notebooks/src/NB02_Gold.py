@@ -1,7 +1,7 @@
 # %% [markdown]
 # # NB02_Gold — Pulso Energético de EE. UU. (Petróleo y Gas)
 #
-# **Autor:** German Cardenas · Capa **Gold** del pipeline medallón en Microsoft Fabric.
+# **Autor:** Germán Cárdenas · Capa **Gold** del pipeline medallón en Microsoft Fabric.
 #
 # Reconstruye completo, en cada corrida, el modelo estrella sobre `silver_observaciones`:
 #
