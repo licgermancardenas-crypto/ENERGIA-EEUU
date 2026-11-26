@@ -357,7 +357,7 @@ def _fila(n: int, x0: int = M, ancho: int = W - 2 * M) -> tuple[int, list[int]]:
 
 
 def paginas() -> list[Pagina]:
-    F, S, R, AR = "dim_fecha", "dim_serie", "dim_region", "analisis_rezago"
+    F, S, AR = "dim_fecha", "dim_serie", "analisis_rezago"
     fecha = columna(F, "fecha")
     sin_blanco = [filtro_desde(F, "anio", 2000, "f_anio")]
     ps = []
@@ -446,25 +446,32 @@ def paginas() -> list[Pagina]:
                "Henry Hub diario, almacenamiento semanal y consumo mensual por sector")
     p.encabezado()
     p.segmentador(M, Y0, 200, ALTO_KPI, columna(F, "anio"), "Año", filtros=sin_blanco)
-    for x, (m, e, n) in zip(xs4, [
-            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu"),
-            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48"),
-            ("Almacenamiento vs año anterior %", "Vs. año anterior", "misma semana"),
-            ("Inyección neta semanal", "Inyección neta", "Bcf en la semana")], strict=True):
-        p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, AZUL, tam=22.0)
+    for x, (m, e, n, ic) in zip(xs4, [
+            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu", "Ícono Henry Hub"),
+            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48",
+             "Ícono gas almacenado"),
+            ("Almacenamiento vs año anterior %", "Vs. año anterior", "misma semana",
+             "Flecha almacenamiento vs año anterior"),
+            ("Inyección neta semanal", "Inyección neta", "Bcf en la semana",
+             "Ícono inyección neta")], strict=True):
+        p.kpi(x, Y0, w4, ALTO_KPI, m, e, n, AZUL, tam=22.0, icono=ic)
     p.grafico("lineChart", M, ya, 800, ha, fecha, ["Precio Henry Hub"], "Precio Henry Hub",
               "US$ por MMBtu", colores=[AZUL])
-    p.grafico("clusteredBarChart", M + 800 + G, ya, W - 2 * M - 800 - G, ha,
-              columna(R, "nombre"), ["Gas almacenado por región"], "Almacenamiento por región",
-              "Bcf · última semana", etiquetas=True, colores=[AZUL],
-              filtros=[filtro_en(R, "tipo", ["region_almacenamiento"], "f_region")])
+    p.nota(M + 800 - 330, ya + 14, 316, "Ícono invierno",
+           "Los picos coinciden con olas de frío de invierno")
+    # mapa esquemático de las 5 regiones (reemplaza las barras por región)
+    p.imagen(xs_, ya, ws_, ha, "Mapa almacenamiento por región", "Almacenamiento por región",
+             "Bcf · última semana · más oscuro = más gas", tarjeta=True)
     p.grafico("hundredPercentStackedColumnChart", xs2[0], yb, w2, ha, columna(F, "anio"),
               ["Consumo por sector"], "Consumo de gas por sector", "participación anual",
-              serie=columna(S, "nombre"),
+              serie=columna(S, "nombre"), leyenda=False,
               filtros=[filtro_en(S, "categoria", ["consumo"], "f_consumo")] + sin_blanco)
+    p.imagen(xs2[0] + 22, yb + 62, 440, 22, "Leyenda consumo por sector")
     p.grafico("lineChart", xs2[1], yb, w2, ha, fecha, ["Gas almacenado Lower 48"],
               "Gas almacenado Lower 48", "Bcf · el ciclo de inyección y extracción",
               colores=[AZUL])
+    p.nota(xs2[1] + w2 - 330, yb + 14, 160, "Ícono verano", "Inyección (abr–oct)")
+    p.nota(xs2[1] + w2 - 170, yb + 14, 156, "Ícono invierno", "Extracción (nov–mar)")
     ps.append(p)
 
     # 4 · Rezago
