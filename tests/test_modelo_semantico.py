@@ -16,7 +16,9 @@ def test_modelo_generado(tmp_path):
     raiz = gm.generar("srv.datawarehouse.fabric.microsoft.com",
                       "00000000-0000-0000-0000-000000000000", tmp_path)
     d = raiz / "definition"
-    medidas = gp.leer_medidas(gp.SPEC.read_text(encoding="utf-8"))
+    medidas = gm.todas_las_medidas()
+    imagenes = [m for m in medidas if m.carpeta == gm.CARPETA_IMAGENES]
+    assert imagenes, "faltan las medidas de íconos"
 
     tablas = {p.stem for p in (d / "tables").glob("*.tmdl")}
     assert tablas == set(gm.TABLAS)
@@ -24,6 +26,7 @@ def test_modelo_generado(tmp_path):
     serie = (d / "tables" / f"{gm.TABLA_MEDIDAS}.tmdl").read_text(encoding="utf-8")
     assert len(re.findall(r"^\tmeasure ", serie, re.M)) == len(medidas)
     assert serie.count("```") == 2 * len(medidas)
+    assert serie.count("dataCategory: ImageUrl") == len(imagenes)
 
     rels = (d / "relationships.tmdl").read_text(encoding="utf-8")
     assert rels.count("relationship ") == len(gm.FACTS) * 3 + 1

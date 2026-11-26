@@ -15,7 +15,7 @@ Armé **Pulso Energético de EE. UU.**, un proyecto de datos de punta a punta so
 
 🔹 **Dashboard web** en Next.js que se actualiza solo todos los días con una GitHub Action: precios, inventarios, producción, consumo y frescura de cada fuente.
 
-🔹 **Versión en Microsoft Fabric:** Lakehouse, notebooks PySpark con MERGE en Delta y pipeline de Data Factory. Más la especificación de un informe **Power BI** con modelo estrella y 54 medidas DAX.
+🔹 **Versión en Microsoft Fabric:** Lakehouse, notebooks PySpark con MERGE en Delta y pipeline de Data Factory. Más la especificación de un informe **Power BI** con modelo estrella y 55 medidas DAX.
 
 Lo que más me interesó fue la pregunta del rezago. Comparé la variación mensual del WTI con la de la producción de crudo, de 0 a 12 meses después:
 

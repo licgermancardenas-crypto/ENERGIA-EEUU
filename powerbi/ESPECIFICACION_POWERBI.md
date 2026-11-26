@@ -544,6 +544,10 @@ CALCULATE ( COUNTROWS ( frescura ), frescura[estado] = "al_dia" ) + 0
 Fuentes atrasadas =
 CALCULATE ( COUNTROWS ( frescura ), frescura[estado] = "atrasado" ) + 0
 
+Fuentes al día de total =
+-- Texto para la tarjeta de Calidad, por ejemplo "10 de 10"
+[Fuentes al día] & " de " & COUNTROWS ( frescura )
+
 Máximo atraso (días) =
 MAX ( frescura[dias_atraso] )
 

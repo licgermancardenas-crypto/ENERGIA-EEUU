@@ -238,7 +238,7 @@ Lo detalla la especificación de la F4 (`powerbi/`). Hay dos caminos:
 - **Direct Lake** (recomendado): desde el Lakehouse, **New semantic model**, seleccionando las tablas `dim_*` y `fact_*`.
 - **Import / DirectQuery**: en Power BI Desktop, **Get data → Microsoft Fabric → Lakehouses → `lh_pulso_energetico` → Connect to SQL endpoint**.
 
-**Atajo con la Fabric CLI** (`pip install ms-fabric-cli`, después `fab auth login`): el modelo Direct Lake completo, con tablas, relaciones, tabla de fechas y las 54 medidas, se genera desde la especificación y se importa de una vez.
+**Atajo con la Fabric CLI** (`pip install ms-fabric-cli`, después `fab auth login`): el modelo Direct Lake completo, con tablas, relaciones, tabla de fechas y las 55 medidas, se genera desde la especificación y se importa de una vez.
 
 ```bash
 fab get "<workspace>.Workspace/lh_pulso_energetico.Lakehouse" -q properties   # sqlEndpointProperties

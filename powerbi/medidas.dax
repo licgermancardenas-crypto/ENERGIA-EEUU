@@ -311,6 +311,9 @@ DEFINE
         CALCULATE ( COUNTROWS ( frescura ), frescura[estado] = "al_dia" ) + 0
     MEASURE '_Medidas'[Fuentes atrasadas] =
         CALCULATE ( COUNTROWS ( frescura ), frescura[estado] = "atrasado" ) + 0
+    MEASURE '_Medidas'[Fuentes al día de total] =
+        -- Texto para la tarjeta de Calidad, por ejemplo "10 de 10"
+        [Fuentes al día] & " de " & COUNTROWS ( frescura )
     MEASURE '_Medidas'[Máximo atraso (días)] =
         MAX ( frescura[dias_atraso] )
     MEASURE '_Medidas'[Fecha de cálculo] =

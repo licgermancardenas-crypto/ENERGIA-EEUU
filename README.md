@@ -18,7 +18,7 @@ Autor: **German Cardenas** · Licencia MIT
 | Pipeline local | `src/eia_pulso/` | Descarga 10 datasets de la EIA y arma la carga histórica acumulativa (append-only, sin duplicados). Publica un modelo estrella en Parquet y DuckDB. |
 | Dashboard web | `web/` | Next.js con export estático, Tailwind y Recharts, en Vercel. Lee JSON generados desde Gold. |
 | Fabric | `fabric/` | Notebooks PySpark/Delta (`NB01_Silver`, `NB02_Gold`) con `MERGE` real, y la guía de Lakehouse, pipeline de Data Factory y refresh. |
-| Power BI | `powerbi/` | Especificación del informe, 54 medidas DAX, tema visual y valores para validar. |
+| Power BI | `powerbi/` | Especificación del informe, 55 medidas DAX, tema visual y valores para validar. |
 | Automatización | `.github/workflows/` | Corrida diaria (pipeline → JSON → deploy) y CI de tests y lint. |
 
 ### Datasets (solo petróleo y gas natural)
@@ -63,7 +63,7 @@ flowchart LR
         NB2 --> SM["Modelo semántico<br/>Direct Lake"]
     end
 
-    PBI["Informe Power BI<br/>5 páginas · 54 medidas"]
+    PBI["Informe Power BI<br/>5 páginas · 55 medidas"]
 
     EIA --> B
     S <-.persistencia.-> DS

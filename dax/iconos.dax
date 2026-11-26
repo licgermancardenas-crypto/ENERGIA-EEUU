@@ -1,0 +1,260 @@
+// Medidas de íconos e imágenes SVG del informe Pulso Energético de EE. UU.
+// Generado por scripts/generar_iconos.py: no editar a mano.
+// Todas devuelven un data URI (data:image/svg+xml;utf8,...) y en el modelo llevan
+// la categoría de datos 'Image URL'. Uso: Power BI Desktop → Vista de consultas DAX
+// → pegar → 'Actualizar modelo con cambios'. Se alojan en la tabla 'dim_serie'.
+
+DEFINE
+
+    // Ícono del encabezado de la página Resumen
+    MEASURE 'dim_serie'[Ícono página Resumen] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 12 7 12 10 5 14 19 17 12 21 12'/%3E%3C/svg%3E"
+
+    // Ícono del encabezado de la página Petróleo
+    MEASURE 'dim_serie'[Ícono página Petróleo] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3c0 0-6.5 7.2-6.5 11.5a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3 12 3z'/%3E%3C/svg%3E"
+
+    // Ícono del encabezado de la página Gas
+    MEASURE 'dim_serie'[Ícono página Gas] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.5c.6 3.6 6.5 5.8 6.5 11.7a6.5 6.5 0 0 1-13 0c0-3 1.5-4.9 3-6 .3 2.4 1.3 3.6 2.8 3.6 0-3.5-1-6.2.7-9.3z'/%3E%3C/svg%3E"
+
+    // Ícono del encabezado de la página Rezago
+    MEASURE 'dim_serie'[Ícono página Rezago] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpolyline points='12 7 12 12 15.5 14'/%3E%3C/svg%3E"
+
+    // Ícono del encabezado de la página Calidad
+    MEASURE 'dim_serie'[Ícono página Calidad] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z'/%3E%3Cpolyline points='9 12 11.2 14.2 15.5 9.8'/%3E%3C/svg%3E"
+
+    // Encabezado de sección PETRÓLEO
+    MEASURE 'dim_serie'[Ícono sección petróleo] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3c0 0-6.5 7.2-6.5 11.5a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3 12 3z'/%3E%3C/svg%3E"
+
+    // Encabezado de sección GAS NATURAL
+    MEASURE 'dim_serie'[Ícono sección gas] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.5c.6 3.6 6.5 5.8 6.5 11.7a6.5 6.5 0 0 1-13 0c0-3 1.5-4.9 3-6 .3 2.4 1.3 3.6 2.8 3.6 0-3.5-1-6.2.7-9.3z'/%3E%3C/svg%3E"
+
+    // KPI Último WTI
+    MEASURE 'dim_serie'[Ícono WTI] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3c0 0-6.5 7.2-6.5 11.5a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3 12 3z'/%3E%3C/svg%3E"
+
+    // KPI Diferencial Brent-WTI
+    MEASURE 'dim_serie'[Ícono Brent-WTI] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14M14 4l4 4-4 4'/%3E%3Cpath d='M20 16H6M10 12l-4 4 4 4'/%3E%3C/svg%3E"
+
+    // KPI Stock crudo comercial
+    MEASURE 'dim_serie'[Ícono crudo comercial] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='6.5' rx='7' ry='2.5'/%3E%3Cpath d='M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11'/%3E%3Cpath d='M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5'/%3E%3C/svg%3E"
+
+    // KPI Stock SPR
+    MEASURE 'dim_serie'[Ícono reserva estratégica] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z'/%3E%3Ccircle cx='12' cy='10.5' r='1.8'/%3E%3Cpath d='M12 12.3V15.5'/%3E%3C/svg%3E"
+
+    // Título de Precio en surtidor
+    MEASURE 'dim_serie'[Ícono surtidor] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M3 21h12'/%3E%3Cpath d='M4 10h10'/%3E%3Cpath d='M14 8h1.5a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8.5L17.5 5.5'/%3E%3C/svg%3E"
+
+    // KPI Último Henry Hub
+    MEASURE 'dim_serie'[Ícono Henry Hub] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.5c.6 3.6 6.5 5.8 6.5 11.7a6.5 6.5 0 0 1-13 0c0-3 1.5-4.9 3-6 .3 2.4 1.3 3.6 2.8 3.6 0-3.5-1-6.2.7-9.3z'/%3E%3C/svg%3E"
+
+    // KPI Gas almacenado Lower 48
+    MEASURE 'dim_serie'[Ícono gas almacenado] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7' y='4' width='10' height='17' rx='5'/%3E%3Cpath d='M10 4V2.5h4V4'/%3E%3Cpath d='M7 11h10'/%3E%3C/svg%3E"
+
+    // KPI Participación generación eléctrica %
+    MEASURE 'dim_serie'[Ícono generación eléctrica] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L4.5 13.5H12L11 22l8.5-11.5H12z'/%3E%3C/svg%3E"
+
+    // KPI Rezago óptimo (meses)
+    MEASURE 'dim_serie'[Ícono reloj rezago] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpolyline points='12 7 12 12 15.5 14'/%3E%3C/svg%3E"
+
+    // Caja Cómo leerlo
+    MEASURE 'dim_serie'[Ícono info] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E"
+
+    // Notas de alerta (SPR 2026, causalidad)
+    MEASURE 'dim_serie'[Ícono alerta] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23A35400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 4.2L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9.5v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E"
+
+    // Nota de picos de invierno / extracción
+    MEASURE 'dim_serie'[Ícono invierno] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7'/%3E%3Cpath d='M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5'/%3E%3C/svg%3E"
+
+    // Nota de inyección en verano
+    MEASURE 'dim_serie'[Ícono verano] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23A35400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E"
+
+    // KPI Fuentes al día
+    MEASURE 'dim_serie'[Ícono fuentes al día] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231D7A3B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpolyline points='8 12.3 10.8 15 16 9.5'/%3E%3C/svg%3E"
+
+    // ▲/▼ según el signo de [WTI vs promedio 12 meses %]
+    MEASURE 'dim_serie'[Flecha WTI vs promedio 12 meses] =
+        VAR v = [WTI vs promedio 12 meses %]
+        RETURN
+            SWITCH ( TRUE (), ISBLANK ( v ), BLANK (), v >= 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 17 9 11 13 15 21 7'/%3E%3Cpolyline points='15 7 21 7 21 13'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 7 9 13 13 9 21 17'/%3E%3Cpolyline points='15 17 21 17 21 11'/%3E%3C/svg%3E" )
+
+    // ▲/▼ según el signo de [Crudo comercial vs año anterior %]
+    MEASURE 'dim_serie'[Flecha crudo vs año anterior] =
+        VAR v = [Crudo comercial vs año anterior %]
+        RETURN
+            SWITCH ( TRUE (), ISBLANK ( v ), BLANK (), v >= 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 17 9 11 13 15 21 7'/%3E%3Cpolyline points='15 7 21 7 21 13'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 7 9 13 13 9 21 17'/%3E%3Cpolyline points='15 17 21 17 21 11'/%3E%3C/svg%3E" )
+
+    // ▲/▼ según el signo de [Variación semanal crudo comercial]
+    MEASURE 'dim_serie'[Flecha variación semanal crudo] =
+        VAR v = [Variación semanal crudo comercial]
+        RETURN
+            SWITCH ( TRUE (), ISBLANK ( v ), BLANK (), v >= 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 17 9 11 13 15 21 7'/%3E%3Cpolyline points='15 7 21 7 21 13'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23C4531A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 7 9 13 13 9 21 17'/%3E%3Cpolyline points='15 17 21 17 21 11'/%3E%3C/svg%3E" )
+
+    // ▲/▼ según el signo de [Henry Hub vs promedio 12 meses %]
+    MEASURE 'dim_serie'[Flecha Henry Hub vs promedio 12 meses] =
+        VAR v = [Henry Hub vs promedio 12 meses %]
+        RETURN
+            SWITCH ( TRUE (), ISBLANK ( v ), BLANK (), v >= 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 17 9 11 13 15 21 7'/%3E%3Cpolyline points='15 7 21 7 21 13'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 7 9 13 13 9 21 17'/%3E%3Cpolyline points='15 17 21 17 21 11'/%3E%3C/svg%3E" )
+
+    // ▲/▼ según el signo de [Almacenamiento vs año anterior %]
+    MEASURE 'dim_serie'[Flecha almacenamiento vs año anterior] =
+        VAR v = [Almacenamiento vs año anterior %]
+        RETURN
+            SWITCH ( TRUE (), ISBLANK ( v ), BLANK (), v >= 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 17 9 11 13 15 21 7'/%3E%3Cpolyline points='15 7 21 7 21 13'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 7 9 13 13 9 21 17'/%3E%3Cpolyline points='15 17 21 17 21 11'/%3E%3C/svg%3E" )
+
+    // Flecha arriba si se inyectó gas en la semana, abajo si se extrajo
+    MEASURE 'dim_serie'[Ícono inyección neta] =
+        VAR v = [Inyección neta semanal]
+        RETURN
+            SWITCH ( TRUE (), ISBLANK ( v ), BLANK (), v >= 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5'/%3E%3Cpolyline points='6 11 12 5 18 11'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231F6FD1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14'/%3E%3Cpolyline points='6 13 12 19 18 13'/%3E%3C/svg%3E" )
+
+    // Alerta roja si hay fuentes atrasadas; gris si no
+    MEASURE 'dim_serie'[Ícono fuentes atrasadas] =
+        IF ( [Fuentes atrasadas] > 0, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23B42318' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 4.2L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9.5v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E", "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%237A8394' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 4.2L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9.5v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E" )
+
+    // Check verde (al día), reloj ámbar (≥ 80 % del umbral) o X roja (supera el umbral)
+    MEASURE 'dim_serie'[Semáforo de frescura] =
+        VAR a = SELECTEDVALUE ( frescura[dias_atraso] )
+        VAR u = SELECTEDVALUE ( frescura[umbral_dias] )
+        RETURN
+            SWITCH (
+                TRUE (),
+                ISBLANK ( a ) || ISBLANK ( u ), BLANK (),
+                a > u, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23B42318' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M9 9l6 6M15 9l-6 6'/%3E%3C/svg%3E",
+                a >= 0.8 * u, "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23A35400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpolyline points='12 7 12 12 15.5 14'/%3E%3C/svg%3E",
+                "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%231D7A3B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpolyline points='8 12.3 10.8 15 16 9.5'/%3E%3C/svg%3E"
+            )
+
+    // Calendario con D (diaria), S (semanal) o M (mensual)
+    MEASURE 'dim_serie'[Ícono frecuencia] =
+        VAR f = SELECTEDVALUE ( frescura[frecuencia] )
+        VAR letra = SWITCH ( f, "daily", "D", "weekly", "S", "monthly", "M" )
+        VAR s =
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='#7A8394' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='16' rx='2'/><path d='M3 10h18M8 3v4M16 3v4'/><text x='12' y='18.5' text-anchor='middle' font-family='Segoe UI' font-size='8' font-weight='700' fill='#7A8394' stroke='none'>" & letra & "</text></svg>"
+        RETURN
+            IF ( ISBLANK ( letra ), BLANK (), "data:image/svg+xml;utf8," & SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( s, "%", "%25" ), "#", "%23" ), "<", "%3C" ) )
+
+    // Barra de días de atraso con una marca vertical en el umbral
+    MEASURE 'dim_serie'[Barra de atraso] =
+        VAR a = SELECTEDVALUE ( frescura[dias_atraso] )
+        VAR u = SELECTEDVALUE ( frescura[umbral_dias] )
+        VAR r = MIN ( DIVIDE ( a, u ), 1.25 )
+        VAR ancho = 120
+        -- FORMAT con en-US: el modelo es es-AR y el SVG necesita punto decimal
+        VAR w = FORMAT ( r / 1.25 * ancho, "0.0", "en-US" )
+        VAR xu = FORMAT ( 1 / 1.25 * ancho, "0.0", "en-US" )
+        VAR c = SWITCH ( TRUE (), a > u, "#B42318", a >= 0.8 * u, "#A35400", "#1D7A3B" )
+        VAR s =
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 14' width='120' height='14'><rect x='0' y='3' width='120' height='8' rx='4' fill='#ECE7DD'/>"
+                & "<rect x='0' y='3' width='" & w & "' height='8' rx='4' fill='" & c & "'/>"
+                & "<line x1='" & xu & "' y1='0' x2='" & xu & "' y2='14' stroke='#1B1F24' stroke-width='1.5'/></svg>"
+        RETURN
+            IF ( ISBLANK ( a ) || ISBLANK ( u ), BLANK (), "data:image/svg+xml;utf8," & SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( s, "%", "%25" ), "#", "%23" ), "<", "%3C" ) )
+
+    // Mapa esquemático (no a escala) de las 5 regiones de la EIA, coloreado por [Gas almacenado por región] en 5 tonos de azul
+    MEASURE 'dim_serie'[Mapa almacenamiento por región] =
+        VAR vR35 = CALCULATE ( [Gas almacenado por región], dim_region[region_key] = "R35" )
+        VAR vR34 = CALCULATE ( [Gas almacenado por región], dim_region[region_key] = "R34" )
+        VAR vR32 = CALCULATE ( [Gas almacenado por región], dim_region[region_key] = "R32" )
+        VAR vR33 = CALCULATE ( [Gas almacenado por región], dim_region[region_key] = "R33" )
+        VAR vR31 = CALCULATE ( [Gas almacenado por región], dim_region[region_key] = "R31" )
+        VAR vmin = MINX ( { vR35, vR34, vR32, vR33, vR31 }, [Value] )
+        VAR vmax = MAXX ( { vR35, vR34, vR32, vR33, vR31 }, [Value] )
+        VAR cR35 = VAR i = IF ( vmax = vmin, 3, INT ( DIVIDE ( vR35 - vmin, vmax - vmin ) * 4.999 ) + 1 ) RETURN SWITCH ( i, 1, "#DCE8F8", 2, "#A9C7EE", 3, "#6FA0E0", 4, "#3478D2", "#164E9C" )
+        VAR cR34 = VAR i = IF ( vmax = vmin, 3, INT ( DIVIDE ( vR34 - vmin, vmax - vmin ) * 4.999 ) + 1 ) RETURN SWITCH ( i, 1, "#DCE8F8", 2, "#A9C7EE", 3, "#6FA0E0", 4, "#3478D2", "#164E9C" )
+        VAR cR32 = VAR i = IF ( vmax = vmin, 3, INT ( DIVIDE ( vR32 - vmin, vmax - vmin ) * 4.999 ) + 1 ) RETURN SWITCH ( i, 1, "#DCE8F8", 2, "#A9C7EE", 3, "#6FA0E0", 4, "#3478D2", "#164E9C" )
+        VAR cR33 = VAR i = IF ( vmax = vmin, 3, INT ( DIVIDE ( vR33 - vmin, vmax - vmin ) * 4.999 ) + 1 ) RETURN SWITCH ( i, 1, "#DCE8F8", 2, "#A9C7EE", 3, "#6FA0E0", 4, "#3478D2", "#164E9C" )
+        VAR cR31 = VAR i = IF ( vmax = vmin, 3, INT ( DIVIDE ( vR31 - vmin, vmax - vmin ) * 4.999 ) + 1 ) RETURN SWITCH ( i, 1, "#DCE8F8", 2, "#A9C7EE", 3, "#6FA0E0", 4, "#3478D2", "#164E9C" )
+        VAR s =
+                "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 260' width='400' height='260' font-family='Segoe UI'>"
+                & "<polygon points='20,30 80,26 86,70 98,150 72,196 46,200 24,150 14,90' fill='" & cR35 & "' stroke='#FFFFFF' stroke-width='3' stroke-linejoin='round'/>"
+                & "<text x='52' y='112' text-anchor='middle' font-size='12' font-weight='600' fill='" & IF ( cR35 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>Pacífico</text>"
+                & "<text x='52' y='128' text-anchor='middle' font-size='12' fill='" & IF ( cR35 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>" & FORMAT ( vR35, "#,0" ) & " Bcf</text>"
+                & "<polygon points='80,26 196,32 194,120 150,124 150,150 98,150 86,70' fill='" & cR34 & "' stroke='#FFFFFF' stroke-width='3' stroke-linejoin='round'/>"
+                & "<text x='140' y='82' text-anchor='middle' font-size='12' font-weight='600' fill='" & IF ( cR34 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>Montaña</text>"
+                & "<text x='140' y='98' text-anchor='middle' font-size='12' fill='" & IF ( cR34 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>" & FORMAT ( vR34, "#,0" ) & " Bcf</text>"
+                & "<polygon points='196,32 300,30 312,64 300,124 194,120' fill='" & cR32 & "' stroke='#FFFFFF' stroke-width='3' stroke-linejoin='round'/>"
+                & "<text x='252' y='72' text-anchor='middle' font-size='12' font-weight='600' fill='" & IF ( cR32 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>Medio Oeste</text>"
+                & "<text x='252' y='88' text-anchor='middle' font-size='12' fill='" & IF ( cR32 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>" & FORMAT ( vR32, "#,0" ) & " Bcf</text>"
+                & "<polygon points='98,150 150,150 150,124 194,120 300,124 296,180 270,196 236,220 210,236 190,214 160,206 120,196' fill='" & cR33 & "' stroke='#FFFFFF' stroke-width='3' stroke-linejoin='round'/>"
+                & "<text x='224' y='162' text-anchor='middle' font-size='12' font-weight='600' fill='" & IF ( cR33 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>Centro Sur</text>"
+                & "<text x='224' y='178' text-anchor='middle' font-size='12' fill='" & IF ( cR33 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>" & FORMAT ( vR33, "#,0" ) & " Bcf</text>"
+                & "<polygon points='300,30 368,20 392,40 372,90 350,130 330,170 336,226 322,232 300,196 296,180 300,124 312,64' fill='" & cR31 & "' stroke='#FFFFFF' stroke-width='3' stroke-linejoin='round'/>"
+                & "<text x='332' y='100' text-anchor='middle' font-size='12' font-weight='600' fill='" & IF ( cR31 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>Este</text>"
+                & "<text x='332' y='116' text-anchor='middle' font-size='12' fill='" & IF ( cR31 IN { "#3478D2", "#164E9C" }, "#FFFFFF", "#1B1F24" ) & "'>" & FORMAT ( vR31, "#,0" ) & " Bcf</text>"
+                & "<text x='8' y='254' font-size='10' fill='#7A8394'>Esquema de las regiones de almacenamiento de la EIA · no a escala</text></svg>"
+        RETURN
+            "data:image/svg+xml;utf8," & SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( s, "%", "%25" ), "#", "%23" ), "<", "%3C" )
+
+    // Infografía precio WTI → N meses (rezago óptimo) → producción
+    MEASURE 'dim_serie'[Diagrama rezago] =
+        VAR k = [Rezago óptimo (meses)]
+        VAR s =
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 92' width='420' height='92' font-family='Segoe UI'><g transform='translate(28 14) scale(1.6)' fill='none' stroke='#C4531A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3c0 0-6.5 7.2-6.5 11.5a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3 12 3z'/></g><path d='M90 34 H150' stroke='#B9B3A8' stroke-width='2'/><path d='M144 29 L150 34 L144 39' fill='none' stroke='#B9B3A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><g transform='translate(190 14) scale(1.6)' fill='none' stroke='#1F6FD1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><polyline points='12 7 12 12 15.5 14'/></g><path d='M252 34 H312' stroke='#B9B3A8' stroke-width='2'/><path d='M306 29 L312 34 L306 39' fill='none' stroke='#B9B3A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><g transform='translate(352 14) scale(1.6)' fill='none' stroke='#C4531A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M6.5 21L12 3l5.5 18'/><path d='M8.3 15h7.4M9.8 9.5h4.4'/><path d='M3.5 21h17'/><path d='M8.3 15l5.9 6M15.7 15l-5.9 6'/></g><text x='47' y='84' text-anchor='middle' font-size='12' fill='#4A5260'>Precio WTI</text><text x='209' y='84' text-anchor='middle' font-size='13' font-weight='700' fill='#1B1F24'>" & k & IF ( k = 1, " mes", " meses" ) & "</text><text x='371' y='84' text-anchor='middle' font-size='12' fill='#4A5260'>Producción</text></svg>"
+        RETURN
+            IF ( ISBLANK ( k ), BLANK (), "data:image/svg+xml;utf8," & SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( s, "%", "%25" ), "#", "%23" ), "<", "%3C" ) )
+
+    // Líneas topográficas al 7 % (banda del encabezado)
+    MEASURE 'dim_serie'[Textura encabezado] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 92' width='1280' height='92' preserveAspectRatio='none' fill='none' stroke='%23FFFFFF' stroke-opacity='0.07' stroke-width='1.2'%3E%3Cpath d='M-20 -10 C 180 -28, 360 8, 560 -10 S 940 -28, 1140 -1.0 S 1300 -10, 1320 -14'/%3E%3Cpath d='M-20 4 C 180 -20, 360 28, 560 4 S 940 -20, 1140 16.0 S 1300 4, 1320 0'/%3E%3Cpath d='M-20 18 C 180 -12, 360 48, 560 18 S 940 -12, 1140 33.0 S 1300 18, 1320 14'/%3E%3Cpath d='M-20 32 C 180 14, 360 50, 560 32 S 940 14, 1140 41.0 S 1300 32, 1320 28'/%3E%3Cpath d='M-20 46 C 180 22, 360 70, 560 46 S 940 22, 1140 58.0 S 1300 46, 1320 42'/%3E%3Cpath d='M-20 60 C 180 30, 360 90, 560 60 S 940 30, 1140 75.0 S 1300 60, 1320 56'/%3E%3Cpath d='M-20 74 C 180 56, 360 92, 560 74 S 940 56, 1140 83.0 S 1300 74, 1320 70'/%3E%3Cpath d='M-20 88 C 180 64, 360 112, 560 88 S 940 64, 1140 100.0 S 1300 88, 1320 84'/%3E%3Cpath d='M-20 102 C 180 72, 360 132, 560 102 S 940 72, 1140 117.0 S 1300 102, 1320 98'/%3E%3C/svg%3E"
+
+    // Leyenda con ícono por sector: casa, edificio, fábrica, rayo y auto
+    MEASURE 'dim_serie'[Leyenda consumo por sector] =
+        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 538 22' width='538' height='22' font-family='Segoe UI'%3E%3Cg transform='translate(0 2) scale(0.75)' fill='none' stroke='%231F6FD1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11l9-8 9 8'/%3E%3Cpath d='M5 9.5V21h14V9.5'/%3E%3Cpath d='M10 21v-6h4v6'/%3E%3C/g%3E%3Ctext x='23' y='15' font-size='12' fill='%234A5260'%3EResidencial%3C/text%3E%3Cg transform='translate(102 2) scale(0.75)' fill='none' stroke='%23C4531A' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='3' width='14' height='18' rx='1'/%3E%3Cpath d='M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M11 21v-3h2v3'/%3E%3C/g%3E%3Ctext x='125' y='15' font-size='12' fill='%234A5260'%3EComercial%3C/text%3E%3Cg transform='translate(191 2) scale(0.75)' fill='none' stroke='%237A45C2' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21V10l5 3v-3l5 3v-3l5 3V4h3v17z'/%3E%3Cpath d='M7 17h1M11 17h1M15 17h1'/%3E%3C/g%3E%3Ctext x='214' y='15' font-size='12' fill='%234A5260'%3EIndustrial%3C/text%3E%3Cg transform='translate(287 2) scale(0.75)' fill='none' stroke='%23A87D00' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L4.5 13.5H12L11 22l8.5-11.5H12z'/%3E%3C/g%3E%3Ctext x='310' y='15' font-size='12' fill='%234A5260'%3EGeneraci%C3%B3n el%C3%A9ctrica%3C/text%3E%3Cg transform='translate(449 2) scale(0.75)' fill='none' stroke='%235B6770' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 16v-3.5L7 8h10l2 4.5V16'/%3E%3Cpath d='M3.5 16h17'/%3E%3Ccircle cx='8' cy='17.5' r='1.5'/%3E%3Ccircle cx='16' cy='17.5' r='1.5'/%3E%3C/g%3E%3Ctext x='472' y='15' font-size='12' fill='%234A5260'%3EVehicular%3C/text%3E%3C/svg%3E"
+
+EVALUATE
+ROW (
+    "Ícono página Resumen", LEN ( [Ícono página Resumen] ),
+    "Ícono página Petróleo", LEN ( [Ícono página Petróleo] ),
+    "Ícono página Gas", LEN ( [Ícono página Gas] ),
+    "Ícono página Rezago", LEN ( [Ícono página Rezago] ),
+    "Ícono página Calidad", LEN ( [Ícono página Calidad] ),
+    "Ícono sección petróleo", LEN ( [Ícono sección petróleo] ),
+    "Ícono sección gas", LEN ( [Ícono sección gas] ),
+    "Ícono WTI", LEN ( [Ícono WTI] ),
+    "Ícono Brent-WTI", LEN ( [Ícono Brent-WTI] ),
+    "Ícono crudo comercial", LEN ( [Ícono crudo comercial] ),
+    "Ícono reserva estratégica", LEN ( [Ícono reserva estratégica] ),
+    "Ícono surtidor", LEN ( [Ícono surtidor] ),
+    "Ícono Henry Hub", LEN ( [Ícono Henry Hub] ),
+    "Ícono gas almacenado", LEN ( [Ícono gas almacenado] ),
+    "Ícono generación eléctrica", LEN ( [Ícono generación eléctrica] ),
+    "Ícono reloj rezago", LEN ( [Ícono reloj rezago] ),
+    "Ícono info", LEN ( [Ícono info] ),
+    "Ícono alerta", LEN ( [Ícono alerta] ),
+    "Ícono invierno", LEN ( [Ícono invierno] ),
+    "Ícono verano", LEN ( [Ícono verano] ),
+    "Ícono fuentes al día", LEN ( [Ícono fuentes al día] ),
+    "Flecha WTI vs promedio 12 meses", LEN ( [Flecha WTI vs promedio 12 meses] ),
+    "Flecha crudo vs año anterior", LEN ( [Flecha crudo vs año anterior] ),
+    "Flecha variación semanal crudo", LEN ( [Flecha variación semanal crudo] ),
+    "Flecha Henry Hub vs promedio 12 meses", LEN ( [Flecha Henry Hub vs promedio 12 meses] ),
+    "Flecha almacenamiento vs año anterior", LEN ( [Flecha almacenamiento vs año anterior] ),
+    "Ícono inyección neta", LEN ( [Ícono inyección neta] ),
+    "Ícono fuentes atrasadas", LEN ( [Ícono fuentes atrasadas] ),
+    "Semáforo de frescura", LEN ( [Semáforo de frescura] ),
+    "Ícono frecuencia", LEN ( [Ícono frecuencia] ),
+    "Barra de atraso", LEN ( [Barra de atraso] ),
+    "Mapa almacenamiento por región", LEN ( [Mapa almacenamiento por región] ),
+    "Diagrama rezago", LEN ( [Diagrama rezago] ),
+    "Textura encabezado", LEN ( [Textura encabezado] ),
+    "Leyenda consumo por sector", LEN ( [Leyenda consumo por sector] )
+)

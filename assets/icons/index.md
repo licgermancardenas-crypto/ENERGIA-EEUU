@@ -1,0 +1,35 @@
+# Íconos del informe Power BI
+
+Un solo set propio: grilla 24×24, trazo 2, extremos redondeados, sin relleno. El color (`currentColor` en el archivo) lo pone cada uso según la familia: petróleo `#C4531A`, gas `#1F6FD1`, OK `#1D7A3B`, alerta `#A35400`, error `#B42318`.
+
+Generados por `scripts/generar_iconos.py`: no los edites a mano.
+
+| Archivo | Qué representa | Dónde se usa |
+|---|---|---|
+| `pulso.svg` | Pulso (Resumen) | Encabezado de Resumen; botón Resumen |
+| `gota.svg` | Gota de petróleo | Encabezado de Petróleo; botón Petróleo; sección PETRÓLEO; KPI WTI; diagrama de Rezago |
+| `llama.svg` | Llama de gas | Encabezado de Gas; botón Gas; sección GAS NATURAL; KPI Henry Hub |
+| `reloj.svg` | Reloj (rezago, atraso) | Encabezado de Rezago; botón Rezago; KPI rezago óptimo; diagrama; estado ámbar |
+| `escudo-check.svg` | Escudo con check (Calidad) | Encabezado de Calidad; botón Calidad |
+| `tendencia-sube.svg` | Tendencia en alza | KPIs de variación (signo +) |
+| `tendencia-baja.svg` | Tendencia en baja | KPIs de variación (signo −) |
+| `flechas-opuestas.svg` | Flechas opuestas (diferencial) | KPI Brent − WTI |
+| `tanque.svg` | Tanque de crudo | KPI crudo comercial |
+| `cilindro.svg` | Cilindro de gas | KPI gas almacenado |
+| `flecha-sube.svg` | Flecha arriba | KPI inyección neta (positiva) |
+| `flecha-baja.svg` | Flecha abajo | KPI inyección neta (negativa) |
+| `rayo.svg` | Rayo (generación eléctrica) | KPI generación eléctrica; leyenda de consumo |
+| `boveda.svg` | Escudo con cerradura (reserva estratégica) | KPI reserva estratégica (SPR) |
+| `surtidor.svg` | Surtidor de combustible | Título de Precio en surtidor |
+| `alerta.svg` | Alerta | Nota de la reserva estratégica 2026; KPI fuentes atrasadas; aviso de causalidad |
+| `copo.svg` | Copo de nieve (invierno, extracción) | Nota de picos de invierno del Henry Hub; ciclo de almacenamiento (extracción) |
+| `sol.svg` | Sol (verano, inyección) | Ciclo de almacenamiento (inyección) |
+| `casa.svg` | Casa (residencial) | Leyenda de consumo: residencial |
+| `edificio.svg` | Edificio (comercial) | Leyenda de consumo: comercial |
+| `fabrica.svg` | Fábrica (industrial) | Leyenda de consumo: industrial |
+| `auto.svg` | Auto (vehicular) | Leyenda de consumo: vehicular |
+| `info.svg` | Información | Caja Cómo leerlo; nota de COVID 2020 |
+| `torre.svg` | Torre de perforación (producción) | Diagrama de Rezago (producción) |
+| `calendario.svg` | Calendario (frecuencia) | Tabla de frescura: frecuencia |
+| `check-circulo.svg` | Check (al día) | Tabla de frescura: al día; KPI fuentes al día |
+| `x-circulo.svg` | X (atrasada) | Tabla de frescura: atrasada |

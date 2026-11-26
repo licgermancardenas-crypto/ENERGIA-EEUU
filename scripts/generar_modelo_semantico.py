@@ -1,6 +1,6 @@
 """Genera el modelo semántico Direct Lake (TMDL) desde la especificación de Power BI.
 
-Toma las tablas y relaciones de la §2 y las 54 medidas de la §4 de
+Toma las tablas y relaciones de la §2 y las 55 medidas de la §4 de
 powerbi/ESPECIFICACION_POWERBI.md, y escribe una carpeta `<nombre>.SemanticModel`
 importable con la Fabric CLI:
 
@@ -23,9 +23,11 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import generar_iconos as gi  # noqa: E402
 import generar_powerbi as gp  # noqa: E402
 
 NOMBRE = "sm_pulso_energetico"
+CARPETA_IMAGENES = "Íconos e imágenes"  # medidas de dax/iconos.dax, categoría Image URL
 TABLA_MEDIDAS = "dim_serie"  # Direct Lake no admite tablas calculadas ni "Enter data" (spec §2.4)
 
 FACT_COLS = [("fecha_key", "int64"), ("fecha", "dateTime"), ("serie_key", "string"),
@@ -88,6 +90,8 @@ def q(nombre: str) -> str:
 
 
 def formato(m: gp.Medida) -> str | None:
+    if m.carpeta == CARPETA_IMAGENES:
+        return None
     if m.nombre in FORMATO_NOMBRE:
         return FORMATO_NOMBRE[m.nombre]
     expr = m.expresion
@@ -112,6 +116,8 @@ def tabla_tmdl(nombre: str, cols: list[tuple[str, str]], medidas: list[gp.Medida
         if f:
             out.append(f"\t\tformatString: {f}")
         out.append(f"\t\tdisplayFolder: {m.carpeta}")
+        if m.carpeta == CARPETA_IMAGENES:
+            out.append("\t\tdataCategory: ImageUrl")
         out.append(f"\t\tlineageTag: {uuid.uuid5(uuid.NAMESPACE_URL, nombre + '/m/' + m.nombre)}")
         out.append("")
     for col, tipo in cols:
@@ -137,8 +143,17 @@ def tabla_tmdl(nombre: str, cols: list[tuple[str, str]], medidas: list[gp.Medida
     return "\n".join(out)
 
 
+def todas_las_medidas() -> list[gp.Medida]:
+    """Las de la especificación más las de íconos (dax/iconos.dax), sin repetir nombres."""
+    base = gp.leer_medidas(gp.SPEC.read_text(encoding="utf-8"))
+    iconos = [gp.Medida(m.nombre, m.expresion, CARPETA_IMAGENES) for m in gi.medidas()]
+    nombres = [m.nombre for m in base + iconos]
+    assert len(nombres) == len(set(nombres)), "nombre de medida repetido"
+    return base + iconos
+
+
 def generar(server: str, endpoint_id: str, out: Path) -> Path:
-    medidas = gp.leer_medidas(gp.SPEC.read_text(encoding="utf-8"))
+    medidas = todas_las_medidas()
     raiz = out / f"{NOMBRE}.SemanticModel"
     d = raiz / "definition"
     (d / "tables").mkdir(parents=True, exist_ok=True)
