@@ -479,28 +479,35 @@ def paginas() -> list[Pagina]:
                "Correlación entre la variación mensual del WTI y la de la producción, 0 a 12 meses "
                "después")
     p.encabezado()
-    p.segmentador(M, Y0, 260, 96, columna(AR, "escenario"), "Escenario", desplegable=False,
+    p.segmentador(M, Y0, 220, 96, columna(AR, "escenario"), "Escenario", desplegable=False,
                   seleccion="completo")
-    p.kpi(M + 260 + G, Y0, 200, 96, "Rezago óptimo (meses)", "Rezago óptimo", "meses", NARANJA)
-    p.kpi(M + 476 + G, Y0, 200, 96, "Correlación en el óptimo", "Correlación", "r de Pearson",
+    # infografía: precio WTI → N meses → producción
+    xd = M + 220 + G
+    p.imagen(xd, Y0, 440, 96, "Diagrama rezago", tarjeta=True)
+    xk = xd + 440 + G
+    wk = (W - M - xk - G) // 2
+    p.kpi(xk, Y0, wk, 96, "Rezago óptimo (meses)", "Rezago óptimo", "meses", NARANJA,
+          icono="Ícono reloj rezago")
+    p.kpi(xk + wk + G, Y0, wk, 96, "Correlación en el óptimo", "Correlación", "r de Pearson",
           NARANJA)
-    xl = M + 692 + G
-    p.kpi(xl, Y0, W - M - xl, 96, "Texto rezago", "Lectura", "correlación, no causalidad",
-          NARANJA, tam=13.0)
     yc = Y0 + 96 + G
     hc = 250
     p.grafico("clusteredColumnChart", M, yc, 800, hc, columna(AR, "rezago_meses"),
               ["Correlación"], "Correlación según meses de rezago",
               "naranja = rezago con mayor correlación", relleno="Color barra rezago",
               etiquetas=True)
-    p.texto(M + 800 + G, yc, W - 2 * M - 800 - G, hc, [
-        ("Cómo leerlo", 12, TINTA, True),
-        ("Comparamos la variación mensual del WTI con la de la producción de crudo entre 0 y 12 "
-         "meses después.", 10, TINTA_2, False),
-        ("Lo calculamos de dos maneras porque 2020 fue un año extremo: precio y producción se "
-         "desplomaron y rebotaron casi a la vez.", 10, TINTA_2, False),
-        ("Que el resultado cambie tanto entre escenarios muestra que ninguna cifra es una regla "
-         "fija. Es correlación, no causalidad.", 10, TINTA_2, False)], fondo=BLANCO)
+    xr, wr = M + 800 + G, W - 2 * M - 800 - G
+    p.kpi(xr, yc, wr, 78, "Texto rezago", "Lectura", "según el escenario elegido", NARANJA,
+          tam=12.0)
+    yl, hl = yc + 78 + G, hc - 78 - G
+    p.texto(xr, yl, wr, hl, [
+        ("       Cómo leerlo", 12, TINTA, True),
+        ("Comparamos la variación mensual del WTI con la de la producción de crudo, de 0 a 12 "
+         "meses después. Lo calculamos con y sin 2020-2021, porque la pandemia hizo caer y "
+         "rebotar precio y producción casi a la vez.", 9.5, TINTA_2, False)], fondo=BLANCO)
+    p.imagen(xr + 14, yl + 12, 20, 20, "Ícono info")
+    p.nota(xr + 14, yl + hl - 30, wr - 28, "Ícono alerta",
+           "Correlación ≠ causalidad: el precio no es la única causa.", ALERTA)
     yd = yc + hc + G
     hd = FIN - yd
     p.grafico("lineChart", xs2[0], yd, w2, hd, fecha, ["Precio WTI mensual"],
