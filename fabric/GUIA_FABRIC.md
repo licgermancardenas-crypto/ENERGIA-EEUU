@@ -238,6 +238,16 @@ Lo detalla la especificación de la F4 (`powerbi/`). Hay dos caminos:
 - **Direct Lake** (recomendado): desde el Lakehouse, **New semantic model**, seleccionando las tablas `dim_*` y `fact_*`.
 - **Import / DirectQuery**: en Power BI Desktop, **Get data → Microsoft Fabric → Lakehouses → `lh_pulso_energetico` → Connect to SQL endpoint**.
 
+**Atajo con la Fabric CLI** (`pip install ms-fabric-cli`, después `fab auth login`): el modelo Direct Lake completo, con tablas, relaciones, tabla de fechas y las 53 medidas, se genera desde la especificación y se importa de una vez.
+
+```bash
+fab get "<workspace>.Workspace/lh_pulso_energetico.Lakehouse" -q properties   # sqlEndpointProperties
+python scripts/generar_modelo_semantico.py --server <connectionString> --endpoint-id <id> --out salida
+fab import "<workspace>.Workspace/sm_pulso_energetico.SemanticModel" -i salida/sm_pulso_energetico.SemanticModel -f
+```
+
+Las medidas quedan en `dim_serie`, organizadas en carpetas, porque Direct Lake no admite tablas calculadas. Si una consulta devuelve `Invalid object name 'dbo.…'`, el SQL endpoint todavía no sincronizó las tablas nuevas: abrilo una vez o esperá unos minutos.
+
 ## 8. Plan B: Bronze con notebook
 
 Si la paginación de la actividad Copy no se comporta como se espera (ver §9), reemplazá el ForEach por una actividad **Notebook** con `NB00_Bronze_Alternativo`:
