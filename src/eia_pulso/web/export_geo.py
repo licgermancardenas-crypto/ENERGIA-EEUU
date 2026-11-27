@@ -33,6 +33,28 @@ def _registros(df: pd.DataFrame, dec: int = 4) -> list[dict[str, Any]]:
     return out
 
 
+def _fuentes_mapa() -> dict[str, str]:
+    """Citas que muestra el mapa animado, leídas de config/pipeline.yaml (no se escriben a mano)."""
+    from eia_pulso.geo.config import load_geo
+
+    cfg = load_geo()
+    return {"conexiones_henry_hub": cfg.fuente_conexiones_hh,
+            "flujos": cfg.capas["flujos"].origen if "flujos" in cfg.capas else
+            "EIA API v2 natural-gas/move/ist"}
+
+
+def _centros_estados(gold_geo: Path) -> dict[str, list[float]]:
+    """Punto interior de cada estado (extremo de los arcos de flujo), en lon/lat."""
+    import geopandas as gpd
+
+    silver = gold_geo.parent.parent / "silver_geo" / "estados.parquet"
+    if not silver.exists():
+        return {}
+    g = gpd.read_parquet(silver).to_crs(5070)
+    pts = g.geometry.representative_point().to_crs(4326)
+    return {k: [round(p.x, 3), round(p.y, 3)] for k, p in zip(g["estado_key"], pts, strict=True)}
+
+
 def _centrales(c: pd.DataFrame) -> list[dict[str, Any]]:
     """Centrales a gas (EIA-860M): solo lo que dibuja el mapa, coordenadas a ~100 m."""
     return [{"nombre": r.planta, "estado": r.estado_key, "mw": _num(r.capacidad_mw, 0),
@@ -70,6 +92,7 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
     if len(flujos):
         ult = flujos[flujos["anio"] == flujos["anio"].max()][["estado_key", "neto_mmcf", "anio"]]
         est = est.merge(ult, on="estado_key", how="left")
+    centro = _centros_estados(gold_geo)
     estados = []
     for r in est.to_dict(orient="records"):
         estados.append({
@@ -87,7 +110,8 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
             "condados_alerta": int(r["condados_alta_dependencia_lejos"])
             if pd.notna(r.get("condados_alta_dependencia_lejos")) else None,
             "balance": _num(r.get("neto_mmcf"), 0),
-            "anio_balance": int(r["anio"]) if pd.notna(r.get("anio")) else None})
+            "anio_balance": int(r["anio"]) if pd.notna(r.get("anio")) else None,
+            "centro": centro.get(r["estado_key"])})
 
     condados = {}
     cpath = gold_geo / "geo_condado_calefaccion.parquet"
@@ -108,6 +132,7 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
         "henry_hub": _registros(leer("geo_henry_hub_conexiones")),
         "frescura_geo": _registros(leer("frescura_geo").drop(columns=["calculado_al"])),
         "flujos": _flujos(gold_geo),
+        "fuentes_mapa": _fuentes_mapa(),
         "validacion": json.loads((gold_geo / "validacion.json").read_text(encoding="utf-8")),
     }
     conteo: dict[str, int] = {}
@@ -130,6 +155,11 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
         texto = json.dumps(cond, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
         (dest / "mapa_condados_detalle.geojson").write_text(texto, encoding="utf-8")
         conteo["mapa_condados_detalle.geojson"] = len(texto)
+    pul = pulsos_desde_henry_hub(gold_geo)
+    if pul is not None:
+        texto = json.dumps(pul, separators=(",", ":"))
+        (dest / "pulsos.json").write_text(texto, encoding="utf-8")
+        conteo["pulsos.json"] = len(texto)
     log.info("JSON geo exportados a %s", dest)
     return conteo
 
@@ -192,3 +222,91 @@ def red_detallada(gold_geo: Path) -> dict[str, Any] | None:
               "geometry": _redondear(mapping(r.geometry), DECIMALES_DETALLE)}
              for r in red.itertuples() if not r.geometry.is_empty]
     return {"type": "FeatureCollection", "features": feats}
+
+
+# ------------------------------------------------------------------ pulsos (mapa animado)
+TOLERANCIA_PULSOS_M = 3000   # la onda se ve a escala país: no necesita más detalle
+REDONDEO_NODO = 2            # ~1 km: une tramos de distintos operadores que se tocan
+
+
+def _km(a: tuple[float, float], b: tuple[float, float]) -> float:
+    import math
+    lon1, lat1, lon2, lat2 = map(math.radians, (*a, *b))
+    h = (math.sin((lat2 - lat1) / 2) ** 2
+         + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2)
+    return 6371.0 * 2 * math.asin(math.sqrt(h))
+
+
+def pulsos_desde_henry_hub(gold_geo: Path) -> dict[str, Any] | None:
+    """Trayectos con 'tiempo' = km recorridos por la red desde el Henry Hub (Dijkstra).
+
+    Sirve SOLO para animar una onda ilustrativa que sale del hub: no es caudal ni velocidad
+    real del gas (la EIA no publica volúmenes por gasoducto). Cada tramo se corta en piezas
+    donde la distancia crece de forma monótona, como pide la capa de trayectos de deck.gl.
+    """
+    import heapq
+
+    import geopandas as gpd
+
+    silver = gold_geo.parent.parent / "silver_geo" / "gasoductos.parquet"
+    if not silver.exists():
+        return None
+    hubs = pd.read_parquet(gold_geo / "geo_hubs.parquet")
+    hh = hubs[hubs["nombre"] == "Henry Hub"]
+    if hh.empty:
+        return None
+    origen = (float(hh.iloc[0]["lon"]), float(hh.iloc[0]["lat"]))
+    g = gpd.read_parquet(silver).to_crs(5070)
+    g = g.set_geometry(g.geometry.simplify(TOLERANCIA_PULSOS_M)).to_crs(4326)
+
+    partes: list[list[tuple[float, float]]] = []
+    for geom in g.geometry:
+        if geom is None or geom.is_empty:
+            continue
+        for linea in getattr(geom, "geoms", [geom]):
+            cs = [(round(x, 3), round(y, 3)) for x, y in linea.coords]
+            if len(cs) >= 2:
+                partes.append(cs)
+
+    def nodo(c: tuple[float, float]) -> tuple[float, float]:
+        return (round(c[0], REDONDEO_NODO), round(c[1], REDONDEO_NODO))
+
+    vecinos: dict[tuple[float, float], list[tuple[tuple[float, float], float]]] = {}
+    for cs in partes:
+        for a, b in zip(cs, cs[1:], strict=False):
+            na, nb, d = nodo(a), nodo(b), _km(a, b)
+            vecinos.setdefault(na, []).append((nb, d))
+            vecinos.setdefault(nb, []).append((na, d))
+    inicio = min(vecinos, key=lambda n: _km(n, origen))
+    dist = {inicio: 0.0}
+    cola = [(0.0, inicio)]
+    while cola:
+        d, n = heapq.heappop(cola)
+        if d > dist.get(n, float("inf")):
+            continue
+        for m, w in vecinos[n]:
+            nd = d + w
+            if nd < dist.get(m, float("inf")):
+                dist[m] = nd
+                heapq.heappush(cola, (nd, m))
+
+    trayectos: list[list[list[float]]] = []
+    for cs in partes:
+        ds = [dist.get(nodo(c)) for c in cs]
+        if any(x is None for x in ds):
+            continue  # tramo no conectado al Henry Hub
+        piezas, actual = [], [0]
+        for i in range(1, len(cs)):
+            if len(actual) >= 2 and (ds[i] >= ds[i - 1]) != (ds[actual[-1]] >= ds[actual[-2]]):
+                piezas.append(actual)   # cambia el sentido: se corta en el vértice anterior
+                actual = [i - 1]
+            actual.append(i)
+        piezas.append(actual)
+        for ids in piezas:
+            pts = [[cs[j][0], cs[j][1], round(ds[j], 1)] for j in ids]
+            if pts[0][2] > pts[-1][2]:
+                pts.reverse()
+            if len(pts) >= 2:
+                trayectos.append(pts)
+    return {"origen": list(origen), "max_km": round(max(t[-1][2] for t in trayectos)),
+            "trayectos": trayectos}

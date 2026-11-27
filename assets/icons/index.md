@@ -35,6 +35,7 @@ Generados por `scripts/generar_iconos.py`: no los edites a mano.
 | `x-circulo.svg` | X (atrasada) | Tabla de frescura: atrasada |
 | `red.svg` | Red de nodos (mapa de la red) | Encabezado y botón de la página Mapa de la red |
 | `capas.svg` | Capas (análisis geoespacial) | Encabezado y botón de la página Análisis geoespacial |
+| `mapa-pin.svg` | Ubicación con pulso (mapa animado, web) | Botón de la sección Mapa animado de la web |
 
 ## Medidas de imagen
 

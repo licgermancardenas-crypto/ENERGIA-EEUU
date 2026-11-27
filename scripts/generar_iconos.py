@@ -87,6 +87,8 @@ ICONOS: dict[str, tuple[str, str]] = {
             'M12 12.5V16"/>', "Red de nodos (mapa de la red)"),
     "capas": ('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
               "Capas (análisis geoespacial)"),
+    "mapa-pin": ('<path d="M12 21s-6-5.4-6-10a6 6 0 0 1 12 0c0 4.6-6 10-6 10z"/>'
+                 '<circle cx="12" cy="11" r="2"/>', "Ubicación con pulso (mapa animado, web)"),
 }
 
 # Dónde se usa cada ícono (para el índice)
@@ -120,6 +122,7 @@ USOS: dict[str, str] = {
     "x-circulo": "Tabla de frescura: atrasada",
     "red": "Encabezado y botón de la página Mapa de la red",
     "capas": "Encabezado y botón de la página Análisis geoespacial",
+    "mapa-pin": "Botón de la sección Mapa animado de la web",
 }
 
 
