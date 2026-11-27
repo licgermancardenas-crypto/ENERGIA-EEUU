@@ -78,11 +78,16 @@ def bronze_capas(cfg: GeoConfig, solo: list[str] | None = None) -> dict[str, Pat
             continue
         base = {"capa": nombre, "tipo": capa.tipo, "origen": capa.origen,
                 "vintage": capa.vintage, "url": capa.url}
-        if capa.archivo:  # archivo local ya descargado (Census)
+        if capa.archivo:  # archivo descargado (Census); si no está en disco, se baja de `url`
             src = RAIZ_REPO / capa.archivo
-            if not src.exists():
+            if src.exists():
+                contenido = src.read_bytes()
+            elif capa.url:
+                r = requests.get(capa.url, timeout=120)
+                r.raise_for_status()
+                contenido = r.content
+            else:
                 raise GeoBronzeError(f"{nombre}: falta {capa.archivo}")
-            contenido = src.read_bytes()
             salidas[nombre] = _guardar(cfg.bronze_dir / nombre, nombre, src.suffix.lstrip("."),
                                        contenido, {**base, "registros": None})
         else:

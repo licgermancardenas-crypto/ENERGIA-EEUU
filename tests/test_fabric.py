@@ -44,7 +44,8 @@ def nb02():
 def test_generacion_produce_notebooks_validos(tmp_path):
     escritos = gf.generar(salida=tmp_path)
     notebooks = [p for p in escritos if p.suffix == ".ipynb"]
-    assert {p.stem for p in notebooks} == {"NB00_Bronze_Alternativo", "NB01_Silver", "NB02_Gold"}
+    assert {p.stem for p in notebooks} == {"NB00_Bronze_Alternativo", "NB01_Silver", "NB02_Gold",
+                                           "NB03_Geo"}
     for p in notebooks:
         nb = json.loads(p.read_text(encoding="utf-8"))
         assert nb["nbformat"] == 4

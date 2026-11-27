@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -189,7 +190,8 @@ def frescura_geo(cfg: GeoConfig, hoy: date, extra: list[dict[str, Any]]) -> pd.D
 
 # ------------------------------------------------------------------ orquestación
 def leer_conexiones() -> pd.DataFrame:
-    return pd.read_csv(CONEXIONES_HH, dtype=str, keep_default_na=False).replace({"": None})
+    ruta = Path(os.environ.get("EIA_PULSO_CONEXIONES_HH", CONEXIONES_HH))  # Fabric: otra ruta
+    return pd.read_csv(ruta, dtype=str, keep_default_na=False).replace({"": None})
 
 
 def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
