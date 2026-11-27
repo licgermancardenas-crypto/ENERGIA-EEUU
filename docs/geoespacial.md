@@ -17,7 +17,9 @@ Verificadas el 2026-11-26. Los servicios ArcGIS oficiales de la EIA ([cuenta del
 | Terminales de GNL | EIA, copia pública ([servicio](https://services.arcgis.com/kbDdtKcFi2adamXa/arcgis/rest/services/Lng_ImportExportTerminals_US_EIA/FeatureServer/0)) | 2023-08 | 9 |
 | Reserva estratégica de petróleo | DOE vía EIA, copia pública ([servicio](https://services.arcgis.com/jDGuO8tYggdCCnUJ/arcgis/rest/services/Strategic_Petroleum_Reserves/FeatureServer/0)) | 2022-04 | 4 |
 | Regiones de almacenamiento | EIA, **servicio oficial** ([Natural_Gas_Storage_Regions](https://services7.arcgis.com/FGr1D95XCGALKXqM/ArcGIS/rest/services/Natural_Gas_Storage_Regions/FeatureServer/0)) | 2020-10 | 5 |
-| Límites de estados | U.S. Census Bureau, Cartographic Boundary Files 2024, 1:20.000.000 | 2024 | 49 (Lower 48 + DC) |
+| Límites de estados | U.S. Census Bureau, Cartographic Boundary Files 2024, 1:20.000.000 | 2024 | 51 (50 estados + DC) |
+| Límites de condados | U.S. Census Bureau, Cartographic Boundary Files 2024, 1:5.000.000 | 2024 | 3.144 (FIPS de 5 dígitos) |
+| Calefacción del hogar | U.S. Census Bureau, ACS 5 años, tabla **B25040** (*House Heating Fuel*), [Summary File por tabla](https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b25040.dat). La API del Census ahora pide key; el Summary File no | 2020-2024 (la de 2025 todavía no salió) | 3.222 condados (incluye Puerto Rico, que se excluye) |
 | Flujos interestatales | EIA API v2 `natural-gas/move/ist` (anual; procesos `MIR` recibe, `MID` entrega, `MIN` neto) | último año publicado | — |
 | Centrales a gas | EIA API v2 `electricity/operating-generator-capacity` (EIA-860M, `energy_source_code = NG`) | último mes publicado | — |
 | Conexiones del Henry Hub | [Sabine Pipe Line LLC](https://sabinepipeline.enlink.com/?p=25): 9 interestatales y 3 intraestatales | consultado 2026-11-26 | 11 filas en `config/henry_hub_conexiones.csv` |
@@ -29,7 +31,10 @@ Cada descarga queda en `data/bronze_geo/<capa>/` con un manifiesto (URL, registr
 ## 2. Decisiones
 
 - **CRS:** las longitudes y áreas se calculan en **EPSG:5070** (NAD83 / Conus Albers, de área equivalente). Lo que se muestra vuelve a **WGS84** (EPSG:4326).
-- **Alaska, Hawái y Puerto Rico:** se **excluyen**, con una nota visible en el mapa. Las regiones de almacenamiento y la red analizada son del Lower 48. Un recuadro aparte sumaría peso y complejidad sin responder ninguna de las preguntas del informe.
+- **Alaska y Hawái:** se muestran en **recuadros** (proyección `albersUsa` de Vega, la misma para estados, condados, red y puntos, así que calzan). No tienen región de almacenamiento de la EIA. **Puerto Rico** se excluye porque `albersUsa` no tiene recuadro para él (nota visible en el mapa).
+- **Qué se dibuja y qué no:**
+  - Se dibujan los estados (106 KB), la red (1,2 MB) y los condados (888 KB, solo en el mapa de calefacción, que pesa 2,1 MB en total).
+  - Las *census tracts* (~85.000 polígonos) quedan fuera de Power BI; son una posible fase futura en la versión web.
 - **Simplificación:** Douglas-Peucker con **1,5 km** de tolerancia sobre EPSG:5070 (6 km para las regiones), sin romper la topología. Las coordenadas se redondean a 3 decimales (~100 m). Los tramos se unen por (tipo, operador). Resultado: **1,4 MB** en total (red 1,2 MB, estados 77 KB, regiones 73 KB). Las métricas se calculan **sobre la geometría completa**, no sobre la simplificada.
 - **Umbral de proximidad: 25 km.** Una central a esa distancia o menos puede conectarse con un ramal corto; más allá, lo más probable es que dependa de un ramal que la capa de la EIA no dibuja, porque la capa cubre la red troncal y no los ramales de conexión. Es un supuesto de diseño, no un dato de la EIA. Se cambia en `geo.umbral_proximidad_km`.
 - **Visual del mapa:** Deneb (Vega-Lite), con la geometría embebida en la spec. Deneb no carga URLs externas. Se probó en Power BI Service del tenant antes de usarlo.
@@ -46,6 +51,9 @@ Cada descarga queda en `data/bronze_geo/<capa>/` con un manifiesto (URL, registr
 | Distancia GNL → Henry Hub | distancia geodésica sobre el elipsoide WGS84 (pyproj) | `geo_gnl` |
 | Distancia central → red | distancia al gasoducto más cercano en EPSG:5070 (`sjoin_nearest`). Los generadores se suman por planta | `geo_centrales` |
 | % de capacidad cerca de la red | MW de centrales a ≤ 25 km ÷ MW totales | `[Capacidad cerca de la red %]` |
+| % de hogares que calefaccionan con gas de red | ACS B25040: `002` (*utility gas*) ÷ `001` (total). El **propano** (`003`) se muestra aparte: llega en camión y no depende de la red. El MOE de la proporción usa la fórmula del Census (si el radicando es negativo, se suma) | `geo_condado_calefaccion`, `[Hogares con gas de red %]` |
+| Distancia del condado a la red | del polígono del condado al gasoducto más cercano en EPSG:5070 (0 si la red lo cruza) | `[Distancia del condado a la red]` |
+| Alta dependencia lejos de la red | condado con ≥ 50 % de hogares con gas de red **y** a más de 25 km de la red troncal mapeada (`geo.umbral_dependencia_gas_red`) | `[Condados con alta dependencia lejos de la red]` |
 | Región de almacenamiento del estado | punto interior del estado dentro de las regiones de la EIA | `geo_dim_estado[region_key]` → `dim_region` |
 
 ## 4. Validaciones (corrida del 2026-11-26)
@@ -53,7 +61,10 @@ Cada descarga queda en `data/bronze_geo/<capa>/` con un manifiesto (URL, registr
 - **Red total:** 360.239 km (239.408 interestatales y 120.831 intraestatales).
 - **Dentro de estados:** 345.480 km. Quedan **fuera** 14.760 km (4,1 %): son tramos marinos del Golfo de México. Por ejemplo, Sea Robin tiene solo 35 km en tierra.
 - **Consistencia:** la suma de las métricas por estado coincide con el total intersectado.
-- **Estados con 0 km:** solo **DC**, y es real: el gasoducto más cercano está a 15,8 km de su límite.
+- **Estados con 0 km:** **DC**, y es real: el gasoducto más cercano está a 15,8 km de su límite. También **Hawái**: no tiene red de transmisión en la capa.
+- **Condados:** los 3.144 condados (50 estados + DC) cruzan con un FIPS válido de la ACS. Las únicas filas de la ACS sin condado son las de Puerto Rico (FIPS 72), excluido a propósito.
+- **ACS contra el total nacional:** la suma por condado da **46,51 %** de hogares con gas de red, igual que el total nacional publicado (60,1 de 129,2 millones). El propano da 4,9 % y el MOE mediano por condado es ±2,2 puntos.
+- **Alta dependencia lejos de la red:** 23 condados, con 367.548 hogares con gas de red.
 - **Henry Hub:** 10 de las 11 conexiones de Sabine figuran en la capa. Jefferson Island no está (es sobre todo almacenamiento). La huella de esos operadores toca **20 estados** y suma 36.088 km.
 - **Flujos:** en cada estado se verifica `MIN = MIR − MID` (columna `cierre_ok`).
 
@@ -63,6 +74,8 @@ Cada descarga queda en `data/bronze_geo/<capa>/` con un manifiesto (URL, registr
 - **Copias de terceros:** las capas estáticas son copias públicas de capas de la EIA. Se verificó que los campos (`TYPEPIPE`, `Operator`, `Status`) y la descripción coincidan con los metadatos de la EIA, pero no se puede garantizar que estén completas ni que sean idénticas al original.
 - **Sin recolección:** la capa de la EIA solo distingue interestatal e intraestatal. Los gasoductos de recolección figuran como "no disponible".
 - **Sin corredores origen-destino:** la ruta `ist` publica totales por estado, no pares origen-destino. Por eso el mapa no dibuja flechas de corredores.
+- **Encuesta, no censo:** la ACS son estimaciones con margen de error, de 2020-2024.
+- **"Lejos de la red" no es "sin gas":** la capa de la EIA cubre la red troncal, no los ramales locales. Por ejemplo, en Alaska solo tiene 48 km, así que Anchorage aparece "lejos" aunque tiene red de distribución.
 - **Vintage viejo:** los gasoductos son de 2020 y los hubs de febrero de 2020. Proyectos posteriores pueden faltar.
 - **Aviso de la EIA:** la EIA aclara que estos datos no garantizan precisión ni exhaustividad.
 - **Geometría simplificada:** sirve para ver el país, no para medir un tramo puntual.
