@@ -103,4 +103,5 @@ body {
 }
 .maplibregl-ctrl-attrib { font-size: 11px; }
 /* el overlay de deck.gl es otro canvas encima del mapa: los marcadores HTML van por arriba */
-.maplibregl-marker:has(.hh-marcador) { z-index: 3; }
+/* MapLibre usa el mismo elemento como marcador: el selector va sobre .hh-marcador */
+.maplibregl-marker.hh-marcador { z-index: 5; }
