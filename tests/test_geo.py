@@ -117,3 +117,34 @@ def test_centrales_distancia_a_la_red(red):
     c = gold.centrales_a_red(filas, red, CRS, 25, {"AA"})
     assert len(c) == 1 and c.loc[0, "distancia_red_km"] >= 0
     assert gold.centrales_a_red([], red, CRS, 25, {"AA"}).empty
+
+
+def test_moe_de_proporcion_formula_census():
+    import numpy as np
+    # p = 0,5; radicando 10² - 0,5² * 30² = -125 < 0 -> el Census indica sumar
+    m = gold.moe_proporcion(np.array([50.0]), np.array([10.0]), np.array([100.0]),
+                            np.array([30.0]))
+    assert m[0] == pytest.approx(np.sqrt(100 + 225) / 100)
+    m2 = gold.moe_proporcion(np.array([50.0]), np.array([10.0]), np.array([100.0]),
+                             np.array([4.0]))
+    assert m2[0] == pytest.approx(np.sqrt(100 - 4) / 100)
+
+
+def test_calefaccion_por_condado_y_estado(estados, red):
+    cond = gpd.GeoDataFrame({"condado_key": ["01001", "02001"], "estado_key": ["AA", "BB"],
+                             "nombre": ["C1", "C2"], "area_km2": [1.0, 1.0]},
+                            geometry=[box(0, 0, 100_000, 100_000),
+                                      box(500_000, 500_000, 600_000, 600_000)], crs=CRS)
+    acs = pd.DataFrame({"condado_key": ["01001", "02001"], "hogares": [100.0, 200.0],
+                        "hogares_moe": [5.0, 5.0], "gas_red": [80.0, 150.0],
+                        "gas_red_moe": [4.0, 4.0], "propano": [5.0, 10.0],
+                        "propano_moe": [1.0, 1.0]})
+    df, val = gold.calefaccion_condado(cond, acs, red, CRS, 25, 0.5)
+    d = df.set_index("condado_key")
+    assert d.loc["01001", "distancia_red_km"] == pytest.approx(0)  # la red lo cruza
+    assert d.loc["02001", "distancia_red_km"] > 25
+    assert not d.loc["01001", "alta_dependencia_lejos"] and d.loc["02001", "alta_dependencia_lejos"]
+    assert val["condados_sin_acs"] == [] and val["acs_sin_condado"] == []
+    e = gold.calefaccion_estado(df).set_index("estado_key")
+    assert e.loc["BB", "pct_gas_red"] == pytest.approx(0.75)
+    assert e.loc["BB", "hogares_gas_red_lejos"] == pytest.approx(150)

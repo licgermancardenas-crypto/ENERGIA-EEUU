@@ -179,7 +179,8 @@ geo:
   tolerancia_simplificacion_m: 1500   # Douglas-Peucker sobre EPSG:5070 (ver docs/geoespacial.md)
   decimales_coordenadas: 3     # ~100 m en WGS84: alcanza para un mapa de país
   umbral_proximidad_km: 25     # ver docs/geoespacial.md (laterales típicos de centrales)
-  estados_excluidos: [AK, HI, PR]   # el informe muestra el Lower 48 + DC, con nota visible
+  estados_excluidos: [PR]   # albersUsa no tiene recuadro para Puerto Rico (nota visible)
+  umbral_dependencia_gas_red: 0.5   # hogares que calefaccionan con gas de red (ACS)
   capas:
     gasoductos:
       tipo: lineas
@@ -212,6 +213,12 @@ geo:
       url: https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_state_20m.zip
       origen: "U.S. Census Bureau, Cartographic Boundary Files 2024 (1:20.000.000)"
       vintage: "2024"
+    condados:
+      tipo: poligonos
+      archivo: data/geo/entrada/census/cb_2024_us_county_5m.zip
+      url: https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_county_5m.zip
+      origen: "U.S. Census Bureau, Cartographic Boundary Files 2024 (1:5.000.000)"
+      vintage: "2024"
   flujos:
     ruta: natural-gas/move/ist   # International & Interstate Movements of Natural Gas by State
     frecuencia: annual
@@ -221,5 +228,14 @@ geo:
     ruta: electricity/operating-generator-capacity   # Inventario de generadores (EIA-860M)
     frecuencia: monthly
     combustibles: [NG]           # energy_source_code: gas natural
+  acs:
+    # House Heating Fuel por condado (ACS 5 años 2020-2024; la de 2025 aún no salió).
+    # La API del Census ahora pide key: se usa el Summary File oficial por tabla (sin key),
+    # filtrando las filas de condados (GEO_ID 0500000US + FIPS de 5 dígitos).
+    url: https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b25040.dat
+    tabla: B25040
+    anio: "2020-2024"
+    columnas: {B25040_E001: hogares, B25040_M001: hogares_moe, B25040_E002: gas_red,
+               B25040_M002: gas_red_moe, B25040_E003: propano, B25040_M003: propano_moe}
   henry_hub:
     fuente_conexiones: "Sabine Pipe Line LLC, About Sabine Pipe Line (https://sabinepipeline.enlink.com/?p=25), consultado el 2026-11-26: 9 interestatales y 3 intraestatales"

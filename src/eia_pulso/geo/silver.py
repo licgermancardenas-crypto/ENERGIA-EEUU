@@ -88,12 +88,47 @@ def silver_puntos(capa: str, g: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(df.reset_index(drop=True), geometry=g.geometry.values, crs=g.crs)
 
 
+def silver_condados(g: gpd.GeoDataFrame, estados: set[str], crs_calculo: int
+                    ) -> gpd.GeoDataFrame:
+    """Condados de los estados incluidos (sin Puerto Rico ni territorios), con FIPS de 5."""
+    g = g[g["STUSPS"].isin(estados)].copy()
+    out = gpd.GeoDataFrame({
+        "condado_key": g["GEOID"].astype(str).str.zfill(5),
+        "estado_key": g["STUSPS"].astype(str),
+        "nombre": g["NAMELSAD"].astype(str)}, geometry=g.geometry.values, crs=g.crs)
+    out["area_km2"] = out.to_crs(crs_calculo).area / 1e6
+    fips_ok = out["condado_key"].str.fullmatch(r"\d{5}").all()
+    if out["condado_key"].duplicated().any() or not fips_ok:
+        raise GeoSilverError("condados: FIPS inválidos o duplicados")
+    return out.sort_values("condado_key").reset_index(drop=True)
+
+
+def silver_acs(ruta, columnas: dict[str, str]) -> pd.DataFrame:
+    """ACS B25040 por condado: FIPS de 5 dígitos y columnas con nombre en español."""
+    df = pd.read_csv(ruta, sep="|", dtype=str)
+    out = pd.DataFrame({"condado_key": df["GEO_ID"].str[-5:]})
+    for col, nombre in columnas.items():
+        out[nombre] = pd.to_numeric(df[col], errors="coerce")
+    if out["condado_key"].duplicated().any():
+        raise GeoSilverError("ACS: condados duplicados")
+    return out
+
+
 def run_silver(cfg: GeoConfig) -> dict[str, gpd.GeoDataFrame]:
+    estados = silver_estados(_leer(cfg, "estados"), cfg.estados_excluidos, cfg.crs_calculo)
     capas = {
-        "estados": silver_estados(_leer(cfg, "estados"), cfg.estados_excluidos, cfg.crs_calculo),
+        "estados": estados,
         "gasoductos": silver_gasoductos(_leer(cfg, "gasoductos")),
         "regiones_almacenamiento": silver_regiones(_leer(cfg, "regiones_almacenamiento")),
+        "condados": silver_condados(_leer(cfg, "condados"), set(estados["estado_key"]),
+                                    cfg.crs_calculo),
     }
+    if cfg.acs:
+        ruta, _ = ultimo(cfg, "acs")
+        acs = silver_acs(ruta, cfg.acs["columnas"])
+        cfg.silver_dir.mkdir(parents=True, exist_ok=True)
+        acs.to_parquet(cfg.silver_dir / "acs.parquet", index=False)
+        log.info("Silver geo acs: %d condados", len(acs))
     for p in ("hubs", "gnl", "reserva_estrategica"):
         capas[p] = silver_puntos(p, _leer(cfg, p))
     cfg.silver_dir.mkdir(parents=True, exist_ok=True)

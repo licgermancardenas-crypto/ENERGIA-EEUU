@@ -22,6 +22,9 @@ from eia_pulso.geo.config import Capa, GeoConfig
 log = logging.getLogger(__name__)
 
 
+SALTO, CR, LF = bytes([10]), chr(13), chr(10)  # separadores del Summary File
+
+
 class GeoBronzeError(RuntimeError):
     """Una capa no se pudo descargar o vino incompleta."""
 
@@ -125,6 +128,44 @@ def bronze_api(cfg: GeoConfig, settings: Settings, cliente: EIAClient) -> dict[s
         {"capa": "centrales", "origen": "EIA API v2 " + c["ruta"] + " (EIA-860M)",
          "registros": len(res.filas), "parametros": res.parametros, "vintage": ultimo})
     return salidas
+
+
+def bronze_acs(cfg: GeoConfig, sesion: requests.Session | None = None) -> Path:
+    """ACS House Heating Fuel: baja el Summary File por tabla en streaming y guarda solo los
+    condados (GEO_ID 0500000US...). El SHA-256 del manifiesto es el del archivo completo."""
+    acs = cfg.acs
+    if not acs:
+        raise GeoBronzeError("Falta la sección geo.acs en la configuración")
+    cols = ["GEO_ID", *acs["columnas"]]
+    h, filas, encabezado = hashlib.sha256(), [], None
+    with (sesion or requests.Session()).get(acs["url"], stream=True, timeout=300) as r:
+        r.raise_for_status()
+        resto = b""
+        for bloque in r.iter_content(chunk_size=1 << 20):
+            h.update(bloque)
+            partes = (resto + bloque).split(SALTO)
+            resto = partes.pop()
+            for linea in partes:
+                texto = linea.decode("utf-8").rstrip(CR)
+                if encabezado is None:
+                    encabezado = texto.split("|")
+                elif texto.startswith("0500000US"):
+                    filas.append(texto)
+        if resto.decode("utf-8").startswith("0500000US"):
+            filas.append(resto.decode("utf-8").rstrip(CR))
+    faltan = [c for c in cols if c not in (encabezado or [])]
+    if faltan:
+        raise GeoBronzeError(f"ACS: faltan columnas {faltan} en el Summary File")
+    contenido = (LF.join(["|".join(encabezado), *filas]) + LF).encode("utf-8")
+    destino = _guardar(cfg.bronze_dir / "acs", "acs", "dat", contenido, {
+        "capa": "acs", "origen": f"U.S. Census Bureau, ACS 5 años {acs['anio']}, tabla "
+        f"{acs['tabla']} (House Heating Fuel), Summary File", "url": acs["url"],
+        "registros": len(filas), "vintage": acs["anio"]})
+    man = destino.with_name(destino.name.replace(".dat", ".manifest.json"))
+    m = json.loads(man.read_text(encoding="utf-8"))
+    m["sha256_archivo_completo"] = h.hexdigest()
+    man.write_text(json.dumps(m, ensure_ascii=False, indent=2), encoding="utf-8")
+    return destino
 
 
 def ultimo(cfg: GeoConfig, capa: str) -> tuple[Path, dict[str, Any]]:

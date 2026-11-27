@@ -36,6 +36,8 @@ class GeoConfig:
     centrales: dict[str, Any]
     fuente_conexiones_hh: str
     data_dir: Path
+    acs: dict[str, Any] | None = None
+    umbral_dependencia: float = 0.5
 
     @property
     def bronze_dir(self) -> Path:
@@ -72,4 +74,5 @@ def load_geo(config_path: str | Path | None = None,
         estados_excluidos=tuple(g.get("estados_excluidos", [])),
         capas=capas, flujos=g["flujos"], centrales=g["centrales"],
         fuente_conexiones_hh=g["henry_hub"]["fuente_conexiones"], data_dir=Path(data_dir),
+        acs=g.get("acs"), umbral_dependencia=float(g.get("umbral_dependencia_gas_red", 0.5)),
     )

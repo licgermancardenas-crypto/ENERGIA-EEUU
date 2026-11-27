@@ -71,8 +71,10 @@ def region_de_estado(estados: gpd.GeoDataFrame, regiones: gpd.GeoDataFrame,
                   .to_crs(crs), how="left", predicate="within")
     faltan = j.loc[j["region_key"].isna(), "estado_key"]
     if len(faltan):  # puntos sobre un borde: se asigna la región más cercana
+        # solo si el punto quedó sobre un borde (< 50 km); Alaska y Hawái no tienen región EIA
         cerca = gpd.sjoin_nearest(pts[pts["estado_key"].isin(faltan)][["estado_key", "geometry"]],
-                                  regiones[["region_key", "geometry"]].to_crs(crs))
+                                  regiones[["region_key", "geometry"]].to_crs(crs),
+                                  max_distance=50_000)
         j = pd.concat([j.dropna(subset=["region_key"]), cerca])
     return j.drop_duplicates("estado_key").set_index("estado_key")["region_key"]
 
@@ -168,7 +170,7 @@ def red_disuelta(gasoductos: gpd.GeoDataFrame, hh_ops: set[str]) -> gpd.GeoDataF
 NOMBRES_CAPA = {"gasoductos": "Gasoductos", "hubs": "Hubs de gas",
                 "gnl": "Terminales de GNL", "reserva_estrategica": "Reserva estratégica",
                 "regiones_almacenamiento": "Regiones de almacenamiento",
-                "estados": "Estados (Census)"}
+                "estados": "Estados (Census)", "condados": "Condados (Census)"}
 
 
 def frescura_geo(cfg: GeoConfig, hoy: date, extra: list[dict[str, Any]]) -> pd.DataFrame:
@@ -194,9 +196,60 @@ def leer_conexiones() -> pd.DataFrame:
     return pd.read_csv(ruta, dtype=str, keep_default_na=False).replace({"": None})
 
 
+def moe_proporcion(num, moe_num, den, moe_den):
+    """MOE de una proporción (fórmula del Census; si el radicando es negativo, se suma)."""
+    import numpy as np
+    p = num / den
+    rad = moe_num ** 2 - p ** 2 * moe_den ** 2
+    rad = np.where(rad < 0, moe_num ** 2 + p ** 2 * moe_den ** 2, rad)
+    return np.sqrt(rad) / den
+
+
+def calefaccion_condado(condados: gpd.GeoDataFrame, acs: pd.DataFrame, red: gpd.GeoDataFrame,
+                        crs: int, umbral_km: float, umbral_dep: float
+                        ) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """% de hogares que calefaccionan con gas de red y distancia del condado a la red troncal.
+
+    La distancia es del polígono del condado al gasoducto más cercano (0 si la red lo cruza).
+    """
+    c = condados.to_crs(crs)
+    d = gpd.sjoin_nearest(c[["condado_key", "geometry"]], red[["geometry"]].to_crs(crs),
+                          distance_col="d_m").drop_duplicates("condado_key")
+    df = pd.DataFrame(condados.drop(columns="geometry")).merge(
+        d[["condado_key", "d_m"]], on="condado_key", how="left").merge(
+        acs, on="condado_key", how="left")
+    df["distancia_red_km"] = df.pop("d_m") / 1000
+    df["pct_gas_red"] = df["gas_red"] / df["hogares"]
+    df["pct_gas_red_moe"] = moe_proporcion(df["gas_red"], df["gas_red_moe"], df["hogares"],
+                                           df["hogares_moe"])
+    df["pct_propano"] = df["propano"] / df["hogares"]
+    df["alta_dependencia_lejos"] = ((df["pct_gas_red"] >= umbral_dep)
+                                    & (df["distancia_red_km"] > umbral_km))
+    val = {"condados": len(condados), "condados_acs": int(acs["condado_key"].nunique()),
+           "condados_sin_acs": sorted(set(condados["condado_key"]) - set(acs["condado_key"])),
+           "acs_sin_condado": sorted(set(acs["condado_key"]) - set(condados["condado_key"])),
+           "condados_alta_dependencia_lejos": int(df["alta_dependencia_lejos"].sum())}
+    return df, val
+
+
+def calefaccion_estado(cond: pd.DataFrame) -> pd.DataFrame:
+    g = cond.groupby("estado_key")
+    out = pd.DataFrame({
+        "hogares": g["hogares"].sum(), "hogares_gas_red": g["gas_red"].sum(),
+        "hogares_propano": g["propano"].sum(),
+        "condados_alta_dependencia_lejos": g["alta_dependencia_lejos"].sum().astype("int64"),
+        "hogares_gas_red_lejos": cond[cond["alta_dependencia_lejos"]].groupby("estado_key")[
+            "gas_red"].sum()}).reset_index()
+    out["hogares_gas_red_lejos"] = out["hogares_gas_red_lejos"].fillna(0.0)
+    out["pct_gas_red"] = out["hogares_gas_red"] / out["hogares"]
+    out["pct_propano"] = out["hogares_propano"] / out["hogares"]
+    return out
+
+
 def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     hoy = hoy or date.today()
-    s = {p.stem: gpd.read_parquet(p) for p in cfg.silver_dir.glob("*.parquet")}
+    s = {p.stem: gpd.read_parquet(p) for p in cfg.silver_dir.glob("*.parquet")
+         if p.stem != "acs"}
     estados, red = s["estados"], s["gasoductos"]
     conexiones = leer_conexiones()
     hh_ops = {o for o in conexiones["operador_en_capa"].dropna()}
@@ -212,6 +265,15 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     val = validar(km, red, metricas, cfg.crs_calculo)
 
     claves = set(estados["estado_key"])
+    acs_path = cfg.silver_dir / "acs.parquet"
+    if acs_path.exists() and "condados" in s:
+        cond, val_cond = calefaccion_condado(s["condados"], pd.read_parquet(acs_path), red,
+                                             cfg.crs_calculo, cfg.umbral_proximidad_km,
+                                             cfg.umbral_dependencia)
+        val["calefaccion"] = val_cond
+        cal_estado = calefaccion_estado(cond)
+    else:
+        cond, cal_estado = pd.DataFrame(), pd.DataFrame()
     filas_f, man_f = _bronze_api(cfg, "flujos")
     filas_c, man_c = _bronze_api(cfg, "centrales")
     flujos = flujos_estado(filas_f, claves)
@@ -221,6 +283,15 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     extra = [{"capa": "Gasoductos de recolección", "tipo": "estática",
               "origen": "la capa de la EIA solo distingue interestatal e intraestatal",
               "vintage": None, "registros": None, "estado": "no disponible"}]
+    try:
+        _, man_acs = ultimo(cfg, "acs")
+    except Exception:  # noqa: BLE001
+        man_acs = None
+    extra.append({"capa": "ACS: combustible de calefacción (B25040)", "tipo": "encuesta",
+                  "origen": "U.S. Census Bureau, ACS 5 años (Summary File)",
+                  "vintage": man_acs.get("vintage") if man_acs else None,
+                  "registros": man_acs.get("registros") if man_acs else None,
+                  "estado": "disponible" if man_acs else "no disponible"})
     for nombre, man, tipo, origen in [
             ("Flujos interestatales", man_f, "anual", "EIA API v2 natural-gas/move/ist"),
             ("Centrales a gas (EIA-860M)", man_c, "mensual",
@@ -243,12 +314,19 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
                   _puntos(s["reserva_estrategica"]),
               "geo_flujos_estado": flujos, "geo_centrales": centrales,
               "geo_capas_mapa": CAPAS_MAPA.copy(),
+              "geo_dim_condado": pd.DataFrame(s["condados"].drop(columns="geometry"))
+              if "condados" in s else pd.DataFrame(),
+              "geo_condado_calefaccion": cond.drop(columns=["estado_key", "nombre", "area_km2"],
+                                                   errors="ignore"),
+              "geo_estado_calefaccion": cal_estado,
               "frescura_geo": frescura_geo(cfg, hoy, extra)}
     for nombre, df in tablas.items():
         df.to_parquet(out / f"{nombre}.parquet", index=False)
 
     mapa = {
         "estados": geojson_liviano(estados, ["estado_key", "nombre"], cfg),
+        "condados": geojson_liviano(s["condados"], ["condado_key"], cfg,
+                                    tolerancia_m=cfg.tolerancia_m * 2),
         "regiones": geojson_liviano(s["regiones_almacenamiento"], ["region_key"], cfg,
                                     tolerancia_m=cfg.tolerancia_m * 4),
         "red": geojson_liviano(red_disuelta(red, hh_ops), ["tipo", "operador", "hh"], cfg),
