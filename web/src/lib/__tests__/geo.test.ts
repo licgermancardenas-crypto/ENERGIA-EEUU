@@ -1,5 +1,5 @@
 // La capa geo publicada en public/data/geo debe ser coherente con lo que dibujan Red y Análisis.
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -33,5 +33,26 @@ describe("capa geoespacial en public/data/geo", () => {
 
   it("el Henry Hub está entre los hubs", () => {
     expect(g.puntos.hubs.some((h) => h.nombre === "Henry Hub")).toBe(true);
+  });
+
+  it("los pulsos avanzan: cada trayecto tiene km crecientes desde el Henry Hub", () => {
+    const p = JSON.parse(readFileSync(path.join(process.cwd(), "public/data/geo/pulsos.json"), "utf-8")) as
+      { max_km: number; trayectos: [number, number, number][][] };
+    expect(p.trayectos.length).toBeGreaterThan(1000);
+    for (const tr of p.trayectos) {
+      for (let i = 1; i < tr.length; i++) expect(tr[i][2]).toBeGreaterThanOrEqual(tr[i - 1][2]);
+    }
+    expect(Math.max(...p.trayectos.map((tr) => tr[tr.length - 1][2]))).toBeCloseTo(p.max_km, 0);
+  });
+
+  it("cada flujo entre estados une dos estados con punto central y volumen positivo", () => {
+    const centro = new Map(g.estados.map((e) => [e.k, e.centro]));
+    expect(g.flujos.anios.length).toBeGreaterThan(0);
+    for (const [o, d, , mmcf] of g.flujos.pares) {
+      expect(centro.get(o)).toBeTruthy();
+      expect(centro.get(d)).toBeTruthy();
+      expect(o).not.toBe(d);
+      expect(mmcf).toBeGreaterThan(0);
+    }
   });
 });

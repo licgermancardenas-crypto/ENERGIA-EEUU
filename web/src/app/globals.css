@@ -81,3 +81,24 @@ body {
   outline-offset: 3px;
   border-radius: 6px;
 }
+
+/* ---- Henry Hub en el mapa animado: punto naranja, anillo que late y rótulo con el precio */
+.hh-marcador { position: relative; width: 18px; height: 18px; }
+.hh-punto, .hh-anillo { position: absolute; inset: 0; border-radius: 9999px; }
+.hh-punto { background: var(--petroleo); border: 2px solid #fff; box-shadow: 0 0 14px 3px rgb(196 83 26 / 0.75); }
+.hh-anillo { border: 2px solid #f08a4b; animation: hh-latido 2.2s ease-out infinite; }
+.hh-nota {
+  position: absolute; left: 24px; top: -30px; display: grid; white-space: nowrap;
+  padding: 4px 8px; border-radius: 6px; border: 1px solid #f08a4b;
+  background: rgb(5 8 15 / 0.85); color: #fff; font-size: 12px; line-height: 1.25;
+}
+.hh-nota strong { color: #f08a4b; font-size: 11px; letter-spacing: 0.04em; }
+.hh-nota small { color: #9db7dd; font-size: 10px; }
+@keyframes hh-latido {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hh-anillo { animation: none; transform: scale(1.8); opacity: 0.5; }
+}
+.maplibregl-ctrl-attrib { font-size: 11px; }

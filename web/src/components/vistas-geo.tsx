@@ -14,15 +14,15 @@ import { Icono, Panel } from "./marco";
 const GAS = "#1f6fd1";
 
 // ---------------------------------------------------------------- página Red
-export function VistaRed({ geo, gasRegion, precioHH }:
-  { geo: Geo; gasRegion: Record<string, number>; precioHH: number | null }) {
+export function VistaRed({ geo, gasRegion, precioHH, nCentrales }:
+  { geo: Geo; gasRegion: Record<string, number>; precioHH: number | null; nCentrales: number }) {
   const [visibles, setVisibles] = useState<Set<Capa>>(new Set(CAPAS.filter((c) => c !== "Centrales a gas")));
   const [sel, setSel] = useState<string | null>(null);
   const e = geo.estados.find((x) => x.k === sel);
   const alternar = (c: Capa) => setVisibles((v) => {
     const n = new Set(v); if (n.has(c)) n.delete(c); else n.add(c); return n;
   });
-  const sinCentrales = geo.puntos.centrales.length === 0;
+  const sinCentrales = nCentrales === 0;
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
       <Panel titulo="Red de gasoductos de EE. UU." icono="red" iconoColor={GAS}
@@ -81,10 +81,20 @@ export function VistaRed({ geo, gasRegion, precioHH }:
 }
 
 // ---------------------------------------------------------------- página Análisis
+// Balance neto: ocre = exportador neto, azul = importador neto (escala raíz cuadrada).
+const DIVERGENTE: [string, string][] = [["#8a6500", "gran exportador"], ["#d9bf6e", "exportador"],
+  ["#f1eee7", "cerca de cero"], ["#a9c7ee", "importador"], ["#164e9c", "gran importador"]];
+function divergente(v: number | null, max: number): string {
+  if (v == null) return "#e4e0d8";
+  const s = Math.sign(v) * Math.sqrt(Math.abs(v) / max);
+  return DIVERGENTE[s < -0.55 ? 0 : s < -0.15 ? 1 : s <= 0.15 ? 2 : s <= 0.55 ? 3 : 4][0];
+}
+
 export function VistaAnalisis({ geo, umbralKm }: { geo: Geo; umbralKm: number }) {
   const dens = geo.estados.map((e) => e.densidad).filter((v) => v > 0);
   const [dmin, dmax] = [Math.min(...dens), Math.max(...dens)];
   const sinBalance = geo.estados.every((e) => e.balance == null);
+  const maxBalance = Math.max(1, ...geo.estados.map((e) => Math.abs(e.balance ?? 0)));
   const alerta = Object.entries(geo.condados).filter(([, c]) => c[4] === 1)
     .sort((a, b) => (b[1][3] ?? 0) - (a[1][3] ?? 0));
   return (
@@ -125,8 +135,15 @@ export function VistaAnalisis({ geo, umbralKm }: { geo: Geo; umbralKm: number })
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel titulo="Balance interestatal de gas" nota="entradas menos salidas por estado (EIA, anual)" icono="flechas-opuestas" iconoColor={GAS}>
-          <MapaEstados estados={geo.estados} color={() => "#f1eee7"} titulo={(e, k) => e?.nombre ?? k}
-            aviso={sinBalance ? "No disponible: la API de flujos de la EIA no responde (error 504 del lado de la EIA)" : undefined} />
+          <MapaEstados estados={geo.estados} color={(e) => divergente(e?.balance ?? null, maxBalance)}
+            titulo={(e, k) => `${e?.nombre ?? k}: ${e?.balance == null ? "sin dato" : `${e.balance > 0 ? "+" : ""}${num(e.balance / 1000, 1)} Bcf en ${e.anio_balance}`}`}
+            aviso={sinBalance ? "No disponible: la EIA no publicó flujos interestatales" : undefined} />
+          <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-tinta-2">
+            {DIVERGENTE.map(([c, t]) => (
+              <li key={t} className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: c }} />{t}</li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-tinta-3">Recibe menos entrega, en Bcf. El mapa animado muestra de dónde viene y a dónde va.</p>
         </Panel>
         <Panel titulo="Hogares con gas de red por estado" nota="ACS 2020-2024 · % de hogares · propano aparte" icono="casa" iconoColor={GAS}>
           <BarrasH ancho={110} alto={360} decimales={1} items={[...geo.estados].filter((e) => e.pct_gas_red != null)

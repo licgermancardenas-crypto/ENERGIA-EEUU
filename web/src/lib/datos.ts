@@ -52,6 +52,8 @@ export function cargarGeo(): Geo {
     puntos: leerGeo("puntos"),
     henryHub: leerGeo("henry_hub"),
     frescura: leerGeo("frescura_geo"),
+    flujos: leerGeo("flujos"),
+    fuentes: leerGeo("fuentes_mapa"),
     validacion: leerGeo("validacion"),
   };
 }

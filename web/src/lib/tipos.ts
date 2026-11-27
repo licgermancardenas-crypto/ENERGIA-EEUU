@@ -123,6 +123,17 @@ export interface EstadoGeo {
   condados_alerta: number | null;
   balance: number | null;
   anio_balance: number | null;
+  /** punto interior del estado [lon, lat]: extremo de los arcos de flujo */
+  centro: [number, number] | null;
+}
+
+/** Flujos interestatales de la EIA (MMcf por año). */
+export interface Flujos {
+  anios: number[];
+  /** [origen, destino, año, MMcf entregados] */
+  pares: [string, string, number, number][];
+  /** [estado, año, recibe, entrega, neto] */
+  estados: [string, number, number | null, number | null, number | null][];
 }
 
 /** condado_key -> [nombre, % gas de red, MOE, km a la red, 1 si alta dependencia lejos] */
@@ -139,6 +150,8 @@ export interface Geo {
     nota: string | null }[];
   frescura: { capa: string; tipo: string; origen: string; vintage: string | null;
     registros: number | null; estado: string }[];
+  flujos: Flujos;
+  fuentes: { conexiones_henry_hub: string; flujos: string };
   validacion: { km_red_total: number; km_dentro_de_estados: number; pct_fuera: number;
     estados_sin_km: string[]; calefaccion: { condados_alta_dependencia_lejos: number } };
 }

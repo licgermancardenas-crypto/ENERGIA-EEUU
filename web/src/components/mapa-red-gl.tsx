@@ -135,6 +135,18 @@ export function MapaRedGL({ estados, puntos, gasRegion, precioHH, visibles, sele
         // área invisible más ancha para que pasar el mouse por una línea fina sea fácil
         m.addLayer({ id: "red-toque", type: "line", source: "red", paint: { "line-width": 10, "line-opacity": 0 } });
 
+        const centrales = (await fetch("/data/geo/puntos.json").then((r) => r.json())).centrales as Punto2[];
+        if (!vivo) return;
+        m.addSource("centrales", { type: "geojson", data: coleccion(centrales, (p) => ({ mw: p.mw, km: p.km, estado: p.estado })) });
+        m.addLayer({ id: "centrales", type: "circle", source: "centrales", layout: { visibility: "none" }, paint: {
+          "circle-radius": ["interpolate", ["linear"], ["sqrt", ["coalesce", ["get", "mw"], 0]], 0, 1.5, 70, 9],
+          "circle-color": "#7a45c2", "circle-opacity": 0.55, "circle-stroke-color": "#fff", "circle-stroke-width": 0.5 } });
+        m.on("mousemove", "centrales", (e) => {
+          const p = e.features![0].properties;
+          mostrar(e, ficha([["Capacidad", `${num(Number(p.mw), 0)} MW`], ["Distancia a un gasoducto", `${num(Number(p.km), 1)} km`]],
+            `Central a gas: ${p.nombre} (${p.estado})`));
+        });
+        m.on("mouseleave", "centrales", () => ocultar());
         m.addSource("reserva", { type: "geojson", data: coleccion(puntos.reserva, (p) => ({ cap: p.capacidad_mmbbl })) });
         m.addLayer({ id: "reserva", type: "circle", source: "reserva", paint: {
           "circle-radius": 6, "circle-color": "#4a5260", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
@@ -227,6 +239,7 @@ export function MapaRedGL({ estados, puntos, gasRegion, precioHH, visibles, sele
     ver(["gnl"], visibles.has("Terminales de GNL"));
     ver(["regiones"], visibles.has("Regiones de almacenamiento"));
     ver(["reserva"], visibles.has("Reserva estratégica"));
+    if (m.getLayer("centrales")) ver(["centrales"], visibles.has("Centrales a gas"));
   }, [visibles, listo]);
 
   // ---- estado seleccionado: resalta y acerca

@@ -23,7 +23,8 @@ export default function Red() {
         <Kpi etiqueta="Terminales de GNL" nota="importación y exportación" valor={`${g.puntos.gnl.length}`} color={GAS} icono="torre" />
         <Kpi etiqueta="Henry Hub" nota="US$ por MMBtu" valor={i.hh == null ? "—" : num(i.hh, 2)} color="#c4531a" icono="llama" />
       </div>
-      <VistaRed geo={g} gasRegion={gasRegion} precioHH={i.hh} />
+      <VistaRed geo={{ ...g, puntos: { ...g.puntos, centrales: [] }, flujos: { anios: [], pares: [], estados: [] } }}
+        gasRegion={gasRegion} precioHH={i.hh} nCentrales={g.puntos.centrales.length} />
     </Pagina>
   );
 }
