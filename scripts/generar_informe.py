@@ -37,6 +37,8 @@ NAV_X = 560  # la barra de navegación arranca acá; el título usa el espacio d
 PIE_GEO = ("Fuente: EIA (API v2 y capas geoespaciales vía HIFLD/DHS; copias públicas) · U.S. "
            "Census · Autor: Germán Cárdenas · La EIA no garantiza la exactitud de estos datos")
 DENEB = "deneb7E15AEF80B9E4D4F8E12924291ECE89A"  # visual certificado de AppSource
+PORTADA = "portada.svg"  # ilustración propia (scripts/generar_portada.py)
+CIAN = "#5FB3E6"  # acento de los paneles HUD de la portada
 UMBRAL_KM = gmap.UMBRAL_KM  # de config/pipeline.yaml (geo.umbral_proximidad_km)
 
 # Paleta (misma que la web y el tema)
@@ -294,6 +296,47 @@ class Pagina:
             "Values": {"projections": [proy(c, a) for c, a in campos]}}}, "objects": objs,
             "visualContainerObjects": contenedor(titulo, subtitulo)})
 
+    def fondo_recurso(self, archivo: str):
+        """Imagen de fondo a toda la página desde un recurso registrado del informe."""
+        self._agregar(0, 0, W, H, {
+            "visualType": "image",
+            "objects": {"general": [{"properties": {"imageUrl": {"expr": {"ResourcePackageItem": {
+                "PackageName": "RegisteredResources", "PackageType": 1, "ItemName": archivo}}}}}],
+                "imageScaling": [{"properties": {"imageScalingType": lit("Fill")}}]},
+            "visualContainerObjects": {"background": [{"properties": {"show": lit(False)}}],
+                                       "title": [{"properties": {"show": lit(False)}}],
+                                       "visualHeader": [{"properties": {"show": lit(False)}}],
+                                       "padding": [{"properties": {"top": lit(0.0),
+                                                                   "bottom": lit(0.0),
+                                                                   "left": lit(0.0),
+                                                                   "right": lit(0.0)}}]}})
+
+    @staticmethod
+    def hud(titulo=None, subtitulo=None) -> dict:
+        """Contenedor 'vidrio': navy traslúcido con borde cian, sin sombra."""
+        o = contenedor(titulo, subtitulo, fondo=NAVY, sombra=False, radio=6)
+        o["background"] = [{"properties": {"show": lit(True), "color": color(NAVY),
+                                           "transparency": lit(28.0)}}]
+        o["border"] = [{"properties": {"show": lit(True), "color": color(CIAN),
+                                       "radius": lit(6.0)}}]
+        if titulo:
+            o["title"][0]["properties"].update({"fontColor": color(CIAN), "fontSize": lit(9.0),
+                                                "fontFamily": lit(FUENTE_FUERTE)})
+        if subtitulo:
+            o["subTitle"][0]["properties"]["fontColor"] = color("#9DB7DD")
+        return o
+
+    def hud_kpi(self, x, y, w, h, m, etiqueta, tam=22.0):
+        self._agregar(x, y, w, h, {
+            "visualType": "card",
+            "query": {"queryState": {"Values": {"projections": [proy(medida(m))]}}},
+            "objects": {"labels": [{"properties": {"fontSize": lit(tam), "color": color(BLANCO),
+                                                   "fontFamily": lit(FUENTE_FUERTE),
+                                                   "labelDisplayUnits": lit(1.0)}}],
+                        "categoryLabels": [{"properties": {"show": lit(False)}}],
+                        "wordWrap": [{"properties": {"show": lit(True)}}]},
+            "visualContainerObjects": self.hud(etiqueta.upper())})
+
     def pie(self):
         texto = PIE_GEO if self.nombre in ("red", "analisis") else PIE
         self.texto(M, H - 22, W - 2 * M, 18, [(texto, 8.5, TINTA_3, False)])
@@ -401,11 +444,72 @@ def _fila(n: int, x0: int = M, ancho: int = W - 2 * M) -> tuple[int, list[int]]:
     return w, [x0 + i * (w + G) for i in range(n)]
 
 
+def portada() -> Pagina:
+    """Portada: ilustración propia de una refinería al atardecer con paneles HUD de datos reales."""
+    p = Pagina("portada", "Portada", "", "")
+    p.fondo_recurso(PORTADA)
+    p.texto(48, 40, 640, 20, [("PULSO ENERGÉTICO DE EE. UU.", 10, CIAN, True)])
+    p.texto(48, 60, 700, 112, [("El pulso del petróleo", 30, BLANCO, True),
+                               ("y el gas natural", 30, BLANCO, True)])
+    p.texto(48, 170, 640, 22, [("Datos oficiales de la EIA · se actualizan a diario · "
+                                "Autor: Germán Cárdenas", 10.5, "#C9D4E5", False)])
+    for i, (m, e) in enumerate([("Último WTI", "WTI · US$/barril"),
+                                ("Último Henry Hub", "Henry Hub · US$/MMBtu"),
+                                ("Stock crudo comercial", "Crudo comercial · miles bbl"),
+                                ("Gas almacenado Lower 48", "Gas almacenado · Bcf")]):
+        p.hud_kpi(48 + (i % 2) * 222, 206 + (i // 2) * 92, 210, 82, m, e)
+    p._agregar(W - 48 - 300, 40, 300, 92, {
+        "visualType": "card",
+        "query": {"queryState": {"Values": {"projections": [
+            proy(medida("Estado de los datos"))]}}},
+        "objects": {"labels": [{"properties": {"fontSize": lit(10.0), "color": color("#8FD3A8"),
+                                               "fontFamily": lit(FUENTE)}}],
+                    "categoryLabels": [{"properties": {"show": lit(False)}}],
+                    "wordWrap": [{"properties": {"show": lit(True)}}]},
+        "visualContainerObjects": p.hud("ESTADO DE LOS DATOS")})
+    p.hud_kpi(W - 48 - 300, 142, 300, 82, "Fuentes al día de total", "Fuentes al día", tam=20.0)
+    p.deneb(48, 470, 430, 200, [columna("dim_fecha", "fecha"), medida("Precio WTI")],
+            gmap.spec_tendencia_hud(), seleccion=False)
+    p.visuales[-1]["visual"]["visualContainerObjects"] = p.hud("WTI · ÚLTIMOS 12 MESES",
+                                                             "US$ por barril")
+    p.deneb(W - 48 - 380, 440, 380, 230, [columna("geo_dim_estado", "estado_key")],
+            gmap.spec_red_hud(), seleccion=False)
+    p.visuales[-1]["visual"]["visualContainerObjects"] = p.hud(
+        "RED DE GASODUCTOS", "capa de la EIA · Henry Hub en naranja")
+    p._agregar(W // 2 - 120, 600, 240, 48, {
+        "visualType": "actionButton",
+        "objects": {
+            "icon": [{"properties": {"shapeType": lit("blank")}, "selector": SEL_DEF}],
+            "text": [{"properties": {"show": lit(True)}},
+                     {"properties": {"text": lit("Entrar al tablero  →"),
+                                     "fontColor": color(BLANCO), "fontSize": lit(13.0),
+                                     "fontFamily": lit(FUENTE_FUERTE)}, "selector": SEL_DEF}],
+            "fill": [{"properties": {"show": lit(True)}},
+                     {"properties": {"fillColor": color(AZUL), "transparency": lit(0.0)},
+                      "selector": SEL_DEF},
+                     {"properties": {"fillColor": color("#2F7DDB"), "transparency": lit(0.0)},
+                      "selector": SEL_HOVER},
+                     {"properties": {"fillColor": color("#1A5FB4"), "transparency": lit(0.0)},
+                      "selector": {"id": "press"}}],
+            "outline": [{"properties": {"show": lit(True), "lineColor": color(CIAN),
+                                        "weight": lit(1.0)}, "selector": SEL_DEF}],
+            "shape": [{"properties": {"tileShape": lit("roundedRectangle"),
+                                      "rectangleRoundedCurve": lit(10)}}]},
+        "visualContainerObjects": {
+            "visualLink": [{"properties": {"show": lit(True), "type": lit("PageNavigation"),
+                                           "navigationSection": lit("resumen")}}],
+            "title": [{"properties": {"show": lit(False)}}],
+            "background": [{"properties": {"show": lit(False)}}],
+            "visualHeader": [{"properties": {"show": lit(False)}}]}})
+    p.texto(48, H - 24, W - 96, 18, [(PIE_GEO + " · Ilustración propia", 8, "#9DB7DD", False)])
+    return p
+
+
 def paginas() -> list[Pagina]:
     F, S, AR = "dim_fecha", "dim_serie", "analisis_rezago"
     fecha = columna(F, "fecha")
     sin_blanco = [filtro_desde(F, "anio", 2000, "f_anio")]
-    ps = []
+    ps = [portada()]
 
     # 1 · Resumen
     p = Pagina("resumen", "Resumen", "El pulso hoy",
@@ -737,12 +841,14 @@ def generar(workspace: str, model_id: str, out: Path) -> Path:
         "layoutOptimization": "None",
         "publicCustomVisuals": [DENEB],
         "resourcePackages": [{"name": "RegisteredResources", "type": "RegisteredResources",
-                              "items": [{"name": tema, "path": tema, "type": "CustomTheme"}]}],
+                              "items": [{"name": tema, "path": tema, "type": "CustomTheme"},
+                                        {"name": PORTADA, "path": PORTADA, "type": "Image"}]}],
         "settings": {"useStylableVisualContainerHeader": True,
                      "defaultDrillFilterOtherVisuals": True}})
     dst = raiz / "StaticResources" / "RegisteredResources" / tema
     dst.parent.mkdir(parents=True)
     shutil.copy(TEMA, dst)
+    shutil.copy(RAIZ / "assets" / "portada" / PORTADA, dst.parent / PORTADA)
 
     ps = paginas()
     escribir(d / "pages" / "pages.json", {"$schema": f"{SCH}/pagesMetadata/1.0.0/schema.json",

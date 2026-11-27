@@ -268,3 +268,51 @@ def spec_calefaccion() -> dict[str, Any]:
          "mark": {"type": "geoshape", "filled": False, "stroke": "#A35400", "strokeWidth": 1.6},
          "encoding": {"shape": {"field": "geo", "type": "geojson"}, "tooltip": tooltip}}]
     return {**_base(capas), "datasets": {"condados": condados}}
+
+
+# --------------------------------------------------------------- portada (estilo HUD)
+CIAN = "#5FB3E6"
+CONFIG_HUD = {**CONFIG, "background": None, "view": {"stroke": None},
+              "axis": {**CONFIG["axis"], "labelColor": "#9DB7DD", "gridColor": "#23446F",
+                       "domainColor": "#23446F", "tickColor": "#23446F"}}
+
+
+def spec_tendencia_hud(medida: str = "Precio WTI", dias: int = 365) -> dict[str, Any]:
+    """Línea cian sobre fondo transparente: último año de la serie."""
+    return {"$schema": SCHEMA, "data": {"name": "dataset"}, "width": "container",
+            "height": "container", "background": None, "config": CONFIG_HUD,
+            "transform": [{"filter": f"isValid(datum['{medida}'])"},
+                          {"calculate": "toDate(datum.fecha)", "as": "f"},
+                          {"joinaggregate": [{"op": "max", "field": "f", "as": "fmax"}]},
+                          {"filter": f"datum.f >= datum.fmax - {dias} * 86400000"}],
+            "layer": [
+                {"mark": {"type": "line", "color": CIAN, "strokeWidth": 6, "opacity": 0.18},
+                 "encoding": {"x": {"field": "f", "type": "temporal", "title": None,
+                                    "axis": {"format": "%b", "labelFontSize": 9,
+                                             "tickCount": 6, "grid": False}},
+                              "y": {"field": medida, "type": "quantitative", "title": None,
+                                    "scale": {"zero": False},
+                                    "axis": {"labelFontSize": 9, "tickCount": 4}}}},
+                {"mark": {"type": "line", "color": CIAN, "strokeWidth": 1.8},
+                 "encoding": {"x": {"field": "f", "type": "temporal"},
+                              "y": {"field": medida, "type": "quantitative"}}}]}
+
+
+def spec_red_hud() -> dict[str, Any]:
+    """Mini mapa: estados tenues y red en cian, Henry Hub como único acento naranja."""
+    hh = [p for p in _puntos("geo_hubs", ["nombre", "lon", "lat"]) if p["nombre"] == "Henry Hub"]
+    return {"$schema": SCHEMA, "width": "container", "height": "container", "background": None,
+            "autosize": {"type": "fit", "contains": "padding"},
+            "projection": {"type": "albersUsa"}, "config": CONFIG_HUD,
+            "layer": [
+                {"data": {"values": _leer("estados"), "format": {"property": "features"}},
+                 "mark": {"type": "geoshape", "fill": "#0B1F3A", "fillOpacity": 0.35,
+                          "stroke": "#23446F", "strokeWidth": 0.6}},
+                {"data": {"values": _leer("red"), "format": {"property": "features"}},
+                 "mark": {"type": "geoshape", "filled": False, "stroke": CIAN,
+                          "strokeOpacity": 0.7, "strokeWidth": 0.5}},
+                {"data": {"values": hh},
+                 "mark": {"type": "circle", "size": 70, "color": NARANJA, "stroke": "#FFFFFF",
+                          "strokeWidth": 1.5},
+                 "encoding": {"longitude": {"field": "lon", "type": "quantitative"},
+                              "latitude": {"field": "lat", "type": "quantitative"}}}]}
