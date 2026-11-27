@@ -19,7 +19,7 @@ import type { DatosPlanta, Ficha, Indicador, Zona } from "./tipos";
 
 // Centro y zoom de cada zona (zoom pensado para un lienzo de ~1200 px de ancho).
 const ZONAS: Record<Zona, { centro: [number, number, number]; zoom: number; nombre: string }> = {
-  general: { centro: [4, 0, 0], zoom: 9, nombre: "Vista general" },
+  general: { centro: [0, 0, 2], zoom: 7.6, nombre: "Vista general" },
   costa: { centro: [-50, 2, 3], zoom: 17, nombre: "Costa afuera" },
   refineria: { centro: [-4, 3, -10], zoom: 21, nombre: "Refinería" },
   almacenamiento: { centro: [16, 2, 10], zoom: 20, nombre: "Almacenamiento" },
@@ -45,10 +45,18 @@ function valorTexto(i: Indicador) {
 }
 
 // ------------------------------------------------------------------ cámara
-function Camara({ zona, giro, animar, orbita, controles }:
-  { zona: Zona; giro: number; animar: boolean; orbita: boolean; controles: React.RefObject<OrbitControlsImpl | null> }) {
+function Camara({ zona, giro, animar, orbita, controles, panel }:
+  { zona: Zona; giro: number; animar: boolean; orbita: boolean; controles: React.RefObject<OrbitControlsImpl | null>; panel: number }) {
   const { camera, size, invalidate } = useThree();
-  const escala = Math.max(0.45, size.width / 1200);
+  // el panel lateral tapa la derecha: se corre el encuadre para que la escena quede en lo visible
+  useEffect(() => {
+    const cam = camera as THREE.OrthographicCamera;
+    if (panel > 0) cam.setViewOffset(size.width, size.height, panel / 2, 0, size.width, size.height);
+    else cam.clearViewOffset();
+    cam.updateProjectionMatrix();
+    invalidate();
+  }, [camera, size, panel, invalidate]);
+  const escala = Math.max(0.45, (size.width - panel) / 1200);
   const meta = useRef({ centro: new THREE.Vector3(...ZONAS.general.centro), zoom: ZONAS.general.zoom * escala, angulo: ANGULO_BASE });
   useEffect(() => {
     meta.current.centro.set(...ZONAS[zona].centro);
@@ -193,6 +201,8 @@ export default function EscenaPlanta({ datos, modo }: { datos: DatosPlanta; modo
   }, [modo.grabacion]);
 
   const ir = (z: Zona) => { setZona(z); setGiro(0); };
+  // ancho que ocupa el panel sobre el lienzo (en pantallas chicas va debajo, no encima)
+  const panel = !modo.grabacion && typeof window !== "undefined" && window.innerWidth >= 1024 ? 334 : 0;
   const marco = modo.formato === "4x5" ? "aspect-[4/5] h-full max-h-screen" : modo.formato === "1x1" ? "aspect-square h-full max-h-screen" : "h-full w-full";
   const kpis: [keyof DatosPlanta, string][] = [["wti", "#c4531a"], ["crudo", "#c4531a"], ["spr", "#c4531a"], ["gas", "#1f6fd1"], ["produccion", "#c4531a"], ["utilizacion", "#4a5260"]];
 
@@ -206,7 +216,7 @@ export default function EscenaPlanta({ datos, modo }: { datos: DatosPlanta; modo
           <OrthographicCamera makeDefault position={[DISTANCIA * Math.sin(ANGULO_BASE) + 4, DISTANCIA * 0.8, DISTANCIA * Math.cos(ANGULO_BASE)]} zoom={9} near={-500} far={1000} />
           <OrbitControls ref={controles} makeDefault enableDamping={animar} minZoom={4} maxZoom={60}
             maxPolarAngle={Math.PI / 2.6} minPolarAngle={0.35} target={[4, 0, 0]} />
-          <Camara zona={zona} giro={giro} animar={animar} orbita={orbita} controles={controles} />
+          <Camara zona={zona} giro={giro} animar={animar} orbita={orbita} controles={controles} panel={panel} />
           <hemisphereLight args={["#ffffff", "#c9d3df", 1.1]} />
           <directionalLight position={[30, 60, 25]} intensity={2.2} castShadow={!modo.bajaPotencia}
             shadow-mapSize={[2048, 2048]} shadow-camera-left={-80} shadow-camera-right={80}

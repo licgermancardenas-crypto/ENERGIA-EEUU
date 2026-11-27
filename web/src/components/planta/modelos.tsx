@@ -361,6 +361,19 @@ export function TanqueCrudo({ position, nivel, radio = 2.4, alto = 3.4, banda = 
         <cylinderGeometry args={[radio - 0.1, radio - 0.1, 0.14, 32]} />
         <Mat color={C.gris} />
       </mesh>
+      {/* indicador de nivel por fuera, del lado que mira la cámara isométrica */}
+      <group rotation={[0, Math.PI / 4, 0]}>
+        <mesh position={[0, alto / 2, radio + 0.06]}>
+          <boxGeometry args={[0.55, alto, 0.08]} />
+          <Mat color={C.gris} />
+        </mesh>
+        {nivel != null && (
+          <mesh position={[0, (alto * n) / 2, radio + 0.11]}>
+            <boxGeometry args={[0.45, alto * n, 0.08]} />
+            <Mat color={C.crudo} />
+          </mesh>
+        )}
+      </group>
     </group>
   );
 }
