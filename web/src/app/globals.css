@@ -25,10 +25,11 @@
   --alerta: #a35400;
   --error: #b42318;
   --cian: #5fb3e6;
-  --s1: var(--gas);
-  --s2: var(--petroleo);
-  --s3: var(--violeta);
-  --s4: var(--ocre);
+  /* mismos 4 primeros colores que dataColors del tema de Power BI (lo verifica un test) */
+  --s1: #1f6fd1;
+  --s2: #c4531a;
+  --s3: #7a45c2;
+  --s4: #a87d00;
 }
 
 @theme inline {
