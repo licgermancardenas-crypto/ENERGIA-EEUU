@@ -33,6 +33,8 @@ Generados por `scripts/generar_iconos.py`: no los edites a mano.
 | `calendario.svg` | Calendario (frecuencia) | Tabla de frescura: frecuencia |
 | `check-circulo.svg` | Check (al día) | Tabla de frescura: al día; KPI fuentes al día |
 | `x-circulo.svg` | X (atrasada) | Tabla de frescura: atrasada |
+| `red.svg` | Red de nodos (mapa de la red) | Encabezado y botón de la página Mapa de la red |
+| `capas.svg` | Capas (análisis geoespacial) | Encabezado y botón de la página Análisis geoespacial |
 
 ## Medidas de imagen
 

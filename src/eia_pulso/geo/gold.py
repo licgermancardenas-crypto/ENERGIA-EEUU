@@ -45,7 +45,7 @@ def metricas_estado(km: pd.DataFrame, estados: gpd.GeoDataFrame,
     piv = km.pivot_table(index="estado_key", columns="tipo", values="km", aggfunc="sum")
     for t in TIPOS:
         if t not in piv:
-            piv[t] = pd.NA if t == "recoleccion" else 0.0
+            piv[t] = float("nan") if t == "recoleccion" else 0.0
     piv = piv.rename(columns={t: f"km_{t}" for t in TIPOS})
     ops = km.groupby("estado_key")["operador"].nunique().rename("operadores_n")
     hh = (km[km["operador"].isin(operadores_hh)].groupby("estado_key")["km"].sum()
@@ -59,6 +59,21 @@ def metricas_estado(km: pd.DataFrame, estados: gpd.GeoDataFrame,
     m["densidad_km_1000km2"] = m["km_total"] / m["area_km2"] * 1000
     m["conectado_henry_hub"] = m["km_red_henry_hub"] > 0
     return m
+
+
+def region_de_estado(estados: gpd.GeoDataFrame, regiones: gpd.GeoDataFrame,
+                     crs: int) -> pd.Series:
+    """Región de almacenamiento de la EIA de cada estado (por su punto interior)."""
+    pts = estados.to_crs(crs).copy()
+    pts["geometry"] = pts.representative_point()
+    j = gpd.sjoin(pts[["estado_key", "geometry"]], regiones[["region_key", "geometry"]]
+                  .to_crs(crs), how="left", predicate="within")
+    faltan = j.loc[j["region_key"].isna(), "estado_key"]
+    if len(faltan):  # puntos sobre un borde: se asigna la región más cercana
+        cerca = gpd.sjoin_nearest(pts[pts["estado_key"].isin(faltan)][["estado_key", "geometry"]],
+                                  regiones[["region_key", "geometry"]].to_crs(crs))
+        j = pd.concat([j.dropna(subset=["region_key"]), cerca])
+    return j.drop_duplicates("estado_key").set_index("estado_key")["region_key"]
 
 
 def alcance_henry_hub(km: pd.DataFrame, conexiones: pd.DataFrame) -> pd.DataFrame:
@@ -187,16 +202,38 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     gnl = gnl_a_henry_hub(s["gnl"], hh_xy)
     val = validar(km, red, metricas, cfg.crs_calculo)
 
+    claves = set(estados["estado_key"])
+    filas_f, man_f = _bronze_api(cfg, "flujos")
+    filas_c, man_c = _bronze_api(cfg, "centrales")
+    flujos = flujos_estado(filas_f, claves)
+    centrales = centrales_a_red(filas_c, red, cfg.crs_calculo, cfg.umbral_proximidad_km, claves)
+    if len(flujos):
+        val["flujos_cierre_ok"] = bool(flujos["cierre_ok"].all())
     extra = [{"capa": "gasoductos de recolección", "tipo": "estática",
               "origen": "la capa de la EIA solo distingue interestatal e intraestatal",
               "vintage": None, "registros": None, "estado": "no disponible"}]
+    for nombre, man, tipo, origen in [
+            ("flujos interestatales", man_f, "anual", "EIA API v2 natural-gas/move/ist"),
+            ("centrales a gas (EIA-860M)", man_c, "mensual",
+             "EIA API v2 electricity/operating-generator-capacity")]:
+        extra.append({"capa": nombre, "tipo": tipo, "origen": origen,
+                      "vintage": man.get("vintage") if man else None,
+                      "registros": man.get("registros") if man else None,
+                      "estado": "disponible" if man else "no disponible"})
     out = cfg.gold_dir
     out.mkdir(parents=True, exist_ok=True)
-    tablas = {"geo_dim_estado": pd.DataFrame(estados.drop(columns="geometry")),
+    dim_estado = pd.DataFrame(estados.drop(columns="geometry"))
+    dim_estado["region_key"] = dim_estado["estado_key"].map(
+        region_de_estado(estados, s["regiones_almacenamiento"], cfg.crs_calculo))
+    metricas = metricas.drop(columns=["fips", "nombre", "area_km2"])
+    metricas["km_recoleccion"] = pd.to_numeric(metricas["km_recoleccion"], errors="coerce")
+    tablas = {"geo_dim_estado": dim_estado,
               "geo_estado_metricas": metricas, "geo_km_estado_operador": km,
               "geo_henry_hub_conexiones": alcance, "geo_gnl": gnl,
               "geo_hubs": _puntos(s["hubs"]), "geo_reserva_estrategica":
                   _puntos(s["reserva_estrategica"]),
+              "geo_flujos_estado": flujos, "geo_centrales": centrales,
+              "geo_capas_mapa": CAPAS_MAPA.copy(),
               "frescura_geo": frescura_geo(cfg, hoy, extra)}
     for nombre, df in tablas.items():
         df.to_parquet(out / f"{nombre}.parquet", index=False)
@@ -215,6 +252,77 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     log.info("Gold geo: %s", {k: len(v) for k, v in tablas.items()})
     return {"validacion": val, "tablas": tablas, "henry_hub": hh_xy,
             "bytes_mapa": {k: (out / f"mapa_{k}.geojson").stat().st_size for k in mapa}}
+
+
+# Capas que el usuario puede prender y apagar en el mapa (segmentador). Las flechas de flujo
+# no se ofrecen: la EIA publica totales por estado, no pares origen-destino.
+CAPAS_MAPA = pd.DataFrame({
+    "capa": ["Gasoductos", "Hubs", "Terminales de GNL", "Centrales a gas",
+             "Regiones de almacenamiento", "Reserva estratégica"],
+    "orden": [1, 2, 3, 4, 5, 6]})
+
+COLS_FLUJOS = {"estado_key": "str", "anio": "int64", "recibe_mmcf": "float64",
+               "entrega_mmcf": "float64", "neto_mmcf": "float64", "rol": "str",
+               "cierre_ok": "bool"}
+COLS_CENTRALES = {"planta_id": "str", "planta": "str", "estado_key": "str",
+                  "capacidad_mw": "float64", "lon": "float64", "lat": "float64",
+                  "distancia_red_km": "float64", "dentro_umbral": "bool"}
+
+
+def _vacia(cols: dict[str, str]) -> pd.DataFrame:
+    return pd.DataFrame({c: pd.Series(dtype=t) for c, t in cols.items()})
+
+
+def flujos_estado(filas: list[dict[str, Any]], estados: set[str]) -> pd.DataFrame:
+    """Recibe/entrega/neto interestatal por estado y año (MMcf). Valida MIN = MIR - MID."""
+    if not filas:
+        return _vacia(COLS_FLUJOS)
+    df = pd.DataFrame(filas)
+    df = df[df["duoarea"].str.match(r"^S[A-Z]{2}$")].copy()
+    df["estado_key"] = df["duoarea"].str[1:]
+    df = df[df["estado_key"].isin(estados)]
+    df["valor"] = pd.to_numeric(df["value"], errors="coerce")
+    p = df.pivot_table(index=["estado_key", "period"], columns="process", values="valor",
+                       aggfunc="sum").reset_index()
+    out = pd.DataFrame({"estado_key": p["estado_key"], "anio": p["period"].astype(int),
+                        "recibe_mmcf": p.get("MIR"), "entrega_mmcf": p.get("MID"),
+                        "neto_mmcf": p.get("MIN")})
+    calc = out["recibe_mmcf"] - out["entrega_mmcf"]
+    out["cierre_ok"] = (calc - out["neto_mmcf"]).abs() <= out["recibe_mmcf"].abs() * 1e-3 + 1
+    out["rol"] = out["neto_mmcf"].map(
+        lambda v: "importador neto" if v > 0 else ("exportador neto" if v < 0 else "neutro"))
+    return out.astype({c: t for c, t in COLS_FLUJOS.items() if c in out})
+
+
+def centrales_a_red(filas: list[dict[str, Any]], red: gpd.GeoDataFrame, crs: int,
+                    umbral_km: float, estados: set[str]) -> pd.DataFrame:
+    """Plantas a gas (suma de generadores) y su distancia al gasoducto más cercano."""
+    if not filas:
+        return _vacia(COLS_CENTRALES)
+    df = pd.DataFrame(filas)
+    df["mw"] = pd.to_numeric(df["nameplate-capacity-mw"], errors="coerce")
+    df["lat"] = pd.to_numeric(df["latitude"], errors="coerce")
+    df["lon"] = pd.to_numeric(df["longitude"], errors="coerce")
+    df = df[df["stateid"].isin(estados) & df["lat"].notna() & df["lon"].notna()]
+    pl = df.groupby("plantid").agg(planta=("plantName", "first"), estado_key=("stateid", "first"),
+                                   capacidad_mw=("mw", "sum"), lon=("lon", "first"),
+                                   lat=("lat", "first")).reset_index()
+    g = gpd.GeoDataFrame(pl, geometry=gpd.points_from_xy(pl["lon"], pl["lat"]), crs=4326)
+    j = gpd.sjoin_nearest(g.to_crs(crs), red[["geometry"]].to_crs(crs), distance_col="d_m")
+    j = j.drop_duplicates("plantid")
+    out = pd.DataFrame({"planta_id": j["plantid"].astype(str), "planta": j["planta"],
+                        "estado_key": j["estado_key"], "capacidad_mw": j["capacidad_mw"],
+                        "lon": j["lon"], "lat": j["lat"], "distancia_red_km": j["d_m"] / 1000})
+    out["dentro_umbral"] = out["distancia_red_km"] <= umbral_km
+    return out.reset_index(drop=True)
+
+
+def _bronze_api(cfg: GeoConfig, capa: str) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    try:
+        ruta, man = ultimo(cfg, capa)
+    except Exception:  # noqa: BLE001 - la API no respondió: se informa como no disponible
+        return [], None
+    return json.loads(ruta.read_text(encoding="utf-8")), man
 
 
 def _puntos(g: gpd.GeoDataFrame) -> pd.DataFrame:

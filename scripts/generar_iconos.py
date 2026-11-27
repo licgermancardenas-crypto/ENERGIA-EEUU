@@ -82,6 +82,11 @@ ICONOS: dict[str, tuple[str, str]] = {
                       "Check (al día)"),
     "x-circulo": ('<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
                   "X (atrasada)"),
+    "red": ('<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" '
+            'cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M6.8 7l3.4 2M17.2 7l-3.4 2'
+            'M12 12.5V16"/>', "Red de nodos (mapa de la red)"),
+    "capas": ('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+              "Capas (análisis geoespacial)"),
 }
 
 # Dónde se usa cada ícono (para el índice)
@@ -113,6 +118,8 @@ USOS: dict[str, str] = {
     "calendario": "Tabla de frescura: frecuencia",
     "check-circulo": "Tabla de frescura: al día; KPI fuentes al día",
     "x-circulo": "Tabla de frescura: atrasada",
+    "red": "Encabezado y botón de la página Mapa de la red",
+    "capas": "Encabezado y botón de la página Análisis geoespacial",
 }
 
 
@@ -163,7 +170,8 @@ def medidas() -> list[MedidaIcono]:
     ms: list[MedidaIcono] = []
     # Encabezados de página (blanco sobre la banda navy)
     for icono, pag in [("pulso", "Resumen"), ("gota", "Petróleo"), ("llama", "Gas"),
-                       ("reloj", "Rezago"), ("escudo-check", "Calidad")]:
+                       ("reloj", "Rezago"), ("escudo-check", "Calidad"), ("red", "Red"),
+                       ("capas", "Análisis")]:
         ms.append(_icono_fijo(f"Ícono página {pag}", icono, BLANCO,
                               f"Ícono del encabezado de la página {pag}"))
     # Secciones y KPIs fijos
@@ -252,7 +260,65 @@ def medidas() -> list[MedidaIcono]:
     ms.append(_diagrama_rezago())
     ms.append(_textura())
     ms.append(_leyenda_consumo())
+    ms.append(_esquema_henry_hub())
     return ms
+
+
+def _esquema_henry_hub() -> MedidaIcono:
+    """Nodo central (Henry Hub) y cada gasoducto conectado alrededor, desde la tabla editable.
+
+    Las conexiones que no figuran en la capa de gasoductos se dibujan punteadas y huecas.
+    """
+    def num(v: str) -> str:
+        return f'FORMAT ( {v}, "0.0", "en-US" )'
+
+    x, y = num("x"), num("y")
+    xl, yl = num("x + 10 * cs"), num("y + 10 * sn + 4")
+    nodo = "\n".join([
+        "VAR a = 2 * PI () * ( [i] - 1 ) / n - PI () / 2",
+        "VAR cs = COS ( a )",
+        "VAR sn = SIN ( a )",
+        "VAR x = 210 + 120 * cs",
+        "VAR y = 150 + 105 * sn",
+        "VAR ok = geo_henry_hub_conexiones[en_capa]",
+        "RETURN",
+        f"    \"<line x1='210' y1='150' x2='\" & {x} & \"' y2='\" & {y}"
+        f" & \"' stroke='#B9B3A8' stroke-width='1.5'\""
+        " & IF ( ok, \"\", \" stroke-dasharray='4 3'\" ) & \"/>\"",
+        f"    & \"<circle cx='\" & {x} & \"' cy='\" & {y} & \"' r='5' fill='\""
+        f" & IF ( ok, \"{GAS}\", \"#FFFFFF\" ) & \"' stroke='{GAS}' stroke-width='1.5'/>\"",
+        f"    & \"<text x='\" & {xl} & \"' y='\" & {yl} & \"' font-size='11' fill='#1B1F24'"
+        " text-anchor='\" & IF ( cs >= 0, \"start\", \"end\" ) & \"'>\""
+        " & geo_henry_hub_conexiones[gasoducto] & \"</text>\""])
+    nodo = nodo.replace("\n", "\n            ")
+    expr = "\n".join([
+        "VAR t =",
+        "    ADDCOLUMNS (",
+        "        geo_henry_hub_conexiones,",
+        "        \"i\", RANKX ( geo_henry_hub_conexiones, geo_henry_hub_conexiones[gasoducto], ,"
+        " ASC, DENSE )",
+        "    )",
+        "VAR n = COUNTROWS ( t )",
+        "VAR nodos =",
+        "    CONCATENATEX (",
+        "        t,",
+        "            " + nodo + ",",
+        "        \"\"",
+        "    )",
+        "VAR s =",
+        "    \"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 300' width='420' "
+        "height='300' font-family='Segoe UI'>\" & nodos",
+        f"        & \"<circle cx='210' cy='150' r='16' fill='{PETROLEO}' stroke='#FFFFFF' "
+        "stroke-width='3'/><text x='210' y='186' text-anchor='middle' font-size='12' "
+        "font-weight='700' fill='#1B1F24' stroke='#FFFFFF' stroke-width='4' "
+        "paint-order='stroke'>Henry Hub</text>\"",
+        "        & \"<text x='210' y='294' text-anchor='middle' font-size='10' fill='#7A8394'>"
+        "Esquema ilustrativo, no a escala ni con volúmenes</text></svg>\"",
+        "RETURN",
+        "    IF ( n = 0, BLANK (), " + _uri_dax("s") + " )"])
+    return MedidaIcono("Esquema Henry Hub", expr,
+                       "Esquema del Henry Hub: nodo central y gasoductos conectados "
+                       "(tabla geo_henry_hub_conexiones); punteado = no figura en la capa")
 
 
 def _estatica(nombre: str, svg_texto: str, comentario: str) -> MedidaIcono:

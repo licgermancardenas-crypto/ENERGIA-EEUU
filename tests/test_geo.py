@@ -98,3 +98,22 @@ def test_silver_puntos_numeros_con_guiones():
                          geometry=[Point(-93, 30)], crs=4326)
     p = silver.silver_puntos("gnl", g).iloc[0]
     assert p["licuefaccion_bcfd"] == pytest.approx(1.78) and pd.isna(p["regasificacion_bcfd"])
+
+
+def test_flujos_cierran_y_rol():
+    filas = [{"duoarea": "SLA", "period": "2024", "process": p, "value": v}
+             for p, v in (("MIR", 100), ("MID", 300), ("MIN", -200))]
+    filas += [{"duoarea": "STX", "period": "2024", "process": p, "value": v}
+              for p, v in (("MIR", 500), ("MID", 100), ("MIN", 999))]  # no cierra
+    f = gold.flujos_estado(filas, {"LA", "TX"}).set_index("estado_key")
+    assert f.loc["LA", "rol"] == "exportador neto" and bool(f.loc["LA", "cierre_ok"])
+    assert not bool(f.loc["TX", "cierre_ok"])
+    assert gold.flujos_estado([], {"LA"}).empty
+
+
+def test_centrales_distancia_a_la_red(red):
+    filas = [{"plantid": "1", "plantName": "Cerca", "stateid": "AA",
+              "nameplate-capacity-mw": "100", "latitude": "0", "longitude": "0"}]
+    c = gold.centrales_a_red(filas, red, CRS, 25, {"AA"})
+    assert len(c) == 1 and c.loc[0, "distancia_red_km"] >= 0
+    assert gold.centrales_a_red([], red, CRS, 25, {"AA"}).empty

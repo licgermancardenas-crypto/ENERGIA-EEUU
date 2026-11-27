@@ -53,7 +53,8 @@ def test_medidas_bien_formadas_y_sin_pisar_las_existentes():
         sin_textos = re.sub(r'"(?:[^"]|"")*"', '""', m.expresion)
         assert sin_textos.count("(") == sin_textos.count(")"), m.nombre
         for ref in re.findall(r"(?<![\w'\]])\[([^\]]+)\]", sin_textos):
-            assert ref in existentes or ref == "Value", f"{m.nombre}: [{ref}]"
+            # [Value] y [i] son columnas locales ({...} y ADDCOLUMNS), no medidas
+            assert ref in existentes or ref in ("Value", "i"), f"{m.nombre}: [{ref}]"
 
 
 def test_archivo_dax_actualizado(tmp_path, monkeypatch):

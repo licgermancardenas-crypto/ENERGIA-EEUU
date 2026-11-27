@@ -23,6 +23,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import generar_geo_dax as gd  # noqa: E402
 import generar_iconos as gi  # noqa: E402
 import generar_powerbi as gp  # noqa: E402
 
@@ -57,6 +58,46 @@ TABLAS: dict[str, list[tuple[str, str]]] = {
                         ("desde", "string"), ("hasta", "string"), ("escenario", "string")],
 }
 
+# Capa geoespacial (src/eia_pulso/geo): tablas Gold geo_* cargadas con publicar_geo_fabric.py
+TABLAS_GEO: dict[str, list[tuple[str, str]]] = {
+    "geo_dim_estado": [("estado_key", "string"), ("fips", "string"), ("nombre", "string"),
+                       ("area_km2", "double"), ("region_key", "string")],
+    "geo_estado_metricas": [("estado_key", "string"), ("km_interestatal", "double"),
+                            ("km_intraestatal", "double"), ("km_recoleccion", "double"),
+                            ("operadores_n", "int64"), ("km_red_henry_hub", "double"),
+                            ("km_total", "double"), ("densidad_km_1000km2", "double"),
+                            ("conectado_henry_hub", "boolean")],
+    "geo_km_estado_operador": [("estado_key", "string"), ("tipo", "string"),
+                               ("operador", "string"), ("km", "double")],
+    "geo_henry_hub_conexiones": [("gasoducto", "string"), ("operador_en_capa", "string"),
+                                 ("en_capa", "boolean"), ("tipo_en_capa", "string"),
+                                 ("km", "double"), ("estados_n", "int64"), ("estados", "string"),
+                                 ("nota", "string")],
+    "geo_gnl": [("nombre", "string"), ("operador", "string"), ("ciudad", "string"),
+                ("estado", "string"), ("funcion", "string"), ("licuefaccion_bcfd", "double"),
+                ("regasificacion_bcfd", "double"), ("almacenamiento_bcf", "double"),
+                ("periodo", "string"), ("lon", "double"), ("lat", "double"),
+                ("distancia_henry_hub_km", "double")],
+    "geo_hubs": [("nombre", "string"), ("periodo", "string"), ("lon", "double"),
+                 ("lat", "double")],
+    "geo_reserva_estrategica": [("nombre", "string"), ("estado", "string"),
+                                ("capacidad_mmbbl", "double"), ("periodo", "string"),
+                                ("lon", "double"), ("lat", "double")],
+    "geo_flujos_estado": [("estado_key", "string"), ("anio", "int64"), ("recibe_mmcf", "double"),
+                          ("entrega_mmcf", "double"), ("neto_mmcf", "double"), ("rol", "string"),
+                          ("cierre_ok", "boolean")],
+    "geo_centrales": [("planta_id", "string"), ("planta", "string"), ("estado_key", "string"),
+                      ("capacidad_mw", "double"), ("lon", "double"), ("lat", "double"),
+                      ("distancia_red_km", "double"), ("dentro_umbral", "boolean")],
+    "geo_capas_mapa": [("capa", "string"), ("orden", "int64")],
+    "frescura_geo": [("capa", "string"), ("tipo", "string"), ("origen", "string"),
+                     ("vintage", "string"), ("registros", "double"), ("estado", "string"),
+                     ("calculado_al", "string")],
+}
+TABLAS.update(TABLAS_GEO)
+CARPETA_GEO = "Geoespacial"
+FORMATO_GEO = {m.nombre: m.formato for m in gd.medidas()}
+
 ORDENAR_POR = {("dim_fecha", "nombre_mes"): "mes", ("dim_fecha", "nombre_dia"): "dia_semana",
                ("dim_serie", "nombre"): "orden"}
 
@@ -79,6 +120,11 @@ def relaciones() -> list[tuple[str, str, str, str]]:
                  (f, "serie_key", "dim_serie", "serie_key"),
                  (f, "region_key", "dim_region", "region_key")]
     rels.append(("fact_ultimo_dato", "serie_key", "dim_serie", "serie_key"))
+    # geoespacial: todo cuelga de geo_dim_estado, que se vincula con la región de almacenamiento
+    for f in ("geo_estado_metricas", "geo_km_estado_operador", "geo_flujos_estado",
+              "geo_centrales"):
+        rels.append((f, "estado_key", "geo_dim_estado", "estado_key"))
+    rels.append(("geo_dim_estado", "region_key", "dim_region", "region_key"))
     return rels
 
 
@@ -92,6 +138,8 @@ def q(nombre: str) -> str:
 def formato(m: gp.Medida) -> str | None:
     if m.carpeta == CARPETA_IMAGENES:
         return None
+    if m.carpeta == CARPETA_GEO:
+        return FORMATO_GEO.get(m.nombre)
     if m.nombre in FORMATO_NOMBRE:
         return FORMATO_NOMBRE[m.nombre]
     expr = m.expresion
@@ -147,9 +195,10 @@ def todas_las_medidas() -> list[gp.Medida]:
     """Las de la especificación más las de íconos (dax/iconos.dax), sin repetir nombres."""
     base = gp.leer_medidas(gp.SPEC.read_text(encoding="utf-8"))
     iconos = [gp.Medida(m.nombre, m.expresion, CARPETA_IMAGENES) for m in gi.medidas()]
-    nombres = [m.nombre for m in base + iconos]
+    geo = [gp.Medida(m.nombre, m.expresion, CARPETA_GEO) for m in gd.medidas()]
+    nombres = [m.nombre for m in base + iconos + geo]
     assert len(nombres) == len(set(nombres)), "nombre de medida repetido"
-    return base + iconos
+    return base + iconos + geo
 
 
 def generar(server: str, endpoint_id: str, out: Path) -> Path:

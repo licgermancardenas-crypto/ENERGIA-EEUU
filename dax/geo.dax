@@ -1,0 +1,121 @@
+// Medidas de la capa geoespacial del informe Pulso Energético de EE. UU.
+// Generado por scripts/generar_geo_dax.py: no editar a mano.
+// Uso: Power BI Desktop → Vista de consultas DAX → pegar → 'Actualizar modelo con cambios'.
+// Se alojan en la tabla 'dim_serie', carpeta 'Geoespacial'.
+
+DEFINE
+
+    // km de gasoducto dentro de los estados del contexto (sin tramos marinos)
+    MEASURE 'dim_serie'[Km de red en estados] =
+        SUM ( geo_estado_metricas[km_total] )
+
+    // km de gasoducto interestatal
+    MEASURE 'dim_serie'[Km interestatal] =
+        SUM ( geo_estado_metricas[km_interestatal] )
+
+    // km de gasoducto intraestatal
+    MEASURE 'dim_serie'[Km intraestatal] =
+        SUM ( geo_estado_metricas[km_intraestatal] )
+
+    // km de gasoducto por cada 1.000 km² de superficie
+    MEASURE 'dim_serie'[Densidad de red] =
+        DIVIDE ( [Km de red en estados], SUM ( geo_dim_estado[area_km2] ) ) * 1000
+
+    // operadores distintos cuya red cruza el contexto (no se suman entre estados)
+    MEASURE 'dim_serie'[Operadores en el estado] =
+        DISTINCTCOUNT ( geo_km_estado_operador[operador] )
+
+    // estados que toca la huella de red de los operadores conectados al hub (huella, no flujo físico)
+    MEASURE 'dim_serie'[Estados conectados al Henry Hub] =
+        CALCULATE ( COUNTROWS ( geo_estado_metricas ), geo_estado_metricas[conectado_henry_hub] = TRUE () ) + 0
+
+    // km de red de los operadores conectados al hub (huella, no flujo)
+    MEASURE 'dim_serie'[Km huella Henry Hub] =
+        SUM ( geo_estado_metricas[km_red_henry_hub] )
+
+    // 1 si el estado tiene red de algún operador conectado al hub
+    MEASURE 'dim_serie'[Conectado al Henry Hub] =
+        IF ( [Km huella Henry Hub] > 0, 1, 0 )
+
+    // reutiliza [Gas almacenado por región] para la región EIA del estado
+    MEASURE 'dim_serie'[Gas almacenado región del estado] =
+        CALCULATE ( [Gas almacenado por región], TREATAS ( VALUES ( geo_dim_estado[region_key] ), dim_region[region_key] ) )
+
+    // último año publicado de movimientos interestatales
+    MEASURE 'dim_serie'[Último año de flujos] =
+        MAX ( geo_flujos_estado[anio] )
+
+    // recepciones netas interestatales del último año (MMcf): > 0 recibe más de lo que entrega
+    MEASURE 'dim_serie'[Balance neto interestatal] =
+        VAR a = CALCULATE ( [Último año de flujos], REMOVEFILTERS ( geo_dim_estado ) )
+        RETURN
+            IF ( ISBLANK ( a ), BLANK (), CALCULATE ( SUM ( geo_flujos_estado[neto_mmcf] ), geo_flujos_estado[anio] = a ) )
+
+    // balance neto con su lectura; 'No disponible' si la EIA no publicó flujos
+    MEASURE 'dim_serie'[Balance neto (texto)] =
+        VAR v = [Balance neto interestatal]
+        RETURN
+            IF ( ISBLANK ( v ), "No disponible", FORMAT ( v, "#,0", "es-AR" ) & " MMcf · " & IF ( v > 0, "importador neto", IF ( v < 0, "exportador neto", "neutro" ) ) )
+
+    // capacidad nominal de las centrales a gas natural (MW, EIA-860M)
+    MEASURE 'dim_serie'[Capacidad a gas] =
+        SUM ( geo_centrales[capacidad_mw] )
+
+    // cantidad de plantas con generadores a gas natural
+    MEASURE 'dim_serie'[Centrales a gas] =
+        COUNTROWS ( geo_centrales ) + 0
+
+    // parte de la capacidad a gas a menos de 25 km de un gasoducto
+    MEASURE 'dim_serie'[Capacidad cerca de la red %] =
+        DIVIDE ( CALCULATE ( [Capacidad a gas], geo_centrales[dentro_umbral] = TRUE () ), [Capacidad a gas] )
+
+    // lectura de la proximidad o aviso de dato no disponible
+    MEASURE 'dim_serie'[Proximidad (texto)] =
+        VAR p = [Capacidad cerca de la red %]
+        RETURN
+            IF ( ISBLANK ( p ), "No disponible: la API de la EIA no respondió", FORMAT ( p, "0.0 %", "es-AR" ) & " de la capacidad a gas está a menos de 25 km de la red" )
+
+    // distancia geodésica de la terminal de GNL más cercana al hub (km)
+    MEASURE 'dim_serie'[GNL más cercano al Henry Hub] =
+        MIN ( geo_gnl[distancia_henry_hub_km] )
+
+    // para graficar por terminal (km)
+    MEASURE 'dim_serie'[Distancia GNL al Henry Hub] =
+        MIN ( geo_gnl[distancia_henry_hub_km] )
+
+    // nombre del estado elegido en el mapa o el segmentador
+    MEASURE 'dim_serie'[Estado seleccionado] =
+        SELECTEDVALUE ( geo_dim_estado[nombre], "Todos los estados" )
+
+    // capas elegidas en el segmentador; el mapa (Deneb) las lee para mostrarlas
+    MEASURE 'dim_serie'[Capas visibles] =
+        CONCATENATEX ( VALUES ( geo_capas_mapa[capa] ), geo_capas_mapa[capa], "|" )
+
+    // año de atributos de cada capa estática, para las notas del informe
+    MEASURE 'dim_serie'[Vintage capas] =
+        CONCATENATEX ( FILTER ( frescura_geo, frescura_geo[tipo] = "estática" && NOT ISBLANK ( frescura_geo[vintage] ) ), frescura_geo[capa] & " " & frescura_geo[vintage], " · " )
+
+EVALUATE
+ROW (
+    "Km de red en estados", [Km de red en estados],
+    "Km interestatal", [Km interestatal],
+    "Km intraestatal", [Km intraestatal],
+    "Densidad de red", [Densidad de red],
+    "Operadores en el estado", [Operadores en el estado],
+    "Estados conectados al Henry Hub", [Estados conectados al Henry Hub],
+    "Km huella Henry Hub", [Km huella Henry Hub],
+    "Conectado al Henry Hub", [Conectado al Henry Hub],
+    "Gas almacenado región del estado", [Gas almacenado región del estado],
+    "Último año de flujos", [Último año de flujos],
+    "Balance neto interestatal", [Balance neto interestatal],
+    "Balance neto (texto)", [Balance neto (texto)],
+    "Capacidad a gas", [Capacidad a gas],
+    "Centrales a gas", [Centrales a gas],
+    "Capacidad cerca de la red %", [Capacidad cerca de la red %],
+    "Proximidad (texto)", [Proximidad (texto)],
+    "GNL más cercano al Henry Hub", [GNL más cercano al Henry Hub],
+    "Distancia GNL al Henry Hub", [Distancia GNL al Henry Hub],
+    "Estado seleccionado", [Estado seleccionado],
+    "Capas visibles", [Capas visibles],
+    "Vintage capas", [Vintage capas]
+)
