@@ -29,7 +29,9 @@ FIN = H - 30  # borde inferior del contenido (debajo va el pie)
 PIE = ("Fuente: U.S. Energy Information Administration (EIA) · API v2 · "
        "Autor: Germán Cárdenas")
 PAGINAS = [("resumen", "Resumen"), ("petroleo", "Petróleo"), ("gas", "Gas"),
-           ("rezago", "Rezago"), ("calidad", "Calidad")]
+           ("rezago", "Rezago"), ("calidad", "Calidad"), ("red", "Red"),
+           ("analisis", "Análisis")]
+NAV_X = 560  # la barra de navegación arranca acá; el título usa el espacio de la izquierda
 
 # Paleta (misma que la web y el tema)
 NAVY, NAVY_2 = "#0B1F3A", "#16335C"
@@ -322,13 +324,14 @@ class Pagina:
         self.texto(0, 0, W, BANDA, [(" ", 8, NAVY, False)], fondo=NAVY)
         self.imagen(0, 0, W, BANDA, "Textura encabezado")
         self.imagen(M, 34, 26, 26, f"Ícono página {self.menu}")
-        self.texto(M, 12, 640, 18, [("PULSO ENERGÉTICO DE EE. UU.  ·  " + self.menu.upper(),
-                                     8.5, "#9DB7DD", True)])
-        self.texto(M + 36, 30, 620, 34, [(self.titulo, 18, BLANCO, True)])
-        self.texto(M, 66, 640, 20, [(self.bajada, 9, "#C9D4E5", False)])
+        ancho = NAV_X - M - 16
+        self.texto(M, 12, ancho, 18, [("PULSO ENERGÉTICO DE EE. UU.  ·  " + self.menu.upper(),
+                                       8.5, "#9DB7DD", True)])
+        self.texto(M + 36, 30, ancho - 36, 34, [(self.titulo, 18, BLANCO, True)])
+        self.texto(M, 66, ancho, 20, [(self.bajada, 9, "#C9D4E5", False)])
         # navegación: botones propios con ícono
-        nav_x, nav_w = 680, W - 680 - M
-        bw = (nav_w - 4 * 6) // 5
+        nav_x, nav_w = NAV_X, W - NAV_X - M
+        bw = (nav_w - (len(PAGINAS) - 1) * 6) // len(PAGINAS)
         for i, (destino, texto) in enumerate(PAGINAS):
             bx = nav_x + i * (bw + 6)
             self.boton(bx, 14, bw, 36, destino, texto, destino == self.nombre)
@@ -476,7 +479,7 @@ def paginas() -> list[Pagina]:
     ps.append(p)
 
     # 4 · Rezago
-    p = Pagina("rezago", "Rezago", "¿Cuánto tarda la producción en reaccionar al precio?",
+    p = Pagina("rezago", "Rezago", "¿Cuánto tarda la producción en reaccionar?",
                "Correlación entre la variación mensual del WTI y la de la producción, 0 a 12 meses "
                "después")
     p.encabezado()
