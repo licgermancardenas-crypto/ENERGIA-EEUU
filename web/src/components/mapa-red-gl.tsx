@@ -13,7 +13,7 @@ import type { EstadoGeo, Punto2 } from "@/lib/tipos";
 
 import { AZULES, type Capa, rampa } from "./mapas";
 
-const ESTILO = "https://tiles.openfreemap.org/styles/positron";
+export const ESTILO = "https://tiles.openfreemap.org/styles/positron";
 const VISTAS = {
   "48 estados": [[-125, 24], [-66.5, 49.5]],
   Alaska: [[-170, 51], [-129, 71.5]],
@@ -32,7 +32,7 @@ function coleccion(ps: Punto2[], extra: (p: Punto2) => Record<string, unknown> =
 }
 
 /** Recuadro [oeste, sur, este, norte] de una geometría GeoJSON. */
-function recuadro(geom: { coordinates: unknown }): [number, number, number, number] {
+export function recuadro(geom: { coordinates: unknown }): [number, number, number, number] {
   const b: [number, number, number, number] = [180, 90, -180, -90];
   const recorrer = (c: unknown): void => {
     if (Array.isArray(c) && typeof c[0] === "number") {
@@ -44,7 +44,7 @@ function recuadro(geom: { coordinates: unknown }): [number, number, number, numb
   return b;
 }
 
-function ficha(filas: [string, string][], titulo: string): HTMLElement {
+export function ficha(filas: [string, string][], titulo: string): HTMLElement {
   const div = document.createElement("div");
   div.className = "text-xs";
   const h = document.createElement("p");

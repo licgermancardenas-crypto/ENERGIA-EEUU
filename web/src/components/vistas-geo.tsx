@@ -6,8 +6,9 @@ import { num } from "@/lib/formato";
 import type { Geo } from "@/lib/tipos";
 
 import { BarrasH } from "./graficos";
+import { MapaCondadosGL } from "./mapa-condados-gl";
 import { MapaRedGL } from "./mapa-red-gl";
-import { CAPAS, type Capa, MapaCondados, MapaEstados, rampa } from "./mapas";
+import { CAPAS, type Capa, MapaEstados, rampa } from "./mapas";
 import { Icono, Panel } from "./marco";
 
 const GAS = "#1f6fd1";
@@ -103,7 +104,7 @@ export function VistaAnalisis({ geo, umbralKm }: { geo: Geo; umbralKm: number })
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <Panel titulo="Calefacción con gas de red por condado" icono="casa" iconoColor={GAS}
           nota={`ACS 2020-2024 (B25040) · borde ámbar: ≥ 50 % de hogares con gas de red y a más de ${umbralKm} km de un gasoducto`}>
-          <MapaCondados condados={geo.condados} umbralKm={umbralKm} />
+          <MapaCondadosGL estados={geo.estados} umbralKm={umbralKm} />
         </Panel>
         <Panel titulo="Condados en alerta" nota={`${alerta.length} condados · ordenados por distancia a la red`} icono="alerta" iconoColor="#a35400">
           <div className="max-h-[420px] overflow-auto">

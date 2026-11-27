@@ -103,8 +103,46 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
         texto = json.dumps(red, ensure_ascii=False, separators=(",", ":"))
         (dest / "mapa_red_detalle.geojson").write_text(texto, encoding="utf-8")
         conteo["mapa_red_detalle.geojson"] = len(texto)
+    cond = condados_detallados(gold_geo)
+    if cond is not None:
+        texto = json.dumps(cond, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+        (dest / "mapa_condados_detalle.geojson").write_text(texto, encoding="utf-8")
+        conteo["mapa_condados_detalle.geojson"] = len(texto)
     log.info("JSON geo exportados a %s", dest)
     return conteo
+
+
+TOLERANCIA_CONDADOS_M = 500
+
+
+def condados_detallados(gold_geo: Path) -> dict[str, Any] | None:
+    """Condados con la calefacción ACS en las propiedades, para el mapa con zoom.
+
+    coverage_simplify simplifica los bordes compartidos una sola vez: al acercarse no
+    aparecen huecos ni superposiciones entre condados vecinos.
+    """
+    import geopandas as gpd
+    import shapely
+    from shapely.geometry import mapping
+
+    from eia_pulso.geo.gold import _redondear
+
+    silver = gold_geo.parent.parent / "silver_geo" / "condados.parquet"
+    cal = gold_geo / "geo_condado_calefaccion.parquet"
+    if not (silver.exists() and cal.exists()):
+        return None
+    g = gpd.read_parquet(silver).to_crs(5070)
+    g = g.set_geometry(shapely.coverage_simplify(g.geometry.values, TOLERANCIA_CONDADOS_M))
+    g = g.to_crs(4326).merge(pd.read_parquet(cal), on="condado_key", how="left")
+    feats = []
+    for r in g.itertuples():
+        feats.append({"type": "Feature", "properties": {
+            "k": r.condado_key, "estado": r.estado_key, "nombre": r.nombre,
+            "pct": _num(r.pct_gas_red, 4), "moe": _num(r.pct_gas_red_moe, 4),
+            "km": _num(r.distancia_red_km, 1), "alerta": bool(r.alta_dependencia_lejos)
+            if pd.notna(r.alta_dependencia_lejos) else False},
+            "geometry": _redondear(mapping(r.geometry), DECIMALES_DETALLE)})
+    return {"type": "FeatureCollection", "features": feats}
 
 
 TOLERANCIA_DETALLE_M = 100  # el mapa interactivo hace zoom: 15 veces más fino que el de Power BI
