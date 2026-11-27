@@ -50,7 +50,7 @@ def capa_visible(nombre: str) -> str:
 
 CONFIG = {"font": FUENTE, "view": {"stroke": None},
           "legend": {"labelFont": FUENTE, "titleFont": FUENTE, "labelColor": TINTA_2,
-                     "titleColor": TINTA_2, "orient": "bottom-left", "direction": "horizontal"},
+                     "titleColor": TINTA_2, "orient": "bottom-right", "direction": "horizontal"},
           "axis": {"labelFont": FUENTE, "titleFont": FUENTE, "labelColor": TINTA_3,
                    "titleColor": TINTA_2, "gridColor": "#ECE7DD", "domainColor": "#D8D2C6"}}
 
@@ -65,7 +65,7 @@ def _capa_estados(color: dict[str, Any], tooltip: list[dict[str, Any]]) -> dict[
     return {
         "transform": [{"lookup": "estado_key", "from": {"data": {"values": _estados_por_clave()},
                                                        "key": "k", "fields": ["geo"]}}],
-        "mark": {"type": "geoshape", "stroke": "#FFFFFF", "strokeWidth": 0.8},
+        "mark": {"type": "geoshape", "stroke": "#FFFFFF", "strokeWidth": 0.8, "invalid": None},
         "encoding": {"shape": {"field": "geo", "type": "geojson"}, "color": color,
                      "strokeWidth": {"condition": {"test": "datum.__selected__ == 'on'",
                                                    "value": 2.5}, "value": 0.8},
@@ -99,28 +99,30 @@ def _capa_puntos(valores: list[dict[str, Any]], filtro: str, marca: dict[str, An
                          "tooltip": [{"field": c, "type": "nominal"} for c in tooltip]}}
 
 
-def _henry_hub() -> list[dict[str, Any]]:
+def _henry_hub(izquierda: bool = False) -> list[dict[str, Any]]:
     hh = [p for p in _puntos("geo_hubs", ["nombre", "lon", "lat"]) if p["nombre"] == "Henry Hub"]
     texto = ("'Henry Hub · US$ ' + (isValid(data('dataset')[0]['Último Henry Hub']) ? "
              "format(data('dataset')[0]['Último Henry Hub'], '.2f') : 's/d')")
     enc = {"longitude": {"field": "lon", "type": "quantitative"},
            "latitude": {"field": "lat", "type": "quantitative"}}
+    lado = {"align": "right", "dx": -14} if izquierda else {"align": "left", "dx": 14}
     return [
         {"data": {"values": hh}, "mark": {"type": "circle", "size": 260, "color": NARANJA,
                                           "stroke": "#FFFFFF", "strokeWidth": 2.5, "opacity": 1},
          "encoding": enc},
-        {"data": {"values": hh}, "mark": {"type": "text", "align": "left", "dx": 14, "dy": -12,
+        {"data": {"values": hh}, "mark": {**lado, "type": "text", "dy": -12,
                                           "fontSize": 13, "fontWeight": "bold",
                                           "stroke": "#FFFFFF", "strokeWidth": 4},
          "encoding": {**enc, "text": {"value": {"expr": texto}}}},
-        {"data": {"values": hh}, "mark": {"type": "text", "align": "left", "dx": 14, "dy": -12,
+        {"data": {"values": hh}, "mark": {**lado, "type": "text", "dy": -12,
                                           "fontSize": 13, "fontWeight": "bold", "color": TINTA},
          "encoding": {**enc, "text": {"value": {"expr": texto}}}}]
 
 
 def spec_mapa_red() -> dict[str, Any]:
     """Mapa principal: estados por almacenamiento de su región, red, hubs, GNL y centrales."""
-    almac = {"condition": {"test": capa_visible("Regiones de almacenamiento"),
+    almac = {"condition": {"test": capa_visible("Regiones de almacenamiento") + " && "
+                           "isValid(datum['Gas almacenado región del estado'])",
                            "field": "Gas almacenado región del estado", "type": "quantitative",
                            "scale": {"range": AZULES},
                            "legend": {"title": "Gas almacenado en la región (Bcf)",
@@ -158,19 +160,24 @@ def spec_mapa_red() -> dict[str, Any]:
 
 def spec_balance() -> dict[str, Any]:
     """Coroplético del balance interestatal neto (recibe − entrega). Sin datos: aviso."""
-    color = {"field": "Balance neto interestatal", "type": "quantitative",
-             "scale": {"type": "symlog", "domainMid": 0, "range": [OCRE, "#F3EFE8", AZUL]},
-             "legend": None}
+    color = {"condition": {"test": "isValid(datum['Balance neto interestatal'])",
+                           "field": "Balance neto interestatal", "type": "quantitative",
+                           "scale": {"type": "symlog", "domainMid": 0,
+                                     "range": [OCRE, "#F3EFE8", AZUL]}, "legend": None},
+             "value": FONDO_ESTADO}
     tooltip = [{"field": "nombre", "title": "Estado"},
                {"field": "Balance neto (texto)", "title": "Balance neto"}]
-    capas = [_capa_estados(color, tooltip),
+    coloreados = _capa_estados(color, tooltip)
+    coloreados["transform"] = [{"filter": "isValid(datum['Balance neto interestatal'])"},
+                               *coloreados["transform"]]
+    capas = [_capa_estados({"value": FONDO_ESTADO}, tooltip), coloreados,
              {"transform": [{"aggregate": [{"op": "valid", "field": "Balance neto interestatal",
                                             "as": "n"}]},
                             {"filter": "datum.n == 0"}],
-              "mark": {"type": "text", "fontSize": 13, "color": TINTA_2, "x": {"expr": "width/2"},
-                       "y": {"expr": "height/2"}, "align": "center", "lineBreak": "|"},
-              "encoding": {"text": {"value": "No disponible|La API de la EIA no publicó los "
-                                             "flujos interestatales en esta carga"}}}]
+              "mark": {"type": "text", "fontSize": 11, "color": TINTA_2, "x": {"expr": "width/2"},
+                       "y": {"expr": "height/2"}, "align": "center", "lineBreak": "|",
+                       "fontWeight": "bold"},
+              "encoding": {"text": {"value": "No disponible|la API de la EIA|no respondió"}}}]
     return _base(capas)
 
 
@@ -179,25 +186,29 @@ def spec_alcance_hh() -> dict[str, Any]:
              "value": FONDO_ESTADO}
     tooltip = [{"field": "nombre", "title": "Estado"},
                {"field": "Km huella Henry Hub", "title": "km de huella", "format": ",.0f"}]
-    return _base([_capa_estados(color, tooltip), _capa_red(hh_destacado=True), *_henry_hub()])
+    return _base([_capa_estados(color, tooltip), _capa_red(hh_destacado=True),
+                  *_henry_hub(izquierda=True)])
 
 
 def spec_ranking(medida: str, titulo_eje: str, n: int = 12, formato: str = ",.0f",
-                 orden: str = "descending") -> dict[str, Any]:
+                 orden: str = "descending", alto_barra: int = 14, letra: int = 10
+                 ) -> dict[str, Any]:
+    config = {**CONFIG, "axis": {**CONFIG["axis"], "labelFontSize": letra}}
     return {"$schema": SCHEMA, "data": {"name": "dataset"}, "width": "container",
-            "height": "container", "config": CONFIG,
+            "height": "container", "config": config,
             "transform": [{"window": [{"op": "row_number", "as": "r"}],
                            "sort": [{"field": medida, "order": orden}]},
                           {"filter": f"datum.r <= {n}"}],
             "layer": [
-                {"mark": {"type": "bar", "color": AZUL, "cornerRadiusEnd": 3, "height": 14},
+                {"mark": {"type": "bar", "color": AZUL, "cornerRadiusEnd": 3,
+                          "height": alto_barra},
                  "encoding": {"y": {"field": "nombre", "type": "nominal", "title": None,
                                     "sort": "-x" if orden == "descending" else "x"},
                               "x": {"field": medida, "type": "quantitative",
                                     "title": titulo_eje},
                               "opacity": {"condition": {"test": "datum.__selected__ == 'off'",
                                                         "value": 0.35}, "value": 1}}},
-                {"mark": {"type": "text", "align": "left", "dx": 4, "fontSize": 10,
+                {"mark": {"type": "text", "align": "left", "dx": 4, "fontSize": letra,
                           "color": TINTA_2},
                  "encoding": {"y": {"field": "nombre", "type": "nominal",
                                     "sort": "-x" if orden == "descending" else "x"},
@@ -212,9 +223,8 @@ def spec_proximidad(umbral_km: float) -> dict[str, Any]:
     base = {"$schema": SCHEMA, "width": "container", "height": "container", "config": CONFIG}
     if not valores:
         return {**base, "data": {"values": [{}]},
-                "mark": {"type": "text", "fontSize": 12, "color": TINTA_2, "lineBreak": "|"},
-                "encoding": {"text": {"value": "No disponible|La API de la EIA no respondió "
-                                               "(centrales a gas, EIA-860M)"}}}
+                "mark": {"type": "text", "fontSize": 11, "color": TINTA_2, "lineBreak": "|"},
+                "encoding": {"text": {"value": "No disponible|la API de la EIA no respondió"}}}
     return {**base, "data": {"values": valores},
             "transform": [{"calculate": "min(floor(datum.distancia_red_km / 5) * 5, 50)",
                            "as": "banda"}],
@@ -226,3 +236,35 @@ def spec_proximidad(umbral_km: float) -> dict[str, Any]:
                                     "type": "quantitative", "title": "MW"}}},
                 {"mark": {"type": "rule", "color": NARANJA, "strokeDash": [4, 3]},
                  "encoding": {"x": {"datum": int(umbral_km // 5 * 5), "type": "ordinal"}}}]}
+
+
+def spec_calefaccion() -> dict[str, Any]:
+    """Condados por % de hogares con gas de red; borde ámbar = alta dependencia lejos de la red."""
+    condados = [{"k": f["properties"]["condado_key"], "geo": f}
+                for f in _leer("condados")["features"]]
+    tooltip = [{"field": "nombre", "title": "Condado"},
+               {"field": "Gas de red % del condado", "title": "Hogares con gas de red",
+                "format": ".1%"},
+               {"field": "Margen de error del condado", "title": "± (ACS, 90 %)",
+                "format": ".1%"},
+               {"field": "Distancia del condado a la red", "title": "km a la red troncal",
+                "format": ",.1f"}]
+    capas = [
+        {"transform": [{"lookup": "condado_key",
+                        "from": {"data": {"name": "condados"}, "key": "k", "fields": ["geo"]}}],
+         "mark": {"type": "geoshape", "strokeWidth": 0.15, "stroke": "#FFFFFF"},
+         "encoding": {
+             "shape": {"field": "geo", "type": "geojson"},
+             "color": {"field": "Gas de red % del condado", "type": "quantitative",
+                       "scale": {"range": AZULES, "domain": [0, 0.8], "clamp": True},
+                       "legend": {"title": "Hogares con gas de red", "format": ".0%",
+                                  "gradientLength": 150}},
+             "tooltip": tooltip}},
+        {**_capa_red(), "mark": {"type": "geoshape", "filled": False, "stroke": GRIS_RED,
+                                 "strokeOpacity": 0.35, "strokeWidth": 0.4}, "encoding": {}},
+        {"transform": [{"filter": "datum['Condado alta dependencia lejos'] == 1"},
+                       {"lookup": "condado_key",
+                        "from": {"data": {"name": "condados"}, "key": "k", "fields": ["geo"]}}],
+         "mark": {"type": "geoshape", "filled": False, "stroke": "#A35400", "strokeWidth": 1.6},
+         "encoding": {"shape": {"field": "geo", "type": "geojson"}, "tooltip": tooltip}}]
+    return {**_base(capas), "datasets": {"condados": condados}}

@@ -604,7 +604,7 @@ def paginas_geo() -> list[Pagina]:
 
     # 6 · Mapa de la red
     p = Pagina("red", "Red", "La red de gas natural de EE. UU.",
-               "Gasoductos, Henry Hub, hubs, GNL y almacenamiento por región · Lower 48 y DC")
+               "Gasoductos, Henry Hub, hubs, GNL y almacenamiento por región de la EIA")
     p.encabezado()
     wm = 856
     w4, xs4 = _fila(4, M, wm)
@@ -623,8 +623,8 @@ def paginas_geo() -> list[Pagina]:
              medida("Gas almacenado región del estado"), medida("Último Henry Hub"),
              medida("Capas visibles")],
             gmap.spec_mapa_red(), "Mapa de la red",
-            "clic en un estado para ver su detalle · gasoductos interestatales más gruesos · "
-            "Alaska y Hawái no se muestran")
+            "clic en un estado para ver su detalle · interestatales más gruesos · Alaska y "
+            "Hawái en recuadros · Puerto Rico no se muestra")
     xr, wr = M + wm + G, W - 2 * M - wm - G
     p.segmentador(xr, Y0, wr, 72, columna("geo_capas_mapa", "capa"),
                   "Capas del mapa (todas si no elegís ninguna)")
@@ -640,51 +640,58 @@ def paginas_geo() -> list[Pagina]:
              "según Sabine Pipe Line · punteado: no figura en la capa", tarjeta=True)
     ps.append(p)
 
-    # 7 · Análisis geoespacial
+    # 7 · Análisis geoespacial (grilla de 4 columnas)
     p = Pagina("analisis", "Análisis", "Análisis geoespacial de la red",
                "Dónde está la red, quién la usa y qué tan cerca está de la demanda")
     p.encabezado()
-    w3, xs3 = _fila(3)
+    w4, xs4 = _fila(4)
     h1 = 258
     dataset = [clave, nombre, medida("Km de red en estados"), medida("Densidad de red")]
-    p.deneb(xs3[0], Y0, w3, h1, dataset,
-            gmap.spec_ranking("Km de red en estados", "km de gasoducto"),
-            "Estados con más km de red", "top 12 · km dentro del estado")
-    p.deneb(xs3[1], Y0, w3, h1, dataset,
-            gmap.spec_ranking("Densidad de red", "km por 1.000 km²", formato=",.1f"),
-            "Estados con mayor densidad", "top 12 · km por cada 1.000 km²")
-    p.deneb(xs3[2], Y0, w3, h1,
+    p.deneb(xs4[0], Y0, w4, h1, dataset,
+            gmap.spec_ranking("Km de red en estados", "km", n=10),
+            "Más km de red", "top 10 · km dentro del estado")
+    p.deneb(xs4[1], Y0, w4, h1, dataset,
+            gmap.spec_ranking("Densidad de red", "km / 1.000 km²", n=10, formato=",.1f"),
+            "Mayor densidad", "top 10 · km por cada 1.000 km²")
+    p.deneb(xs4[2], Y0, w4, h1,
             [clave, nombre, medida("Balance neto interestatal"), medida("Balance neto (texto)")],
             gmap.spec_balance(), "Balance interestatal neto",
-            "último año de la EIA · azul: recibe más de lo que entrega · ocre: entrega más")
-    y2 = Y0 + h1 + G
-    h2 = FIN - y2
-    p.deneb(xs3[0], y2, w3, h2,
+            "azul: recibe más · ocre: entrega más")
+    p.deneb(xs4[3], Y0, w4, h1,
             [clave, nombre, medida("Conectado al Henry Hub"), medida("Km huella Henry Hub"),
              medida("Último Henry Hub")],
-            gmap.spec_alcance_hh(), "Alcance de la red del Henry Hub",
-            "huella de los operadores conectados al hub (no es flujo físico)")
-    hp = 140
-    p.deneb(xs3[1], y2, w3, hp, [clave], gmap.spec_proximidad(UMBRAL_KM),
-            "Centrales a gas según distancia a la red",
-            f"MW por banda de km · línea: umbral de {UMBRAL_KM:g} km", seleccion=False)
-    p.deneb(xs3[1], y2 + hp + 10, w3, h2 - hp - 10,
+            gmap.spec_alcance_hh(), "Alcance del Henry Hub", "huella de red, no flujo físico")
+    y2 = Y0 + h1 + G
+    h2 = FIN - y2
+    hp = 100
+    p.deneb(xs4[0], y2, w4, hp, [clave], gmap.spec_proximidad(UMBRAL_KM),
+            "Centrales a gas y la red", f"MW por km · umbral {UMBRAL_KM:g} km", seleccion=False)
+    p.deneb(xs4[0], y2 + hp + 10, w4, h2 - hp - 10,
             [columna("geo_gnl", "nombre"), medida("Distancia GNL al Henry Hub")],
-            gmap.spec_ranking("Distancia GNL al Henry Hub", "km", n=9, orden="ascending"),
-            "Terminales de GNL: distancia al Henry Hub", "km en línea recta (geodésica)",
-            seleccion=False)
-    p.texto(xs3[2], y2, w3, h2, [
+            gmap.spec_ranking("Distancia GNL al Henry Hub", "km", n=9, orden="ascending",
+                              alto_barra=10, letra=9),
+            "GNL: distancia al Henry Hub", "km en línea recta", seleccion=False)
+    wc = 2 * w4 + G
+    p.deneb(xs4[1], y2, wc, h2,
+            [columna("geo_dim_condado", "condado_key"), columna("geo_dim_condado", "nombre"),
+             medida("Gas de red % del condado"), medida("Margen de error del condado"),
+             medida("Distancia del condado a la red"), medida("Condado alta dependencia lejos")],
+            gmap.spec_calefaccion(), "Calefacción con gas de red vs. cercanía a la red",
+            "% de hogares por condado (ACS 2020-2024) · borde ámbar: ≥ 50 % y a más de "
+            f"{UMBRAL_KM:g} km de la red troncal mapeada", seleccion=False)
+    xl = xs4[3]
+    p.texto(xl, y2, w4, h2, [
         ("       Cómo leerlo", 12, TINTA, True),
-        ("Huella no es flujo: el alcance del Henry Hub mide dónde tienen red los operadores "
-         "conectados al hub, no cuánto gas sale de él.", 9.5, TINTA_2, False),
-        ("La geometría está simplificada (1,5 km) para que el informe sea liviano: sirve "
-         "para ver el país, no para medir un tramo puntual.", 9.5, TINTA_2, False),
-        ("Vintage de las capas: gasoductos 2020-01, hubs 2020-02, GNL 2023-08, reserva "
-         "estratégica 2022-04, estados 2024. Son copias públicas de capas de la EIA.",
-         9.5, TINTA_2, False),
-        ("La EIA aclara que estos datos no garantizan precisión ni exhaustividad.",
-         9.5, TINTA_3, False)], fondo=BLANCO)
-    p.imagen(xs3[2] + 14, y2 + 12, 20, 20, "Ícono info")
+        ("Huella ≠ flujo: el alcance del Henry Hub muestra dónde tienen red los operadores "
+         "conectados al hub, no cuánto gas sale de él.", 9, TINTA_2, False),
+        ("La calefacción sale de una encuesta (ACS): cada % tiene margen de error. Lejos de "
+         "la red troncal mapeada no es 'sin gas': la capa puede no cubrir ramales locales "
+         "(por ejemplo, en Alaska).", 9, TINTA_2, False),
+        ("Geometría simplificada (1,5 km). Vintage: gasoductos 2020-01, hubs 2020-02, GNL "
+         "2023-08, límites 2024. Copias públicas de capas de la EIA.", 9, TINTA_2, False),
+        ("La EIA aclara que estos datos no garantizan precisión.", 9, TINTA_3, False)],
+        fondo=BLANCO)
+    p.imagen(xl + 14, y2 + 12, 20, 20, "Ícono info")
     ps.append(p)
     return ps
 
