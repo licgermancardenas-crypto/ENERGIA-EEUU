@@ -15,6 +15,8 @@ import json
 import shutil
 from pathlib import Path
 
+import generar_mapas as gmap
+
 RAIZ = Path(__file__).resolve().parents[1]
 TEMA = RAIZ / "powerbi" / "tema_pulso_energetico.json"
 MED = "dim_serie"  # tabla que aloja las medidas (ver generar_modelo_semantico.py)
@@ -32,6 +34,10 @@ PAGINAS = [("resumen", "Resumen"), ("petroleo", "Petróleo"), ("gas", "Gas"),
            ("rezago", "Rezago"), ("calidad", "Calidad"), ("red", "Red"),
            ("analisis", "Análisis")]
 NAV_X = 560  # la barra de navegación arranca acá; el título usa el espacio de la izquierda
+PIE_GEO = ("Fuente: EIA (API v2 y capas geoespaciales vía HIFLD/DHS; copias públicas) · U.S. "
+           "Census · Autor: Germán Cárdenas · La EIA no garantiza la exactitud de estos datos")
+DENEB = "deneb7E15AEF80B9E4D4F8E12924291ECE89A"  # visual certificado de AppSource
+UMBRAL_KM = gmap.UMBRAL_KM  # de config/pipeline.yaml (geo.umbral_proximidad_km)
 
 # Paleta (misma que la web y el tema)
 NAVY, NAVY_2 = "#0B1F3A", "#16335C"
@@ -283,7 +289,36 @@ class Pagina:
             "visualContainerObjects": contenedor(titulo, subtitulo)})
 
     def pie(self):
-        self.texto(M, H - 22, W - 2 * M, 18, [(PIE, 8.5, TINTA_3, False)])
+        texto = PIE_GEO if self.nombre in ("red", "analisis") else PIE
+        self.texto(M, H - 22, W - 2 * M, 18, [(texto, 8.5, TINTA_3, False)])
+
+    def deneb(self, x, y, w, h, campos: list[dict], spec: dict, titulo=None, subtitulo=None,
+              seleccion=True):
+        """Visual Deneb (Vega-Lite). `campos` arma el dataset (una fila por combinación)."""
+        self._agregar(x, y, w, h, {
+            "visualType": DENEB,
+            "query": {"queryState": {"dataset": {"projections": [proy(c) for c in campos]}}},
+            "objects": {"vega": [{"properties": {
+                "jsonSpec": lit(json.dumps(spec, ensure_ascii=False, separators=(",", ":"))),
+                "jsonConfig": lit("{}"), "provider": lit("vegaLite"), "renderMode": lit("svg"),
+                "enableTooltips": lit(True), "enableSelection": lit(seleccion),
+                "enableContextMenu": lit(True)}}]},
+            "visualContainerObjects": contenedor(titulo, subtitulo)})
+
+    def multifila(self, x, y, w, h, medidas: list[str], titulo, subtitulo=None):
+        """Tarjeta de varias filas (detalle del estado elegido)."""
+        self._agregar(x, y, w, h, {
+            "visualType": "multiRowCard",
+            "query": {"queryState": {"Values": {"projections": [proy(medida(m))
+                                                                for m in medidas]}}},
+            "objects": {"dataLabels": [{"properties": {"fontSize": lit(13.0),
+                                                       "color": color(TINTA)}}],
+                        "categoryLabels": [{"properties": {"fontSize": lit(9.0),
+                                                           "color": color(TINTA_3)}}],
+                        "card": [{"properties": {"outline": lit("None"),
+                                                 "barShow": lit(True),
+                                                 "barColor": color(AZUL)}}]},
+            "visualContainerObjects": contenedor(titulo, subtitulo)})
 
     def boton(self, x, y, w, h, destino: str, texto: str, activo: bool):
         """Botón de navegación con estados normal, hover, presionado y activo."""
@@ -546,8 +581,102 @@ def paginas() -> list[Pagina]:
              (columna(fr, "umbral_dias"), "Umbral (días)"),
              (medida("Semáforo de frescura"), "Estado")],
             "Frescura de cada fuente",
-            "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada · umbral: diaria 10 días, "
-            "semanal 14, mensual 120 (la EIA publica los mensuales con 2 a 3 meses de demora)")
+            "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada · umbral: diaria 10, "
+            "semanal 14, mensual 120 días (los mensuales salen con 2 a 3 meses de demora)")
+    ps.append(p)
+    ps += paginas_geo()
+    return ps
+
+
+def paginas_geo() -> list[Pagina]:
+    """Páginas 'Mapa de la red' y 'Análisis geoespacial' (Deneb + visuales nativos)."""
+    E = "geo_dim_estado"
+    clave, nombre = columna(E, "estado_key"), columna(E, "nombre")
+    ps = []
+
+    # 6 · Mapa de la red
+    p = Pagina("red", "Red", "La red de gas natural de EE. UU.",
+               "Gasoductos, Henry Hub, hubs, GNL y almacenamiento por región · Lower 48 y DC")
+    p.encabezado()
+    wm = 856
+    w4, xs4 = _fila(4, M, wm)
+    for x, (m, e, n, ic) in zip(xs4, [
+            ("Km de red en estados", "Red de gasoductos", "km dentro de los estados",
+             "Ícono página Red"),
+            ("Estados conectados al Henry Hub", "Conectados al hub",
+             "huella de red, no flujo", "Ícono Henry Hub"),
+            ("Último Henry Hub", "Henry Hub", "US$ por MMBtu", "Ícono Henry Hub"),
+            ("Gas almacenado Lower 48", "Gas almacenado", "Bcf · Lower 48",
+             "Ícono gas almacenado")], strict=True):
+        p.kpi(x, Y0, w4, 84, m, e, n, AZUL, tam=20.0, icono=ic)
+    ym = Y0 + 84 + G
+    p.deneb(M, ym, wm, FIN - ym,
+            [clave, nombre, columna(E, "region_key"), medida("Km de red en estados"),
+             medida("Gas almacenado región del estado"), medida("Último Henry Hub"),
+             medida("Capas visibles")],
+            gmap.spec_mapa_red(), "Mapa de la red",
+            "clic en un estado para ver su detalle · gasoductos interestatales más gruesos · "
+            "Alaska y Hawái no se muestran")
+    xr, wr = M + wm + G, W - 2 * M - wm - G
+    p.segmentador(xr, Y0, wr, 72, columna("geo_capas_mapa", "capa"),
+                  "Capas del mapa (todas si no elegís ninguna)")
+    p.segmentador(xr, Y0 + 72 + 10, wr, 72, nombre, "Estado")
+    yd = Y0 + 2 * (72 + 10)
+    p.multifila(xr, yd, wr, 196,
+                ["Estado seleccionado", "Km de red en estados", "Densidad de red",
+                 "Operadores en el estado", "Balance neto (texto)",
+                 "Gas almacenado región del estado"],
+                "Detalle", "km · km por 1.000 km² · operadores · balance neto · Bcf")
+    ye = yd + 196 + 10
+    p.imagen(xr, ye, wr, FIN - ye, "Esquema Henry Hub", "Conexiones del Henry Hub",
+             "según Sabine Pipe Line · punteado: no figura en la capa", tarjeta=True)
+    ps.append(p)
+
+    # 7 · Análisis geoespacial
+    p = Pagina("analisis", "Análisis", "Análisis geoespacial de la red",
+               "Dónde está la red, quién la usa y qué tan cerca está de la demanda")
+    p.encabezado()
+    w3, xs3 = _fila(3)
+    h1 = 258
+    dataset = [clave, nombre, medida("Km de red en estados"), medida("Densidad de red")]
+    p.deneb(xs3[0], Y0, w3, h1, dataset,
+            gmap.spec_ranking("Km de red en estados", "km de gasoducto"),
+            "Estados con más km de red", "top 12 · km dentro del estado")
+    p.deneb(xs3[1], Y0, w3, h1, dataset,
+            gmap.spec_ranking("Densidad de red", "km por 1.000 km²", formato=",.1f"),
+            "Estados con mayor densidad", "top 12 · km por cada 1.000 km²")
+    p.deneb(xs3[2], Y0, w3, h1,
+            [clave, nombre, medida("Balance neto interestatal"), medida("Balance neto (texto)")],
+            gmap.spec_balance(), "Balance interestatal neto",
+            "último año de la EIA · azul: recibe más de lo que entrega · ocre: entrega más")
+    y2 = Y0 + h1 + G
+    h2 = FIN - y2
+    p.deneb(xs3[0], y2, w3, h2,
+            [clave, nombre, medida("Conectado al Henry Hub"), medida("Km huella Henry Hub"),
+             medida("Último Henry Hub")],
+            gmap.spec_alcance_hh(), "Alcance de la red del Henry Hub",
+            "huella de los operadores conectados al hub (no es flujo físico)")
+    hp = 140
+    p.deneb(xs3[1], y2, w3, hp, [clave], gmap.spec_proximidad(UMBRAL_KM),
+            "Centrales a gas según distancia a la red",
+            f"MW por banda de km · línea: umbral de {UMBRAL_KM:g} km", seleccion=False)
+    p.deneb(xs3[1], y2 + hp + 10, w3, h2 - hp - 10,
+            [columna("geo_gnl", "nombre"), medida("Distancia GNL al Henry Hub")],
+            gmap.spec_ranking("Distancia GNL al Henry Hub", "km", n=9, orden="ascending"),
+            "Terminales de GNL: distancia al Henry Hub", "km en línea recta (geodésica)",
+            seleccion=False)
+    p.texto(xs3[2], y2, w3, h2, [
+        ("       Cómo leerlo", 12, TINTA, True),
+        ("Huella no es flujo: el alcance del Henry Hub mide dónde tienen red los operadores "
+         "conectados al hub, no cuánto gas sale de él.", 9.5, TINTA_2, False),
+        ("La geometría está simplificada (1,5 km) para que el informe sea liviano: sirve "
+         "para ver el país, no para medir un tramo puntual.", 9.5, TINTA_2, False),
+        ("Vintage de las capas: gasoductos 2020-01, hubs 2020-02, GNL 2023-08, reserva "
+         "estratégica 2022-04, estados 2024. Son copias públicas de capas de la EIA.",
+         9.5, TINTA_2, False),
+        ("La EIA aclara que estos datos no garantizan precisión ni exhaustividad.",
+         9.5, TINTA_3, False)], fondo=BLANCO)
+    p.imagen(xs3[2] + 14, y2 + 12, 20, 20, "Ícono info")
     ps.append(p)
     return ps
 
@@ -583,6 +712,7 @@ def generar(workspace: str, model_id: str, out: Path) -> Path:
         "themeCollection": {"customTheme": {"name": tema, "reportVersionAtImport": "5.59",
                                             "type": "RegisteredResources"}},
         "layoutOptimization": "None",
+        "publicCustomVisuals": [DENEB],
         "resourcePackages": [{"name": "RegisteredResources", "type": "RegisteredResources",
                               "items": [{"name": tema, "path": tema, "type": "CustomTheme"}]}],
         "settings": {"useStylableVisualContainerHeader": True,

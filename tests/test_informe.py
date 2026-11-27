@@ -28,7 +28,7 @@ def _campos(obj):
 def test_informe_referencia_campos_existentes(tmp_path):
     raiz = gi.generar("WS", "00000000-0000-0000-0000-000000000000", tmp_path)
     paginas = json.loads((raiz / "definition/pages/pages.json").read_text(encoding="utf-8"))
-    assert len(paginas["pageOrder"]) == 5
+    assert len(paginas["pageOrder"]) == 7
 
     medidas = {m.nombre for m in gm.todas_las_medidas()}
     columnas = {(t, c) for t, cols in gm.TABLAS.items() for c, _ in cols}
