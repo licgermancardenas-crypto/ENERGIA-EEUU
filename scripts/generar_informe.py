@@ -282,7 +282,7 @@ class Pagina:
                                            "backColorPrimary": color(BLANCO),
                                            "backColorSecondary": color("#F7F4EE")}}],
                 "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(10.0),
-                                         "imageHeight": lit(20.0), "imageWidth": lit(110.0)}}],
+                                         "imageHeight": lit(20.0), "imageWidth": lit(64.0)}}],
                 "total": [{"properties": {"totals": lit(False)}}]}
         self._agregar(x, y, w, h, {"visualType": "tableEx", "query": {"queryState": {
             "Values": {"projections": [proy(c, a) for c, a in campos]}}}, "objects": objs,
@@ -572,7 +572,8 @@ def paginas() -> list[Pagina]:
             p.imagen(x + 24, Y0 + 50, 40, 40, ic)
     fr = "frescura"
     yt = Y0 + 100 + G
-    p.tabla(M, yt, W - 2 * M, FIN - yt,
+    wt = 820
+    p.tabla(M, yt, wt, FIN - yt,
             [(medida("Ícono frecuencia"), " "), (columna(fr, "dataset"), "Dataset"),
              (columna(fr, "frecuencia"), "Frecuencia"),
              (columna(fr, "ultimo_periodo"), "Último período"),
@@ -583,6 +584,11 @@ def paginas() -> list[Pagina]:
             "Frescura de cada fuente",
             "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada · umbral: diaria 10, "
             "semanal 14, mensual 120 días (los mensuales salen con 2 a 3 meses de demora)")
+    fg = "frescura_geo"
+    p.tabla(M + wt + G, yt, W - 2 * M - wt - G, FIN - yt,
+            [(columna(fg, "capa"), "Capa"), (columna(fg, "tipo"), "Tipo"),
+             (columna(fg, "vintage"), "Vintage"), (columna(fg, "estado"), "Estado")],
+            "Capas geoespaciales", "estáticas con su año de atributos, y datasets de la API")
     ps.append(p)
     ps += paginas_geo()
     return ps

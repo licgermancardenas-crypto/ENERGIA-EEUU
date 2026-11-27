@@ -164,6 +164,12 @@ def red_disuelta(gasoductos: gpd.GeoDataFrame, hh_ops: set[str]) -> gpd.GeoDataF
 
 
 # ------------------------------------------------------------------ frescura de capas
+NOMBRES_CAPA = {"gasoductos": "Gasoductos", "hubs": "Hubs de gas",
+                "gnl": "Terminales de GNL", "reserva_estrategica": "Reserva estratégica",
+                "regiones_almacenamiento": "Regiones de almacenamiento",
+                "estados": "Estados (Census)"}
+
+
 def frescura_geo(cfg: GeoConfig, hoy: date, extra: list[dict[str, Any]]) -> pd.DataFrame:
     filas = []
     for nombre, capa in cfg.capas.items():
@@ -172,7 +178,8 @@ def frescura_geo(cfg: GeoConfig, hoy: date, extra: list[dict[str, Any]]) -> pd.D
             estado, registros = "disponible", man.get("registros")
         except Exception:  # noqa: BLE001 - se informa como no disponible
             estado, registros = "no disponible", None
-        filas.append({"capa": nombre, "tipo": "estática", "origen": capa.origen,
+        filas.append({"capa": NOMBRES_CAPA.get(nombre, nombre), "tipo": "estática",
+                      "origen": capa.origen,
                       "vintage": capa.vintage, "registros": registros, "estado": estado,
                       "calculado_al": hoy.isoformat()})
     for e in extra:
@@ -209,12 +216,12 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     centrales = centrales_a_red(filas_c, red, cfg.crs_calculo, cfg.umbral_proximidad_km, claves)
     if len(flujos):
         val["flujos_cierre_ok"] = bool(flujos["cierre_ok"].all())
-    extra = [{"capa": "gasoductos de recolección", "tipo": "estática",
+    extra = [{"capa": "Gasoductos de recolección", "tipo": "estática",
               "origen": "la capa de la EIA solo distingue interestatal e intraestatal",
               "vintage": None, "registros": None, "estado": "no disponible"}]
     for nombre, man, tipo, origen in [
-            ("flujos interestatales", man_f, "anual", "EIA API v2 natural-gas/move/ist"),
-            ("centrales a gas (EIA-860M)", man_c, "mensual",
+            ("Flujos interestatales", man_f, "anual", "EIA API v2 natural-gas/move/ist"),
+            ("Centrales a gas (EIA-860M)", man_c, "mensual",
              "EIA API v2 electricity/operating-generator-capacity")]:
         extra.append({"capa": nombre, "tipo": tipo, "origen": origen,
                       "vintage": man.get("vintage") if man else None,
