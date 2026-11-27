@@ -274,14 +274,15 @@ class Pagina:
             "Values": {"projections": [proy(campo)]}}}, "objects": objs,
             "visualContainerObjects": contenedor(titulo)}, filtros)
 
-    def tabla(self, x, y, w, h, campos: list[tuple[dict, str]], titulo, subtitulo=None):
+    def tabla(self, x, y, w, h, campos: list[tuple[dict, str]], titulo, subtitulo=None,
+              tam: float = 10.0):
         objs = {"columnHeaders": [{"properties": {"fontColor": color(BLANCO),
                                                   "backColor": color(NAVY),
                                                   "fontFamily": lit(FUENTE_FUERTE)}}],
                 "values": [{"properties": {"fontColorPrimary": color(TINTA),
                                            "backColorPrimary": color(BLANCO),
                                            "backColorSecondary": color("#F7F4EE")}}],
-                "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(10.0),
+                "grid": [{"properties": {"rowPadding": lit(6.0), "textSize": lit(tam),
                                          "imageHeight": lit(20.0), "imageWidth": lit(64.0)}}],
                 "total": [{"properties": {"totals": lit(False)}}]}
         self._agregar(x, y, w, h, {"visualType": "tableEx", "query": {"queryState": {
@@ -583,12 +584,13 @@ def paginas() -> list[Pagina]:
              (medida("Semáforo de frescura"), "Estado")],
             "Frescura de cada fuente",
             "verde: al día · ámbar: ≥ 80 % del umbral · rojo: atrasada · umbral: diaria 10, "
-            "semanal 14, mensual 120 días (los mensuales salen con 2 a 3 meses de demora)")
+            "semanal 14, mensual 120 días (los mensuales salen con 2 a 3 meses de demora)",
+            tam=9.0)
     fg = "frescura_geo"
     p.tabla(M + wt + G, yt, W - 2 * M - wt - G, FIN - yt,
             [(columna(fg, "capa"), "Capa"), (columna(fg, "tipo"), "Tipo"),
-             (columna(fg, "vintage"), "Vintage"), (columna(fg, "estado"), "Estado")],
-            "Capas geoespaciales", "estáticas con su año de atributos, y datasets de la API")
+             (columna(fg, "vintage"), "Año"), (columna(fg, "estado"), "Estado")],
+            "Capas geoespaciales", "año = vintage de los atributos", tam=9.0)
     ps.append(p)
     ps += paginas_geo()
     return ps

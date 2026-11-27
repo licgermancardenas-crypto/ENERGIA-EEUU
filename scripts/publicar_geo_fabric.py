@@ -41,6 +41,8 @@ def main() -> int:
     ap.add_argument("--lakehouse", default="lh_pulso_energetico")
     ap.add_argument("--fab", default=shutil.which("fab") or "fab")
     a = ap.parse_args()
+    if Path(a.fab).exists():  # ruta relativa (p. ej. .venv/Scripts/fab.exe) -> absoluta
+        a.fab = str(Path(a.fab).resolve())
     lh = f"{a.workspace}.Workspace/{a.lakehouse}.Lakehouse"
     faltan = [t for t in TABLAS if not (GOLD / f"{t}.parquet").exists()]
     if faltan:
