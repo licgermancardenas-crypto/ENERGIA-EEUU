@@ -77,5 +77,7 @@ python scripts/publicar_geo_fabric.py --workspace "Pulso Energetico EEUU"   # al
 
 Después de publicar, regenerá el informe con `scripts/generar_informe.py`, que embebe la geometría nueva en el mapa.
 
+**Alternativa dentro de Fabric:** el notebook `NB03_Geo` (generado desde `fabric/notebooks/src/NB03_Geo.py`) instala este paquete desde el repositorio, corre las mismas funciones y escribe las tablas `geo_*` y `frescura_geo` en el Lakehouse. Toma la key de `Files/config/eia_config.json`. Con el parámetro `saltear_api = True` corre solo las capas estáticas.
+
 - Si la API de la EIA no responde, Gold igual corre: los flujos y las centrales quedan vacíos y el informe los muestra como **"No disponible"**.
 - Para sumar o corregir una conexión del Henry Hub, editá `config/henry_hub_conexiones.csv` y volvé a correr `--stage gold`.
