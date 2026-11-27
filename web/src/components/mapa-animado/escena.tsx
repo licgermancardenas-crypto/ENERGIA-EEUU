@@ -357,18 +357,18 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
         {!listo && <p className="absolute inset-0 grid place-items-center bg-[#05080f] text-sm text-[#c9d4e5]">Cargando el mapa…</p>}
 
         {/* aviso visible: la animación no es un dato */}
-        <p className="pointer-events-none absolute bottom-9 left-2 max-w-[260px] rounded bg-[#05080f]/95 px-2 py-1 text-[11px] text-[#c9d4e5]">
+        <p className="pointer-events-none absolute bottom-9 left-2 z-10 max-w-[260px] rounded bg-[#05080f]/95 px-2 py-1 text-[11px] text-[#c9d4e5]">
           Pulsos: animación ilustrativa, no representa volúmenes. Los arcos sí usan volúmenes reales de la EIA.
         </p>
 
         {modo.grabacion && (
-          <div className={`pointer-events-none absolute inset-x-0 top-0 p-5 transition-opacity duration-1000 ${titulo ? "opacity-0" : "opacity-100"}`}>
+          <div className={`pointer-events-none absolute inset-x-0 top-0 z-10 p-5 transition-opacity duration-1000 ${titulo ? "opacity-0" : "opacity-100"}`}>
             <p className="text-[11px] font-semibold tracking-wide text-[#5fb3e6]">PULSO ENERGÉTICO DE EE. UU.</p>
             <p className="text-xl font-semibold text-white">La red de gas natural desde el Henry Hub</p>
           </div>
         )}
         {modo.grabacion && (
-          <div className={`pointer-events-none absolute inset-0 grid place-items-center bg-[#05080f]/92 p-8 text-center transition-opacity duration-1000 ${titulo ? "opacity-100" : "opacity-0"}`}>
+          <div className={`pointer-events-none absolute inset-0 z-20 grid place-items-center bg-[#05080f]/92 p-8 text-center transition-opacity duration-1000 ${titulo ? "opacity-100" : "opacity-0"}`}>
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#5fb3e6]">PULSO ENERGÉTICO DE EE. UU.</p>
               <p className="mt-2 text-3xl font-semibold text-white">{num(datos.kmRed, 0)} km de gasoductos<br />y un precio de referencia</p>
@@ -380,7 +380,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
       </div>
 
       {!modo.grabacion && (
-        <aside className="absolute right-3 top-3 bottom-3 w-[330px] overflow-y-auto rounded-xl border border-[#23446f] bg-[#05080f]/95 p-4 text-[#e8eef7] shadow-2xl backdrop-blur max-lg:static max-lg:mt-3 max-lg:w-full max-lg:bg-[#0b1f3a]"
+        <aside className="absolute right-3 top-3 bottom-3 z-10 w-[330px] overflow-y-auto rounded-xl border border-[#23446f] bg-[#05080f]/95 p-4 text-[#e8eef7] shadow-2xl backdrop-blur max-lg:static max-lg:mt-3 max-lg:w-full max-lg:bg-[#0b1f3a]"
           aria-label="Controles y detalle del mapa">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-[#c4531a]/60 p-2.5">
