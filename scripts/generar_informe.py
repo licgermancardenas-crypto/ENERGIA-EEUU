@@ -37,7 +37,7 @@ NAV_X = 560  # la barra de navegación arranca acá; el título usa el espacio d
 PIE_GEO = ("Fuente: EIA (API v2 y capas geoespaciales vía HIFLD/DHS; copias públicas) · U.S. "
            "Census · Autor: Germán Cárdenas · La EIA no garantiza la exactitud de estos datos")
 DENEB = "deneb7E15AEF80B9E4D4F8E12924291ECE89A"  # visual certificado de AppSource
-PORTADA = "portada.svg"  # ilustración propia (scripts/generar_portada.py)
+PORTADA = "portada.jpg"  # foto Unsplash License (scripts/preparar_foto_portada.py)
 CIAN = "#5FB3E6"  # acento de los paneles HUD de la portada
 UMBRAL_KM = gmap.UMBRAL_KM  # de config/pipeline.yaml (geo.umbral_proximidad_km)
 
@@ -445,7 +445,7 @@ def _fila(n: int, x0: int = M, ancho: int = W - 2 * M) -> tuple[int, list[int]]:
 
 
 def portada() -> Pagina:
-    """Portada: ilustración propia de una refinería al atardecer con paneles HUD de datos reales."""
+    """Portada: foto de una refinería al atardecer (Unsplash) con paneles HUD de datos reales."""
     p = Pagina("portada", "Portada", "", "")
     p.fondo_recurso(PORTADA)
     p.texto(48, 40, 640, 20, [("PULSO ENERGÉTICO DE EE. UU.", 10, CIAN, True)])
@@ -501,7 +501,8 @@ def portada() -> Pagina:
             "title": [{"properties": {"show": lit(False)}}],
             "background": [{"properties": {"show": lit(False)}}],
             "visualHeader": [{"properties": {"show": lit(False)}}]}})
-    p.texto(48, H - 24, W - 96, 18, [(PIE_GEO + " · Ilustración propia", 8, "#9DB7DD", False)])
+    p.texto(48, H - 24, W - 96, 18, [(PIE_GEO + " · Foto: Carlos \"Grury\" Santos (Unsplash)",
+                                     8, "#9DB7DD", False)])
     return p
 
 

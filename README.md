@@ -221,6 +221,8 @@ Los archivos de `fabric/notebooks/*.ipynb`, `fabric/config/*.json` y `powerbi/me
 ## Créditos
 
 - **Datos:** [U.S. Energy Information Administration (EIA), API v2](https://www.eia.gov/opendata/). Datos públicos del Gobierno de EE. UU.
+- **Capas geoespaciales y población:** capas de la EIA (vía HIFLD/DHS; copias públicas en ArcGIS Online) y límites y ACS del U.S. Census Bureau. Detalle en `docs/geoespacial.md`.
+- **Foto de la portada del informe:** "Oil Refinery" (Porvoo, Finlandia), de [Carlos "Grury" Santos en Unsplash](https://unsplash.com/photos/Z8rvuexdWJU), bajo la [Unsplash License](https://unsplash.com/license). Se recortó y se le agregó un velo navy (`scripts/preparar_foto_portada.py`).
 - **Inspiración:** el proyecto [02_EIA de Data-Days-Projects](https://github.com/Edgar-sz/Data-Days-Projects/tree/main/02_EIA) de **Edgar Saico Zea** y **Vicente Antonio Juan Magallanes**. Lo usé como referencia de arquitectura y de contenido del dashboard. El código, los notebooks, las medidas DAX, el diseño visual y los textos de este repositorio son propios.
 - **Herramientas:** pandas, DuckDB, PyArrow, pytest, Ruff, Next.js, Tailwind CSS, Recharts, Microsoft Fabric y Power BI.
 
