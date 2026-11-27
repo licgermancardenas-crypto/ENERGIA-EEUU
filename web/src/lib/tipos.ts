@@ -102,3 +102,43 @@ export interface Datos {
   rezago: Rezago;
   destacados: Record<Sector, Destacado>;
 }
+
+// ---------------------------------------------------------------- capa geoespacial
+export interface EstadoGeo {
+  k: string;
+  fips: string;
+  nombre: string;
+  region: string | null;
+  area_km2: number;
+  km: number;
+  km_inter: number;
+  km_intra: number;
+  densidad: number;
+  operadores: number | null;
+  km_hh: number;
+  hh: boolean;
+  hogares: number | null;
+  pct_gas_red: number | null;
+  pct_propano: number | null;
+  condados_alerta: number | null;
+  balance: number | null;
+  anio_balance: number | null;
+}
+
+/** condado_key -> [nombre, % gas de red, MOE, km a la red, 1 si alta dependencia lejos] */
+export type CondadosGeo = Record<string, [string, number | null, number | null, number | null, number]>;
+
+export interface Punto2 { nombre: string; lon: number; lat: number; [k: string]: unknown }
+
+export interface Geo {
+  estados: EstadoGeo[];
+  condados: CondadosGeo;
+  puntos: { hubs: Punto2[]; gnl: Punto2[]; reserva: Punto2[]; centrales: Punto2[] };
+  henryHub: { gasoducto: string; operador_en_capa: string | null; en_capa: boolean;
+    tipo_en_capa: string | null; km: number; estados_n: number; estados: string;
+    nota: string | null }[];
+  frescura: { capa: string; tipo: string; origen: string; vintage: string | null;
+    registros: number | null; estado: string }[];
+  validacion: { km_red_total: number; km_dentro_de_estados: number; pct_fuera: number;
+    estados_sin_km: string[]; calefaccion: { condados_alta_dependencia_lejos: number } };
+}

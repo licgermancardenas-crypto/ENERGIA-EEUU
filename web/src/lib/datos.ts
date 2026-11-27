@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import type { Datos, Destacado, Frescura, Meta, Punto, Rezago, Sector, Serie, UltimoDato } from "./tipos";
+import type { Datos, Destacado, Geo, Frescura, Meta, Punto, Rezago, Sector, Serie, UltimoDato } from "./tipos";
 
 const DIR = path.join(process.cwd(), "public", "data");
 
@@ -24,11 +24,10 @@ export function cargarDatos(): Datos {
     ...leer<Record<string, Punto[]>>("semanales"),
     ...leer<Record<string, Punto[]>>("mensuales"),
   };
-  const usados: Record<string, Punto[]> = {};
   for (const k of SERIES_GRAFICADAS) {
     if (!hechos[k]) throw new Error(`Falta la serie ${k} en public/data`);
-    usados[k] = hechos[k];
   }
+  const usados = hechos;
   return {
     meta: leer<Meta>("meta"),
     series: Object.fromEntries(series.map((s) => [s.key, s])),
@@ -37,5 +36,22 @@ export function cargarDatos(): Datos {
     frescura: leer<Frescura>("frescura"),
     rezago: leer<Rezago>("rezago"),
     destacados: leer<Record<Sector, Destacado>>("destacados"),
+  };
+}
+
+// ---------------------------------------------------------------- capa geoespacial
+function leerGeo<T>(nombre: string): T {
+  return JSON.parse(readFileSync(path.join(DIR, "geo", `${nombre}.json`), "utf-8")) as T;
+}
+
+/** Tablas geo (métricas por estado, condados, puntos). La geometría se baja en el navegador. */
+export function cargarGeo(): Geo {
+  return {
+    estados: leerGeo("estados"),
+    condados: leerGeo("condados"),
+    puntos: leerGeo("puntos"),
+    henryHub: leerGeo("henry_hub"),
+    frescura: leerGeo("frescura_geo"),
+    validacion: leerGeo("validacion"),
   };
 }

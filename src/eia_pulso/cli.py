@@ -30,6 +30,8 @@ def _parser() -> argparse.ArgumentParser:
     web.add_argument("--config", help="Ruta al YAML (default: config/pipeline.yaml)")
     web.add_argument("--data-dir", help="Carpeta de datos (default: data/)")
     web.add_argument("--out", default="web/public/data", help="Carpeta destino de los JSON")
+    web.add_argument("--solo-geo", action="store_true",
+                     help="Exporta solo la capa geoespacial (no toca los JSON diarios)")
     web.add_argument("-v", "--verbose", action="store_true")
     geo = sub.add_parser("geo", help="Capa geoespacial (requiere el extra 'geo')")
     geo.add_argument("--stage", choices=["bronze", "bronze-api", "silver", "gold", "all"],
@@ -93,9 +95,15 @@ def main(argv: list[str] | None = None) -> int:
 
             from eia_pulso.web.export import exportar
 
-            res = exportar(settings.gold_dir, Path(args.out))
-            _tabla(f"JSON web en {res.destino}",
-                   {k: f"{v:>9,} bytes" for k, v in res.archivos.items()})
+            if not args.solo_geo:
+                res = exportar(settings.gold_dir, Path(args.out))
+                _tabla(f"JSON web en {res.destino}",
+                       {k: f"{v:>9,} bytes" for k, v in res.archivos.items()})
+            from eia_pulso.web.export_geo import exportar_geo
+
+            geo = exportar_geo(settings.gold_dir / "geo", Path(args.out))
+            if geo:
+                _tabla("JSON geo", {k: f"{v:>9,} bytes" for k, v in geo.items()})
             return 0
         datasets = [d.strip() for d in args.datasets.split(",")] if args.datasets else None
         if datasets:
