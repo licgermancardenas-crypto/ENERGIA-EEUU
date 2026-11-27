@@ -123,7 +123,8 @@ FORMATO_NOMBRE: dict[str, str | None] = {
                   "Correlación": "0.000", "Correlación en el óptimo": "0.000",
                   "Rezago óptimo (meses)": "0", "Es rezago óptimo": "0",
                   "Último mes de producción": "mmmm yyyy", "Fecha del último dato": "dd/mm/yyyy",
-                  "Color barra rezago": None}
+                  "Color barra rezago": None,
+                  "Variación semanal crudo comercial": "+#,0;-#,0;0"}
 
 
 def relaciones() -> list[tuple[str, str, str, str]]:

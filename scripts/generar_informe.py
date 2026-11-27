@@ -228,12 +228,17 @@ class Pagina:
 
     def grafico(self, tipo, x, y, w, h, eje, valores, titulo, subtitulo=None, serie=None,
                 filtros=None, etiquetas=False, leyenda=True, colores=None, relleno=None,
-                por_categoria: dict[str, str] | None = None):
+                por_categoria: dict[str, str] | None = None, ejes_completos: bool = False,
+                margen_etiquetas: float | None = None):
         qs = {"Category": {"projections": [proy(eje)]},
               "Y": {"projections": [proy(medida(v)) for v in valores]}}
         if serie:
             qs["Series"] = {"projections": [proy(serie)]}
         objs = ejes_limpios(leyenda and (len(valores) > 1 or serie is not None))
+        if ejes_completos:  # números completos en el eje (sin K ni M)
+            objs["valueAxis"][0]["properties"]["labelDisplayUnits"] = lit(1.0)
+        if margen_etiquetas:  # más espacio para las etiquetas del eje de categorías
+            objs["categoryAxis"][0]["properties"]["maxMarginFactor"] = lit(margen_etiquetas)
         if tipo == "lineChart":
             objs["lineStyles"] = [{"properties": {"strokeWidth": lit(2.0)}}]
         if etiquetas:
@@ -465,6 +470,7 @@ def paginas() -> list[Pagina]:
     p.grafico("clusteredBarChart", xs_, ya, ws_, ha,
               columna(S, "nombre"), ["Último valor"], "Precio en surtidor",
               "US$ por galón · última semana · diésel en ocre", etiquetas=True,
+              margen_etiquetas=40.0,
               por_categoria={"Gasolina regular": NARANJA, "Gasolina media": NARANJA,
                              "Gasolina premium": NARANJA, "Diésel": OCRE},
               filtros=[filtro_en(S, "categoria", ["precio_surtidor"], "f_surtidor")])
@@ -472,11 +478,13 @@ def paginas() -> list[Pagina]:
     yb = ya + ha + G
     w2, xs2 = _fila(2)
     p.grafico("lineChart", xs2[0], yb, w2, ha, fecha, ["Stock crudo comercial", "Stock SPR"],
-              "Inventarios de crudo", "miles de barriles", colores=[AZUL, NARANJA])
+              "Inventarios de crudo", "miles de barriles", colores=[AZUL, NARANJA],
+              ejes_completos=True)
     p.nota(xs2[0] + w2 - 300, yb + 14, 286, "Ícono alerta",
            "2026: fuerte caída de la reserva estratégica", ALERTA)
     p.grafico("lineChart", xs2[1], yb, w2, ha, fecha, ["Producción de crudo"],
-              "Producción de crudo", "miles de barriles por día", colores=[NARANJA])
+              "Producción de crudo", "miles de barriles por día", colores=[NARANJA],
+              ejes_completos=True)
     p.nota(xs2[1] + w2 - 300, yb + 14, 286, "Ícono info",
            "2020: COVID, caída y rebote de la producción")
     ps.append(p)
