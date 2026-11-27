@@ -67,7 +67,7 @@ function arco(a: [number, number], b: [number, number], desfase: number): { path
 
 function colorAlm(v: number, min: number, max: number): [number, number, number, number] {
   const i = max === min ? 2 : Math.min(4, Math.floor(((v - min) / (max - min)) * 4.999));
-  return [...RAMPA_ALM[i], 150];
+  return [...RAMPA_ALM[i], 255];
 }
 
 function balanceTexto(v: number | null) {
@@ -155,7 +155,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   useEffect(() => {
     const m = mapa.current;
     if (!m || !listo || !geo || modo.grabacion || !animar) return;
-    const t = setTimeout(() => m.flyTo({ ...VUELOS["Henry Hub"], zoom: 4.6, pitch: 30, duration: 5000, essential: false }), 1500);
+    const t = setTimeout(() => m.flyTo({ ...VUELOS["Henry Hub"], zoom: 5.2, pitch: 35, duration: 5000, essential: false }), 1500);
     return () => clearTimeout(t);
   }, [listo, geo, modo.grabacion, animar]);
 
@@ -188,7 +188,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
     return [
       new GeoJsonLayer({
         id: "almacenamiento", data: geo.regiones as never, visible: on("Almacenamiento"),
-        filled: true, stroked: false, extruded: tresD, pickable: false,
+        filled: true, stroked: false, extruded: tresD, pickable: false, opacity: tresD ? 0.6 : 0.28,
         getFillColor: (f: { properties: { region_key: string } }) => {
           const v = datos.gasRegion[f.properties.region_key];
           return v == null ? [0, 0, 0, 0] : colorAlm(v, aMin, aMax);
@@ -208,12 +208,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
       }),
       !modo.bajaPotencia && new PathLayer<Tramo>({
         id: "red-brillo", data: geo.red.filter((r) => r.inter), visible: on("Gasoductos"),
-        getPath: (d) => d.path, getColor: [...AZUL_RED, 28], widthUnits: "pixels", getWidth: 5,
+        getPath: (d) => d.path, getColor: [...AZUL_RED, 18], widthUnits: "pixels", getWidth: 5,
         capRounded: true, jointRounded: true,
       }),
       new PathLayer<Tramo>({
         id: "red", data: geo.red, visible: on("Gasoductos"), pickable: true,
-        getPath: (d) => d.path, getColor: (d) => (d.inter ? [...AZUL_RED, 190] : [...AZUL_RED, 110]),
+        getPath: (d) => d.path, getColor: (d) => (d.inter ? [...AZUL_RED, 150] : [...AZUL_RED, 80]),
         widthUnits: "pixels", getWidth: (d) => (d.inter ? 1.4 : 0.7), capRounded: true, jointRounded: true,
       }),
       ...(animar ? ondas : []).map((o) => new TripsLayer<Pulso>({
