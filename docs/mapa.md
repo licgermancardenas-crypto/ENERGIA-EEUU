@@ -50,7 +50,7 @@ Henry Hub como protagonista. Usa los mismos datos geoespaciales que las páginas
   valida que neto = recibe − entrega. Las únicas filas que no se pueden validar son Alaska 2016 y
   DC y Hawái 2015–2016, porque la EIA no publica entregas para esos casos.
 - **Almacenamiento en 3D:** la altura es proporcional a los Bcf almacenados la última semana en la
-  región de la EIA (110 m por Bcf). Es un dato regional: todos los estados de una región comparten
+  región de la EIA (40 m por Bcf, para que no tape los arcos). Es un dato regional: todos los estados de una región comparten
   el mismo valor.
 
 ## Rendimiento (medido en el build de producción)

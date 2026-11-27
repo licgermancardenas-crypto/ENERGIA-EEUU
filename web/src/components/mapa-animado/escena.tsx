@@ -19,6 +19,9 @@ import { GUION } from "./guion";
 import { NOMBRE_REGION, type DatosMapa } from "./tipos";
 
 const ESTILO_OSCURO = "https://tiles.openfreemap.org/styles/dark";
+// 40 m por Bcf: la región más llena queda en ~50 km, por debajo de los arcos de flujo
+const ALTURA_POR_BCF = 40;
+const ENCIMA = { depthCompare: "always" } as never; // arcos y pulsos siempre visibles sobre el 3D
 const LOWER48: [[number, number], [number, number]] = [[-125, 24], [-66.5, 49.5]];
 const VUELOS = {
   "Vista nacional": { bounds: LOWER48 },
@@ -31,7 +34,7 @@ type Capa = (typeof CAPAS)[number];
 
 // Paleta sobre fondo oscuro: azul = gas; naranja solo para el Henry Hub (marcador HTML).
 const AZUL_RED: [number, number, number] = [70, 150, 235];
-const AZUL_PULSO: [number, number, number] = [150, 215, 255];
+const AZUL_PULSO: [number, number, number] = [225, 243, 255];
 const RAMPA_ALM: [number, number, number][] = [[26, 58, 110], [33, 86, 160], [44, 116, 205], [77, 150, 230], [130, 190, 245]];
 
 type Tramo = { path: [number, number][]; inter: boolean; operador: string };
@@ -54,7 +57,7 @@ function tramos(red: FC): Tramo[] {
 /** Arco 3D entre dos puntos: altura proporcional a la distancia, tiempos 0..1 más un desfase. */
 function arco(a: [number, number], b: [number, number], desfase: number): { path: [number, number, number][]; tiempos: number[] } {
   const km = Math.hypot((b[0] - a[0]) * 85, (b[1] - a[1]) * 111);
-  const h = km * 1000 * 0.22;
+  const h = km * 1000 * 0.3;
   const path: [number, number, number][] = [];
   const tiempos: number[] = [];
   for (let i = 0; i <= 32; i++) {
@@ -188,12 +191,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
     return [
       new GeoJsonLayer({
         id: "almacenamiento", data: geo.regiones as never, visible: on("Almacenamiento"),
-        filled: true, stroked: false, extruded: tresD, pickable: false, opacity: tresD ? 0.6 : 0.28,
+        filled: true, stroked: false, extruded: tresD, pickable: false, opacity: tresD ? 0.42 : 0.13,
         getFillColor: (f: { properties: { region_key: string } }) => {
           const v = datos.gasRegion[f.properties.region_key];
           return v == null ? [0, 0, 0, 0] : colorAlm(v, aMin, aMax);
         },
-        getElevation: (f: { properties: { region_key: string } }) => (datos.gasRegion[f.properties.region_key] ?? 0) * 110,
+        getElevation: (f: { properties: { region_key: string } }) => (datos.gasRegion[f.properties.region_key] ?? 0) * ALTURA_POR_BCF,
         material: { ambient: 0.6, diffuse: 0.5, shininess: 20 },
         transitions: { getElevation: animar ? 1200 : 0 },
         updateTriggers: { getElevation: tresD },
@@ -220,17 +223,17 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
         id: `pulsos-${o}`, data: geo.pulsos.trayectos, visible: on("Pulsos"),
         getPath: (d) => d.map((p) => [p[0], p[1]] as [number, number]),
         getTimestamps: (d) => d.map((p) => p[2]),
-        getColor: AZUL_PULSO, widthUnits: "pixels", getWidth: 2.4, capRounded: true, jointRounded: true,
+        getColor: AZUL_PULSO, widthUnits: "pixels", getWidth: 3, parameters: ENCIMA, capRounded: true, jointRounded: true,
         fadeTrail: true, trailLength: 380, currentTime: (t * vel + o * periodo) % periodo,
       })),
       new PathLayer<Arco>({
         id: "arcos-base", data: arcos.lista, visible: on("Flujos entre estados"),
-        getPath: (d) => d.path, getColor: [170, 205, 245, 55], widthUnits: "pixels",
+        getPath: (d) => d.path, getColor: [170, 205, 245, 70], widthUnits: "pixels", parameters: ENCIMA,
         getWidth: (d) => 0.6 + 7 * (d.mmcf / (arcos.max || 1)), pickable: true,
       }),
       animar && new TripsLayer<Arco>({
         id: "arcos-cometa", data: arcos.lista, visible: on("Flujos entre estados"),
-        getPath: (d) => d.path, getTimestamps: (d) => d.tiempos, getColor: [210, 235, 255],
+        getPath: (d) => d.path, getTimestamps: (d) => d.tiempos, getColor: [210, 235, 255], parameters: ENCIMA,
         widthUnits: "pixels", getWidth: (d) => 1 + 13 * (d.mmcf / (arcos.max || 1)),
         fadeTrail: true, trailLength: 0.35, currentTime: (t * 0.45) % 2, capRounded: true,
       }),
@@ -310,7 +313,9 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
     const m = mapa.current;
     if (!m) return;
     const v = VUELOS[k];
-    if ("bounds" in v) m.fitBounds(v.bounds, { padding: 30, pitch: 0, bearing: 0, duration: animar ? 2500 : 0 });
+    if ("bounds" in v) {
+      m.fitBounds(v.bounds, { padding: 30, pitch: tresD ? 50 : 0, bearing: tresD ? -15 : 0, duration: animar ? 2500 : 0 });
+    }
     else m.flyTo({ ...v, duration: animar ? 3000 : 0 });
   };
 
@@ -318,10 +323,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   useEffect(() => {
     const m = mapa.current;
     if (!modo.grabacion || !listo || !geo || !m) return;
+    // el guion está pensado para ~1100 px de ancho: en 4:5 o 1:1 se aleja lo necesario
+    const dz = Math.log2(Math.max(320, m.getContainer().clientWidth) / 1100);
     const timers = GUION.map((p) => setTimeout(() => {
       if (p.camara) {
         if ("bounds" in p.camara) m.fitBounds(p.camara.bounds, { padding: 40, pitch: p.camara.pitch ?? 0, bearing: p.camara.bearing ?? 0, duration: p.duracion });
-        else m.flyTo({ ...p.camara, duration: p.duracion, essential: true });
+        else m.flyTo({ ...p.camara, zoom: p.camara.zoom + dz, duration: p.duracion, essential: true });
       }
       if (p.capas) setCapas(new Set(p.capas as Capa[]));
       if (p.tresD != null) setTresD(p.tresD);
@@ -350,7 +357,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
         {!listo && <p className="absolute inset-0 grid place-items-center bg-[#05080f] text-sm text-[#c9d4e5]">Cargando el mapa…</p>}
 
         {/* aviso visible: la animación no es un dato */}
-        <p className="pointer-events-none absolute bottom-9 left-2 max-w-[260px] rounded bg-[#05080f]/80 px-2 py-1 text-[11px] text-[#c9d4e5]">
+        <p className="pointer-events-none absolute bottom-9 left-2 max-w-[260px] rounded bg-[#05080f]/95 px-2 py-1 text-[11px] text-[#c9d4e5]">
           Pulsos: animación ilustrativa, no representa volúmenes. Los arcos sí usan volúmenes reales de la EIA.
         </p>
 
@@ -361,7 +368,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
           </div>
         )}
         {modo.grabacion && (
-          <div className={`pointer-events-none absolute inset-0 grid place-items-center bg-[#05080f]/80 p-8 text-center transition-opacity duration-1000 ${titulo ? "opacity-100" : "opacity-0"}`}>
+          <div className={`pointer-events-none absolute inset-0 grid place-items-center bg-[#05080f]/92 p-8 text-center transition-opacity duration-1000 ${titulo ? "opacity-100" : "opacity-0"}`}>
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#5fb3e6]">PULSO ENERGÉTICO DE EE. UU.</p>
               <p className="mt-2 text-3xl font-semibold text-white">{num(datos.kmRed, 0)} km de gasoductos<br />y un precio de referencia</p>
@@ -373,7 +380,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
       </div>
 
       {!modo.grabacion && (
-        <aside className="absolute right-3 top-3 bottom-3 w-[330px] overflow-y-auto rounded-xl border border-[#23446f] bg-[#05080f]/85 p-4 text-[#e8eef7] shadow-2xl backdrop-blur max-lg:static max-lg:mt-3 max-lg:w-full max-lg:bg-[#0b1f3a]"
+        <aside className="absolute right-3 top-3 bottom-3 w-[330px] overflow-y-auto rounded-xl border border-[#23446f] bg-[#05080f]/95 p-4 text-[#e8eef7] shadow-2xl backdrop-blur max-lg:static max-lg:mt-3 max-lg:w-full max-lg:bg-[#0b1f3a]"
           aria-label="Controles y detalle del mapa">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg border border-[#c4531a]/60 p-2.5">
