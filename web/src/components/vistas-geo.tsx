@@ -6,7 +6,8 @@ import { num } from "@/lib/formato";
 import type { Geo } from "@/lib/tipos";
 
 import { BarrasH } from "./graficos";
-import { CAPAS, type Capa, MapaCondados, MapaEstados, MapaRed, rampa } from "./mapas";
+import { MapaRedGL } from "./mapa-red-gl";
+import { CAPAS, type Capa, MapaCondados, MapaEstados, rampa } from "./mapas";
 import { Icono, Panel } from "./marco";
 
 const GAS = "#1f6fd1";
@@ -24,7 +25,7 @@ export function VistaRed({ geo, gasRegion, precioHH }:
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
       <Panel titulo="Red de gasoductos de EE. UU." icono="red" iconoColor={GAS}
-        nota="Hacé clic en un estado para ver sus números · Alaska y Hawái en recuadros">
+        nota="Zoom con la rueda o los botones · clic en un estado para ver sus números · pasá el mouse por un gasoducto para ver su operador">
         <fieldset className="mb-2 flex flex-wrap gap-2">
           <legend className="sr-only">Capas visibles</legend>
           {CAPAS.map((c) => {
@@ -37,14 +38,16 @@ export function VistaRed({ geo, gasRegion, precioHH }:
             );
           })}
         </fieldset>
-        <MapaRed estados={geo.estados} puntos={geo.puntos} gasRegion={gasRegion} precioHH={precioHH}
+        <MapaRedGL estados={geo.estados} puntos={geo.puntos} gasRegion={gasRegion} precioHH={precioHH}
           visibles={visibles} seleccion={sel} onSeleccion={setSel} />
         <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta-2">
           <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border-2 border-white bg-[#c4531a] ring-1 ring-[#c4531a]" />Henry Hub</li>
           <li className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#164e9c]" />Hub de gas</li>
-          <li className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rotate-45 bg-gas" />Terminal de GNL</li>
-          <li className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 bg-[#4a5260]" />Reserva estratégica</li>
-          <li className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-[#5b6770]" />Gasoducto</li>
+          <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-gas" />Terminal de GNL</li>
+          <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-[#4a5260]" />Reserva estratégica</li>
+          <li className="flex items-center gap-1.5"><span className="inline-block h-1 w-5 bg-[#3d4a5c]" />Gasoducto interestatal</li>
+          <li className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-[#8a6d3b]" />Gasoducto intraestatal</li>
+          <li className="flex items-center gap-1.5"><span className="inline-block h-1 w-5 bg-[#c4531a]" />Operador resaltado</li>
         </ul>
       </Panel>
       <div className="grid content-start gap-4">

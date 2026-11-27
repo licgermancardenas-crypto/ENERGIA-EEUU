@@ -98,5 +98,37 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
         if src.exists():
             shutil.copy(src, dest / f"mapa_{capa}.geojson")
             conteo[f"mapa_{capa}.geojson"] = src.stat().st_size
+    red = red_detallada(gold_geo)
+    if red is not None:
+        texto = json.dumps(red, ensure_ascii=False, separators=(",", ":"))
+        (dest / "mapa_red_detalle.geojson").write_text(texto, encoding="utf-8")
+        conteo["mapa_red_detalle.geojson"] = len(texto)
     log.info("JSON geo exportados a %s", dest)
     return conteo
+
+
+TOLERANCIA_DETALLE_M = 100  # el mapa interactivo hace zoom: 15 veces más fino que el de Power BI
+DECIMALES_DETALLE = 4       # ~11 m
+
+
+def red_detallada(gold_geo: Path) -> dict[str, Any] | None:
+    """Red por operador para el mapa con zoom de la web, con los km de cada operador."""
+    import geopandas as gpd
+    from shapely.geometry import mapping
+
+    from eia_pulso.geo.gold import _redondear, red_disuelta
+
+    silver = gold_geo.parent.parent / "silver_geo" / "gasoductos.parquet"
+    if not silver.exists():
+        return None
+    hh = pd.read_parquet(gold_geo / "geo_henry_hub_conexiones.parquet")
+    hh_ops = set(hh["operador_en_capa"].dropna())
+    red = red_disuelta(gpd.read_parquet(silver), hh_ops).to_crs(5070)
+    red["km"] = red.length / 1000
+    red = red.set_geometry(red.geometry.simplify(TOLERANCIA_DETALLE_M)).to_crs(4326)
+    feats = [{"type": "Feature",
+              "properties": {"tipo": r.tipo, "operador": r.operador, "hh": bool(r.hh),
+                             "km": round(float(r.km))},
+              "geometry": _redondear(mapping(r.geometry), DECIMALES_DETALLE)}
+             for r in red.itertuples() if not r.geometry.is_empty]
+    return {"type": "FeatureCollection", "features": feats}
