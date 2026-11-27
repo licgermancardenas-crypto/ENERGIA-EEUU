@@ -61,8 +61,9 @@ export function MapaCondadosGL({ estados, umbralKm }: { estados: EstadoGeo[]; um
           "line-color": "#0b1f3a", "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 9, 1.6] } }, antes);
         m.addSource("red", { type: "geojson", data: red });
         m.addLayer({ id: "red", type: "line", source: "red", paint: {
-          "line-color": "#3d4a5c", "line-opacity": 0.55,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.35, 9, 1.4] } }, antes);
+          // gris casi negro: tiene que leerse sobre los azules más oscuros de la rampa
+          "line-color": "#15191f", "line-opacity": 0.85,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 6, 1.1, 9, 2.2] } }, antes);
         m.addLayer({ id: "alerta", type: "line", source: "condados", filter: ["==", ["get", "alerta"], true],
           paint: { "line-color": "#a35400", "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.6, 9, 3.5] } });
 
