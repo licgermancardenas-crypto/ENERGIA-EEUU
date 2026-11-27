@@ -83,6 +83,42 @@ DEFINE
     MEASURE 'dim_serie'[Distancia GNL al Henry Hub] =
         MIN ( geo_gnl[distancia_henry_hub_km] )
 
+    // hogares que calefaccionan con gas de red (ACS B25040, estimación de encuesta)
+    MEASURE 'dim_serie'[Hogares con gas de red %] =
+        DIVIDE ( SUM ( geo_estado_calefaccion[hogares_gas_red] ), SUM ( geo_estado_calefaccion[hogares] ) )
+
+    // hogares que calefaccionan con propano (llega en camión, no depende de la red)
+    MEASURE 'dim_serie'[Hogares con propano %] =
+        DIVIDE ( SUM ( geo_estado_calefaccion[hogares_propano] ), SUM ( geo_estado_calefaccion[hogares] ) )
+
+    // condados con ≥ 50 % de hogares con gas de red y a más del umbral de la red troncal mapeada
+    MEASURE 'dim_serie'[Condados con alta dependencia lejos de la red] =
+        SUM ( geo_estado_calefaccion[condados_alta_dependencia_lejos] ) + 0
+
+    // hogares con gas de red en esos condados (estimación ACS)
+    MEASURE 'dim_serie'[Hogares con gas de red lejos de la red] =
+        SUM ( geo_estado_calefaccion[hogares_gas_red_lejos] ) + 0
+
+    // promedio simple de la distancia de cada condado a la red troncal (km)
+    MEASURE 'dim_serie'[Distancia media de condados a la red] =
+        AVERAGE ( geo_condado_calefaccion[distancia_red_km] )
+
+    // para el mapa por condado (una fila por condado)
+    MEASURE 'dim_serie'[Gas de red % del condado] =
+        AVERAGE ( geo_condado_calefaccion[pct_gas_red] )
+
+    // margen de error ACS (90 %) del % de gas de red, en puntos
+    MEASURE 'dim_serie'[Margen de error del condado] =
+        AVERAGE ( geo_condado_calefaccion[pct_gas_red_moe] )
+
+    // km del condado a la red troncal mapeada (0 si la red lo cruza)
+    MEASURE 'dim_serie'[Distancia del condado a la red] =
+        AVERAGE ( geo_condado_calefaccion[distancia_red_km] )
+
+    // 1 si el condado tiene ≥ 50 % de gas de red y está lejos de la red
+    MEASURE 'dim_serie'[Condado alta dependencia lejos] =
+        IF ( CALCULATE ( COUNTROWS ( geo_condado_calefaccion ), geo_condado_calefaccion[alta_dependencia_lejos] = TRUE () ) > 0, 1, 0 )
+
     // nombre del estado elegido en el mapa o el segmentador
     MEASURE 'dim_serie'[Estado seleccionado] =
         SELECTEDVALUE ( geo_dim_estado[nombre], "Todos los estados" )
@@ -115,6 +151,15 @@ ROW (
     "Proximidad (texto)", [Proximidad (texto)],
     "GNL más cercano al Henry Hub", [GNL más cercano al Henry Hub],
     "Distancia GNL al Henry Hub", [Distancia GNL al Henry Hub],
+    "Hogares con gas de red %", [Hogares con gas de red %],
+    "Hogares con propano %", [Hogares con propano %],
+    "Condados con alta dependencia lejos de la red", [Condados con alta dependencia lejos de la red],
+    "Hogares con gas de red lejos de la red", [Hogares con gas de red lejos de la red],
+    "Distancia media de condados a la red", [Distancia media de condados a la red],
+    "Gas de red % del condado", [Gas de red % del condado],
+    "Margen de error del condado", [Margen de error del condado],
+    "Distancia del condado a la red", [Distancia del condado a la red],
+    "Condado alta dependencia lejos", [Condado alta dependencia lejos],
     "Estado seleccionado", [Estado seleccionado],
     "Capas visibles", [Capas visibles],
     "Vintage capas", [Vintage capas]

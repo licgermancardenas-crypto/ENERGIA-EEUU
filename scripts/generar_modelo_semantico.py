@@ -90,6 +90,19 @@ TABLAS_GEO: dict[str, list[tuple[str, str]]] = {
                       ("capacidad_mw", "double"), ("lon", "double"), ("lat", "double"),
                       ("distancia_red_km", "double"), ("dentro_umbral", "boolean")],
     "geo_capas_mapa": [("capa", "string"), ("orden", "int64")],
+    "geo_dim_condado": [("condado_key", "string"), ("estado_key", "string"), ("nombre", "string"),
+                        ("area_km2", "double")],
+    "geo_condado_calefaccion": [("condado_key", "string"), ("hogares", "int64"),
+                                ("hogares_moe", "int64"), ("gas_red", "int64"),
+                                ("gas_red_moe", "int64"), ("propano", "int64"),
+                                ("propano_moe", "int64"), ("distancia_red_km", "double"),
+                                ("pct_gas_red", "double"), ("pct_gas_red_moe", "double"),
+                                ("pct_propano", "double"), ("alta_dependencia_lejos", "boolean")],
+    "geo_estado_calefaccion": [("estado_key", "string"), ("hogares", "int64"),
+                               ("hogares_gas_red", "int64"), ("hogares_propano", "int64"),
+                               ("condados_alta_dependencia_lejos", "int64"),
+                               ("hogares_gas_red_lejos", "double"), ("pct_gas_red", "double"),
+                               ("pct_propano", "double")],
     "frescura_geo": [("capa", "string"), ("tipo", "string"), ("origen", "string"),
                      ("vintage", "string"), ("registros", "double"), ("estado", "string"),
                      ("calculado_al", "string")],
@@ -125,6 +138,9 @@ def relaciones() -> list[tuple[str, str, str, str]]:
               "geo_centrales"):
         rels.append((f, "estado_key", "geo_dim_estado", "estado_key"))
     rels.append(("geo_dim_estado", "region_key", "dim_region", "region_key"))
+    rels += [("geo_dim_condado", "estado_key", "geo_dim_estado", "estado_key"),
+             ("geo_condado_calefaccion", "condado_key", "geo_dim_condado", "condado_key"),
+             ("geo_estado_calefaccion", "estado_key", "geo_dim_estado", "estado_key")]
     return rels
 
 

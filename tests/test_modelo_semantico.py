@@ -29,8 +29,8 @@ def test_modelo_generado(tmp_path):
     assert serie.count("dataCategory: ImageUrl") == len(imagenes)
 
     rels = (d / "relationships.tmdl").read_text(encoding="utf-8")
-    # las existentes (7 hechos x 3 + último dato) intactas, más las 5 geoespaciales
-    assert rels.count("relationship ") == len(gm.FACTS) * 3 + 1 + 5
+    # las existentes (7 hechos x 3 + último dato) intactas, más las 8 geoespaciales
+    assert rels.count("relationship ") == len(gm.FACTS) * 3 + 1 + 5 + 3
     for desde, cd, hacia, ch in gm.relaciones():
         assert (desde, cd) in {(t, c) for t, cols in gm.TABLAS.items() for c, _ in cols}
         assert (hacia, ch) in {(t, c) for t, cols in gm.TABLAS.items() for c, _ in cols}

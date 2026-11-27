@@ -23,7 +23,8 @@ RAIZ = Path(__file__).resolve().parents[1]
 GOLD = RAIZ / "data" / "gold" / "geo"
 TABLAS = ["geo_dim_estado", "geo_estado_metricas", "geo_km_estado_operador",
           "geo_henry_hub_conexiones", "geo_gnl", "geo_hubs", "geo_reserva_estrategica",
-          "geo_flujos_estado", "geo_centrales", "geo_capas_mapa", "frescura_geo"]
+          "geo_flujos_estado", "geo_centrales", "geo_capas_mapa", "geo_dim_condado",
+          "geo_condado_calefaccion", "geo_estado_calefaccion", "frescura_geo"]
 
 
 def _fab(fab: str, *args: str) -> str:

@@ -287,7 +287,7 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
         _, man_acs = ultimo(cfg, "acs")
     except Exception:  # noqa: BLE001
         man_acs = None
-    extra.append({"capa": "ACS: combustible de calefacción (B25040)", "tipo": "encuesta",
+    extra.append({"capa": "ACS calefacción (B25040)", "tipo": "encuesta",
                   "origen": "U.S. Census Bureau, ACS 5 años (Summary File)",
                   "vintage": man_acs.get("vintage") if man_acs else None,
                   "registros": man_acs.get("registros") if man_acs else None,
