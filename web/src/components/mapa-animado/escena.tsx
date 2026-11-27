@@ -118,6 +118,10 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
     overlay.current = ov;
     m.addControl(ov);
     m.on("pitch", () => setPitch(Math.round(m.getPitch())));
+    // el estilo oscuro pide un ícono ("circle-11") que no trae su sprite: se reemplaza por uno vacío
+    m.on("styleimagemissing", (e) => {
+      if (!m.hasImage(e.id)) m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+    });
 
     // Henry Hub: marcador HTML con anillo que late (CSS; se apaga con movimiento reducido)
     const hh = datos.hubs.find((h) => h.nombre === "Henry Hub");
@@ -341,7 +345,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   return (
     <div className={modo.grabacion ? "fixed inset-0 z-50 grid place-items-center bg-black" : "relative h-full"}>
       <div className={`relative overflow-hidden ${modo.grabacion ? marco : "h-full"}`}>
-        <div ref={caja} className="absolute inset-0" role="region"
+        <div ref={caja} className="h-full w-full" role="region"
           aria-label="Mapa animado de la red de gasoductos de EE. UU. con el Henry Hub" />
         {!listo && <p className="absolute inset-0 grid place-items-center bg-[#05080f] text-sm text-[#c9d4e5]">Cargando el mapa…</p>}
 
