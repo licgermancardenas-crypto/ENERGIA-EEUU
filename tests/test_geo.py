@@ -111,6 +111,21 @@ def test_flujos_cierran_y_rol():
     assert gold.flujos_estado([], {"LA"}).empty
 
 
+def test_flujos_formato_api_v2_totales_y_pares():
+    filas = [{"duoarea": "SIN-Z0S", "period": "2024", "process": p, "value": v}
+             for p, v in (("MIR", 10), ("MID", 4), ("MIN", 6))]
+    filas += [{"duoarea": "SIN-SKY", "period": "2024", "process": "MID", "value": "242255"},
+              {"duoarea": "SIN-SKY", "period": "2024", "process": "MIR", "value": "140503"},
+              {"duoarea": "SIN-R3FM", "period": "2024", "process": "MID", "value": "5"},
+              {"duoarea": "SIN-SOH", "period": "2024", "process": "MID", "value": "0"}]
+    e = gold.flujos_estado(filas, {"IN", "KY"}).set_index("estado_key")
+    assert e.loc["IN", "neto_mmcf"] == 6 and bool(e.loc["IN", "cierre_ok"])
+    p = gold.flujos_pares(filas, {"IN", "KY", "OH"})
+    esperado = [{"origen": "IN", "destino": "KY", "anio": 2024, "mmcf": 242255.0}]
+    assert p.to_dict("records") == esperado
+    assert gold.flujos_pares([], {"IN"}).empty
+
+
 def test_centrales_distancia_a_la_red(red):
     filas = [{"plantid": "1", "plantName": "Cerca", "stateid": "AA",
               "nameplate-capacity-mw": "100", "latitude": "0", "longitude": "0"}]

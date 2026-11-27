@@ -33,6 +33,27 @@ def _registros(df: pd.DataFrame, dec: int = 4) -> list[dict[str, Any]]:
     return out
 
 
+def _centrales(c: pd.DataFrame) -> list[dict[str, Any]]:
+    """Centrales a gas (EIA-860M): solo lo que dibuja el mapa, coordenadas a ~100 m."""
+    return [{"nombre": r.planta, "estado": r.estado_key, "mw": _num(r.capacidad_mw, 0),
+             "lon": _num(r.lon, 3), "lat": _num(r.lat, 3), "km": _num(r.distancia_red_km, 1),
+             "cerca": bool(r.dentro_umbral)} for r in c.itertuples()]
+
+
+def _flujos(gold_geo: Path) -> dict[str, Any]:
+    """Flujos interestatales de la EIA: pares [origen, destino, año, MMcf] y neto por estado."""
+    pares_p = gold_geo / "geo_flujos_pares.parquet"
+    pares = pd.read_parquet(pares_p) if pares_p.exists() else pd.DataFrame()
+    est = pd.read_parquet(gold_geo / "geo_flujos_estado.parquet")
+    return {
+        "anios": sorted(int(a) for a in est["anio"].unique()),
+        "pares": [[r.origen, r.destino, int(r.anio), round(float(r.mmcf))]
+                  for r in pares.itertuples()],
+        "estados": [[r.estado_key, int(r.anio), _num(r.recibe_mmcf, 0), _num(r.entrega_mmcf, 0),
+                     _num(r.neto_mmcf, 0)] for r in est.itertuples()],
+    }
+
+
 def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
     if not (gold_geo / "geo_dim_estado.parquet").exists():
         log.info("No hay Gold geo en %s: se conservan los JSON geo publicados", gold_geo)
@@ -83,9 +104,10 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
         "condados": condados,
         "puntos": {"hubs": _registros(leer("geo_hubs")), "gnl": _registros(leer("geo_gnl")),
                    "reserva": _registros(leer("geo_reserva_estrategica")),
-                   "centrales": _registros(leer("geo_centrales"))},
+                   "centrales": _centrales(leer("geo_centrales"))},
         "henry_hub": _registros(leer("geo_henry_hub_conexiones")),
         "frescura_geo": _registros(leer("frescura_geo").drop(columns=["calculado_al"])),
+        "flujos": _flujos(gold_geo),
         "validacion": json.loads((gold_geo / "validacion.json").read_text(encoding="utf-8")),
     }
     conteo: dict[str, int] = {}

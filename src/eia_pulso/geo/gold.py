@@ -277,6 +277,7 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     filas_f, man_f = _bronze_api(cfg, "flujos")
     filas_c, man_c = _bronze_api(cfg, "centrales")
     flujos = flujos_estado(filas_f, claves)
+    pares = flujos_pares(filas_f, claves)
     centrales = centrales_a_red(filas_c, red, cfg.crs_calculo, cfg.umbral_proximidad_km, claves)
     if len(flujos):
         val["flujos_cierre_ok"] = bool(flujos["cierre_ok"].all())
@@ -312,7 +313,7 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
               "geo_henry_hub_conexiones": alcance, "geo_gnl": gnl,
               "geo_hubs": _puntos(s["hubs"]), "geo_reserva_estrategica":
                   _puntos(s["reserva_estrategica"]),
-              "geo_flujos_estado": flujos, "geo_centrales": centrales,
+              "geo_flujos_estado": flujos, "geo_flujos_pares": pares, "geo_centrales": centrales,
               "geo_capas_mapa": CAPAS_MAPA.copy(),
               "geo_dim_condado": pd.DataFrame(s["condados"].drop(columns="geometry"))
               if "condados" in s else pd.DataFrame(),
@@ -360,13 +361,35 @@ def _vacia(cols: dict[str, str]) -> pd.DataFrame:
     return pd.DataFrame({c: pd.Series(dtype=t) for c, t in cols.items()})
 
 
+COLS_PARES = {"origen": "str", "destino": "str", "anio": "int64", "mmcf": "float64"}
+
+
+def flujos_pares(filas: list[dict[str, Any]], estados: set[str]) -> pd.DataFrame:
+    """Entregas entre pares de estados por año (MMcf), para los arcos del mapa.
+
+    En la API v2 "SIN-SKY" con proceso MID se lee "Indiana entrega a Kentucky". Se usan solo
+    las entregas (MID): la recepción del otro lado (MIR de "SKY-SIN") es el mismo volumen.
+    Se descartan áreas que no son estados (offshore federal R3FM, Canadá, México, totales).
+    """
+    if not filas:
+        return _vacia(COLS_PARES)
+    df = pd.DataFrame(filas)
+    m = df["duoarea"].str.extract(r"^S([A-Z]{2})-S([A-Z]{2})$")
+    df = df.assign(origen=m[0], destino=m[1])
+    df = df[(df["process"] == "MID") & df["origen"].isin(estados) & df["destino"].isin(estados)]
+    df = df.assign(anio=df["period"].astype(int), mmcf=pd.to_numeric(df["value"], errors="coerce"))
+    df = df[df["mmcf"] > 0]
+    return df[list(COLS_PARES)].astype(COLS_PARES).reset_index(drop=True)
+
+
 def flujos_estado(filas: list[dict[str, Any]], estados: set[str]) -> pd.DataFrame:
     """Recibe/entrega/neto interestatal por estado y año (MMcf). Valida MIN = MIR - MID."""
     if not filas:
         return _vacia(COLS_FLUJOS)
     df = pd.DataFrame(filas)
-    df = df[df["duoarea"].str.match(r"^S[A-Z]{2}$")].copy()
-    df["estado_key"] = df["duoarea"].str[1:]
+    # totales por estado: "SLA-Z0S" (API v2 actual) o "SLA" (formato corto)
+    df = df[df["duoarea"].str.match(r"^S[A-Z]{2}(-Z0S)?$")].copy()
+    df["estado_key"] = df["duoarea"].str[1:3]
     df = df[df["estado_key"].isin(estados)]
     df["valor"] = pd.to_numeric(df["value"], errors="coerce")
     p = df.pivot_table(index=["estado_key", "period"], columns="process", values="valor",
