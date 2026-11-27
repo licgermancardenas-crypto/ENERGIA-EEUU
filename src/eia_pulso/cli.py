@@ -31,7 +31,44 @@ def _parser() -> argparse.ArgumentParser:
     web.add_argument("--data-dir", help="Carpeta de datos (default: data/)")
     web.add_argument("--out", default="web/public/data", help="Carpeta destino de los JSON")
     web.add_argument("-v", "--verbose", action="store_true")
+    geo = sub.add_parser("geo", help="Capa geoespacial (requiere el extra 'geo')")
+    geo.add_argument("--stage", choices=["bronze", "bronze-api", "silver", "gold", "all"],
+                     default="all",
+                     help="bronze = capas estáticas; bronze-api = flujos y centrales")
+    geo.add_argument("--config", help="Ruta al YAML (default: config/pipeline.yaml)")
+    geo.add_argument("--data-dir", help="Carpeta de datos (default: data/)")
+    geo.add_argument("-v", "--verbose", action="store_true")
     return p
+
+
+def _geo(args: argparse.Namespace, settings) -> int:
+    from eia_pulso.geo.config import load_geo
+
+    cfg = load_geo(args.config, args.data_dir)
+    etapas = (["bronze", "bronze-api", "silver", "gold"] if args.stage == "all"
+              else [args.stage])
+    if "bronze" in etapas:
+        from eia_pulso.geo.bronze import bronze_capas
+
+        _tabla("Bronze geo", {k: v.name for k, v in bronze_capas(cfg).items()})
+    if "bronze-api" in etapas:
+        from eia_pulso.api.client import EIAClient
+        from eia_pulso.geo.bronze import bronze_api
+
+        cliente = EIAClient(get_api_key(), settings.api_base, settings.tamanio_pagina,
+                            settings.max_reintentos, settings.backoff_base_s, settings.timeout_s)
+        _tabla("Bronze geo (API)", {k: v.name for k, v in bronze_api(cfg, settings,
+                                                                      cliente).items()})
+    if "silver" in etapas:
+        from eia_pulso.geo.silver import run_silver
+
+        _tabla("Silver geo", {k: f"{len(v):>6} filas" for k, v in run_silver(cfg).items()})
+    if "gold" in etapas:
+        from eia_pulso.geo.gold import run_gold
+
+        r = run_gold(cfg)
+        _tabla("Gold geo · validación", r["validacion"])
+    return 0
 
 
 def _tabla(titulo: str, filas: dict[str, object]) -> None:
@@ -49,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
     configurar_logging(args.verbose)
     try:
         settings = load_settings(args.config, args.data_dir)
+        if args.comando == "geo":
+            return _geo(args, settings)
         if args.comando == "export-web":
             from pathlib import Path
 

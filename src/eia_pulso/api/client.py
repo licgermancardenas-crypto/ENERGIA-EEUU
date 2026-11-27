@@ -123,17 +123,19 @@ class EIAClient:
         inicio: str | None = None,
         facetas: dict[str, list[str]] | None = None,
         fin: str | None = None,
+        columnas: tuple[str, ...] = ("value",),
+        orden: tuple[str, ...] = ("period", "series"),
     ) -> ResultadoConsulta:
-        """Descarga todas las filas de `ruta` recorriendo las páginas (length/offset)."""
+        """Descarga todas las filas de `ruta` recorriendo las páginas (length/offset).
+
+        `columnas` y `orden` permiten rutas que no son series de tiempo (por ejemplo, el
+        inventario de generadores, que trae latitud, longitud y capacidad).
+        """
         endpoint = f"{self.base_url}/{ruta.strip('/')}/data/"
-        base: list[tuple[str, str]] = [
-            ("frequency", frecuencia),
-            ("data[0]", "value"),
-            ("sort[0][column]", "period"),
-            ("sort[0][direction]", "asc"),
-            ("sort[1][column]", "series"),
-            ("sort[1][direction]", "asc"),
-        ]
+        base: list[tuple[str, str]] = [("frequency", frecuencia)]
+        base += [(f"data[{i}]", c) for i, c in enumerate(columnas)]
+        for i, c in enumerate(orden):
+            base += [(f"sort[{i}][column]", c), (f"sort[{i}][direction]", "asc")]
         if inicio:
             base.append(("start", inicio))
         if fin:

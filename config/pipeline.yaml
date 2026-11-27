@@ -166,3 +166,60 @@ datasets:
     series:
       N9070US2: Producción de gas seco
       N9050US2: Producción de gas comercializada
+
+# ---------------------------------------------------------------------------------------
+# Capa geoespacial (páginas "Mapa de la red" y "Análisis geoespacial").
+# Pipeline aparte de `datasets` para no alterar la frescura ni la web existentes; sigue la
+# misma convención: Bronze (crudo + manifiesto) -> Silver (normalizado) -> Gold (métricas).
+# Verificado el 2026-11-26. Los servicios oficiales de la EIA en ArcGIS ahora piden token,
+# por eso las capas estáticas vienen de copias públicas de terceros (se rotulan así).
+geo:
+  crs_calculo: 5070            # NAD83 / Conus Albers (área equivalente): km y km²
+  crs_visual: 4326             # WGS84 para mostrar
+  tolerancia_simplificacion_m: 1500   # Douglas-Peucker sobre EPSG:5070 (ver docs/geoespacial.md)
+  decimales_coordenadas: 3     # ~100 m en WGS84: alcanza para un mapa de país
+  umbral_proximidad_km: 25     # ver docs/geoespacial.md (laterales típicos de centrales)
+  estados_excluidos: [AK, HI, PR]   # el informe muestra el Lower 48 + DC, con nota visible
+  capas:
+    gasoductos:
+      tipo: lineas
+      url: https://services2.arcgis.com/vHeD2bHG1G3sW5YZ/ArcGIS/rest/services/NaturalGas_InterIntrastate_Pipelines_US_EIA_ExportFeatures/FeatureServer/0
+      origen: "EIA, Natural Gas Interstate and Intrastate Pipelines (copia pública de terceros en ArcGIS Online)"
+      vintage: "2020-01"       # la descripción de la EIA dice "updated January 2020"
+    hubs:
+      tipo: puntos
+      url: https://services.arcgis.com/jDGuO8tYggdCCnUJ/arcgis/rest/services/Natural_Gas_Market_Hubs/FeatureServer/0
+      origen: "EIA, Natural Gas Market Hubs (copia pública de terceros en ArcGIS Online)"
+      vintage: "2020-02"       # campo Period = 202002
+    gnl:
+      tipo: puntos
+      url: https://services.arcgis.com/kbDdtKcFi2adamXa/arcgis/rest/services/Lng_ImportExportTerminals_US_EIA/FeatureServer/0
+      origen: "EIA, LNG Import/Export Terminals (copia pública de terceros en ArcGIS Online)"
+      vintage: "2023-08"       # campo Period = "As of August 2023"
+    reserva_estrategica:
+      tipo: puntos
+      url: https://services.arcgis.com/jDGuO8tYggdCCnUJ/arcgis/rest/services/Strategic_Petroleum_Reserves/FeatureServer/0
+      origen: "DOE Office of Petroleum Reserves vía EIA (copia pública de terceros en ArcGIS Online)"
+      vintage: "2022-04"       # campo Period = "As of April 6, 2022"
+    regiones_almacenamiento:
+      tipo: poligonos
+      url: https://services7.arcgis.com/FGr1D95XCGALKXqM/ArcGIS/rest/services/Natural_Gas_Storage_Regions/FeatureServer/0
+      origen: "EIA, Natural Gas Storage Regions (servicio oficial de la EIA)"
+      vintage: "2020-10"
+    estados:
+      tipo: poligonos
+      archivo: data/geo/entrada/census/cb_2024_us_state_20m.zip
+      url: https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_state_20m.zip
+      origen: "U.S. Census Bureau, Cartographic Boundary Files 2024 (1:20.000.000)"
+      vintage: "2024"
+  flujos:
+    ruta: natural-gas/move/ist   # International & Interstate Movements of Natural Gas by State
+    frecuencia: annual
+    inicio: "2015"
+    procesos: {MIR: recibe, MID: entrega, MIN: neto}
+  centrales:
+    ruta: electricity/operating-generator-capacity   # Inventario de generadores (EIA-860M)
+    frecuencia: monthly
+    combustibles: [NG]           # energy_source_code: gas natural
+  henry_hub:
+    fuente_conexiones: "Sabine Pipe Line LLC, About Sabine Pipe Line (https://sabinepipeline.enlink.com/?p=25), consultado el 2026-11-26: 9 interestatales y 3 intraestatales"
