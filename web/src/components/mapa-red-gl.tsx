@@ -124,7 +124,10 @@ export function MapaRedGL({ estados, puntos, gasRegion, precioHH, visibles, sele
         m.addLayer({ id: "red", type: "line", source: "red", layout: { "line-cap": "round", "line-join": "round" },
           paint: {
             "line-color": ["case", ["==", ["get", "tipo"], "interestatal"], "#3d4a5c", "#8a6d3b"],
-            "line-width": ["case", ["==", ["get", "tipo"], "interestatal"], ancho(0.9), ancho(0.55)],
+            // el zoom tiene que ser la expresión de afuera; el tipo de gasoducto va adentro de cada parada
+            "line-width": ["interpolate", ["linear"], ["zoom"],
+              ...[3, 7, 11].flatMap((z, i) => [z, ["case", ["==", ["get", "tipo"], "interestatal"],
+                [0.9, 2, 3.6][i], [0.55, 1.2, 2.2][i]]])] as unknown as ExpressionSpecification,
             "line-opacity": 0.8 } }, antes);
         m.addLayer({ id: "red-resaltada", type: "line", source: "red", filter: ["==", ["get", "operador"], ""],
           layout: { "line-cap": "round", "line-join": "round" },
