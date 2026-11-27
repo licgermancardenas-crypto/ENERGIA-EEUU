@@ -161,3 +161,11 @@ def test_rezago_con_pocos_datos_no_inventa_resultado():
     assert tabla["correlacion"].isna().all()
     assert resumen_rezago(tabla)["rezago_optimo_meses"] is None
     assert not any(isinstance(x, float) and math.isinf(x) for x in tabla["correlacion"])
+
+
+def test_gold_conserva_la_capa_geo(settings, pipeline_completo):
+    geo = settings.gold_dir / "geo"
+    geo.mkdir(exist_ok=True)
+    (geo / "validacion.json").write_text("{}", encoding="utf-8")
+    run_gold(settings, hoy=HOY)
+    assert (settings.gold_dir / "geo" / "validacion.json").exists()

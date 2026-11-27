@@ -48,6 +48,9 @@ class ResultadoGold:
     directorio: Path
 
 
+SUBCARPETAS_AJENAS = ("geo",)
+
+
 def _preparar_silver(silver: pd.DataFrame, settings: Settings) -> pd.DataFrame:
     df = silver[silver["dataset"].isin(list(settings.datasets))].copy()
     df["tabla_gold"] = df["dataset"].map({k: d.tabla_gold for k, d in settings.datasets.items()})
@@ -220,6 +223,10 @@ def run_gold(settings: Settings, hoy: date | None = None) -> ResultadoGold:
         jsons={"frescura": frescura_json, "analisis_rezago": rezago, "resumen": resumen},
     )
     if destino.exists():
+        # la capa geoespacial (gold/geo) la escribe otro comando: se conserva
+        for sub in SUBCARPETAS_AJENAS:
+            if (destino / sub).exists():
+                shutil.move(str(destino / sub), str(tmp / sub))
         shutil.rmtree(destino)
     tmp.rename(destino)
     log.info("Gold reconstruido en %s: %s", destino, conteos)

@@ -42,6 +42,13 @@
     "query": "frequency=weekly&data%5B0%5D=value&start=2023-01-01&facets%5Bseries%5D%5B%5D=WCESTUS1&facets%5Bseries%5D%5B%5D=WCSSTUS1&facets%5Bseries%5D%5B%5D=WGTSTUS1&facets%5Bseries%5D%5B%5D=WDISTUS1&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
   },
   {
+    "nombre": "utilizacion_refinerias_semanal",
+    "ruta": "petroleum/pnp/wiup",
+    "frecuencia": "weekly",
+    "inicio": "2015-01-01",
+    "query": "frequency=weekly&data%5B0%5D=value&start=2015-01-01&facets%5Bseries%5D%5B%5D=WPULEUS3&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&sort%5B1%5D%5Bcolumn%5D=series&sort%5B1%5D%5Bdirection%5D=asc&length=5000"
+  },
+  {
     "nombre": "produccion_crudo_mensual",
     "ruta": "petroleum/crd/crpdn",
     "frecuencia": "monthly",

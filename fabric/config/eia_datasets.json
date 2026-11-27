@@ -167,6 +167,19 @@
       }
     },
     {
+      "nombre": "utilizacion_refinerias_semanal",
+      "ruta": "petroleum/pnp/wiup",
+      "frecuencia": "weekly",
+      "inicio": "2015-01-01",
+      "sector": "petroleo",
+      "categoria": "refinacion",
+      "tabla_gold": "fact_inventarios_semanales",
+      "solo_positivos": true,
+      "series": {
+        "WPULEUS3": "Utilización de refinerías"
+      }
+    },
+    {
       "nombre": "produccion_crudo_mensual",
       "ruta": "petroleum/crd/crpdn",
       "frecuencia": "monthly",

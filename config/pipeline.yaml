@@ -116,6 +116,18 @@ datasets:
       WGTSTUS1: Gasolina total
       WDISTUS1: Destilados
 
+  # Verificada en la API v2 el 2026-11-27: petroleum/pnp/wiup, serie WPULEUS3 (%), semanal.
+  # Va a la misma tabla de hechos semanal de petróleo para no sumar una tabla nueva al modelo.
+  utilizacion_refinerias_semanal:
+    ruta: petroleum/pnp/wiup
+    frecuencia: weekly
+    inicio: "2015-01-01"
+    sector: petroleo
+    categoria: refinacion
+    tabla_gold: fact_inventarios_semanales
+    series:
+      WPULEUS3: Utilización de refinerías
+
   produccion_crudo_mensual:
     ruta: petroleum/crd/crpdn
     frecuencia: monthly
