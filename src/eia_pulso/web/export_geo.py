@@ -263,8 +263,6 @@ def pulsos_desde_henry_hub(gold_geo: Path) -> dict[str, Any] | None:
     real del gas (la EIA no publica volúmenes por gasoducto). Cada tramo se corta en piezas
     donde la distancia crece de forma monótona, como pide la capa de trayectos de deck.gl.
     """
-    import heapq
-
     import geopandas as gpd
 
     silver = gold_geo.parent.parent / "silver_geo" / "gasoductos.parquet"
@@ -275,7 +273,17 @@ def pulsos_desde_henry_hub(gold_geo: Path) -> dict[str, Any] | None:
     if hh.empty:
         return None
     origen = (float(hh.iloc[0]["lon"]), float(hh.iloc[0]["lat"]))
-    g = gpd.read_parquet(silver).to_crs(5070)
+    return pulsos_desde(gpd.read_parquet(silver), origen)
+
+
+def pulsos_desde(lineas: Any, origen: tuple[float, float], redondeo: int = REDONDEO_NODO
+                 ) -> dict[str, Any] | None:
+    """Trayectos con 'tiempo' = km por la red desde `origen` (lon, lat), sobre las líneas de un
+    GeoDataFrame en cualquier CRS. Lo usan el mapa de gas (Henry Hub) y el de petróleo (Cushing).
+    Solo para animaciones ilustrativas: no es caudal ni velocidad del producto."""
+    import heapq
+
+    g = lineas.to_crs(5070)
     g = g.set_geometry(g.geometry.simplify(TOLERANCIA_PULSOS_M)).to_crs(4326)
 
     partes: list[list[tuple[float, float]]] = []
@@ -288,7 +296,7 @@ def pulsos_desde_henry_hub(gold_geo: Path) -> dict[str, Any] | None:
                 partes.append(cs)
 
     def nodo(c: tuple[float, float]) -> tuple[float, float]:
-        return (round(c[0], REDONDEO_NODO), round(c[1], REDONDEO_NODO))
+        return (round(c[0], redondeo), round(c[1], redondeo))
 
     vecinos: dict[tuple[float, float], list[tuple[tuple[float, float], float]]] = {}
     for cs in partes:
