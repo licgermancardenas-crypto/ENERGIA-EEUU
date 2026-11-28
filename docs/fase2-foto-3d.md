@@ -37,7 +37,7 @@ con CesiumJS (soportado y documentado por Google, versión 1.91+) o deck.gl (tie
   normalmente abajo. En CesiumJS: `showCreditsOnScreen: true`.
 - **Prohibido** pre-descargar, indexar, guardar o cachear el contenido (salvo lo que permitan los
   encabezados `max-age` y similares), usarlo sin conexión, extraer geodatos o **crear modelos 3D
-  derivados** de las teselas. Los tanques de OSM se pueden superponer porque no salen de Google,
+  derivados** de las teselas. Los puntos y datos propios (EIA) se pueden superponer porque no salen de Google,
   pero hay que aclarar en pantalla qué parte de la escena es de Google.
 - Video promocional: máximo 30 segundos y rotulado "solo con fines promocionales".
 

@@ -6,6 +6,8 @@ import { useSyncExternalStore } from "react";
 
 import { fechaCorta, num } from "@/lib/formato";
 
+import type { Refineria } from "@/lib/tipos";
+
 import type { DatosPlanta, Refinacion } from "./tipos";
 
 export interface ModoPlanta {
@@ -58,9 +60,10 @@ function SinWebGL({ datos }: { datos: DatosPlanta }) {
   );
 }
 
-export function Planta({ datos, refinacion }: { datos: DatosPlanta; refinacion: Refinacion }) {
+export function Planta({ datos, refinacion, refinerias }:
+  { datos: DatosPlanta; refinacion: Refinacion; refinerias: Refineria[] }) {
   const modo = useSyncExternalStore(suscribir, () => (cache ??= leerModo()), () => null);
   if (!modo) return <p className="grid h-full min-h-[60vh] place-items-center text-sm text-tinta-3">Cargando la escena 3D…</p>;
   if (!modo.webgl) return <SinWebGL datos={datos} />;
-  return <Escena datos={datos} modo={modo} refinacion={refinacion} />;
+  return <Escena datos={datos} modo={modo} refinacion={refinacion} refinerias={refinerias} />;
 }

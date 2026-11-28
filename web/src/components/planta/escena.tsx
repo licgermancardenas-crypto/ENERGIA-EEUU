@@ -13,9 +13,11 @@ import { fechaCorta, num } from "@/lib/formato";
 
 import { Conteo } from "../mapa-animado/conteo";
 import { GUION_PLANTA } from "./guion";
-import { encuadre, RefineriaReal, type RefineriaOSM } from "./refineria-real";
+import { FOTO_ATRIBUCION, FotoAerea } from "./foto-aerea";
 import type { ModoPlanta } from "./index";
 import { Agua, Arboles, Bomba, Buque, C, Plataforma, Refineria, Suelo, TanqueCrudo, TanqueGas, Tuberia } from "./modelos";
+import type { Refineria as RefineriaEIA } from "@/lib/tipos";
+
 import type { DatosPlanta, Ficha, Indicador, Refinacion, Zona } from "./tipos";
 
 // Centro y zoom de cada zona (zoom pensado para un lienzo de ~1200 px de ancho).
@@ -46,10 +48,8 @@ function valorTexto(i: Indicador) {
 }
 
 // ------------------------------------------------------------------ cámara
-function Camara({ zona, giro, animar, orbita, controles, panel, objetivo }:
-  { zona: Zona; giro: number; animar: boolean; orbita: boolean; controles: React.RefObject<OrbitControlsImpl | null>; panel: number;
-    /** modo real: encuadra un área de `ext` unidades centrada en el origen */
-    objetivo?: { ext: number; cx: number; cz: number; id: string } | null }) {
+function Camara({ zona, giro, animar, orbita, controles, panel }:
+  { zona: Zona; giro: number; animar: boolean; orbita: boolean; controles: React.RefObject<OrbitControlsImpl | null>; panel: number }) {
   const { camera, size, invalidate } = useThree();
   // el panel lateral tapa la derecha: se corre el encuadre para que la escena quede en lo visible
   useEffect(() => {
@@ -62,16 +62,11 @@ function Camara({ zona, giro, animar, orbita, controles, panel, objetivo }:
   const escala = Math.max(0.45, (size.width - panel) / 1200);
   const meta = useRef({ centro: new THREE.Vector3(...ZONAS.general.centro), zoom: ZONAS.general.zoom * escala, angulo: ANGULO_BASE });
   useEffect(() => {
-    if (objetivo) {
-      meta.current.centro.set(objetivo.cx, 0, objetivo.cz);
-      meta.current.zoom = ((size.width - panel) * 0.62) / objetivo.ext;
-    } else {
-      meta.current.centro.set(...ZONAS[zona].centro);
-      meta.current.zoom = ZONAS[zona].zoom * escala;
-    }
+    meta.current.centro.set(...ZONAS[zona].centro);
+    meta.current.zoom = ZONAS[zona].zoom * escala;
     meta.current.angulo = ANGULO_BASE + (giro * Math.PI) / 180;
     invalidate();
-  }, [zona, giro, escala, invalidate, objetivo, size.width, panel]);
+  }, [zona, giro, escala, invalidate]);
   useFrame((_, dt) => {
     const c = controles.current;
     if (!c) return;
@@ -190,8 +185,8 @@ function Mundo({ datos, animar, baja, onFicha, refinacion }:
   );
 }
 
-export default function EscenaPlanta({ datos, modo, refinacion }:
-  { datos: DatosPlanta; modo: ModoPlanta; refinacion: Refinacion }) {
+export default function EscenaPlanta({ datos, modo, refinacion, refinerias }:
+  { datos: DatosPlanta; modo: ModoPlanta; refinacion: Refinacion; refinerias: RefineriaEIA[] }) {
   const [estadoRef, setEstadoRef] = useState("");
   const est = refinacion.estados.find((e) => e.k === estadoRef) ?? null;
   // tamaño de la refinería: raíz de la capacidad del estado frente al de mayor capacidad (Texas)
@@ -206,28 +201,10 @@ export default function EscenaPlanta({ datos, modo, refinacion }:
   const [hover, setHover] = useState<{ f: Ficha; x: number; y: number } | null>(null);
   const [elegida, setElegida] = useState<Ficha | null>(null);
   const [titulo, setTitulo] = useState(false);
-  // ---- modo "Refinería real" (geometría de OpenStreetMap, se baja al elegir cada refinería)
+  // ---- modo "Refinería real": foto aérea (USGS) de cualquiera de las refinerías de la EIA
   const [vista, setVista] = useState<"maqueta" | "real">("maqueta");
-  const [indice, setIndice] = useState<IndiceOSM | null>(null);
   const [idReal, setIdReal] = useState("");
-  const [real, setReal] = useState<RefineriaOSM | null>(null);
-  useEffect(() => {
-    if (vista !== "real" || indice) return;
-    fetch("/data/refinerias-osm/indice.json").then((r) => r.json()).then((d: IndiceOSM) => {
-      setIndice(d);
-      setIdReal((id) => id || d.refinerias[0]?.id || "");
-    });
-  }, [vista, indice]);
-  useEffect(() => {
-    if (vista !== "real" || !idReal) return;
-    let vivo = true;
-    fetch(`/data/refinerias-osm/${idReal}.json`).then((r) => r.json()).then((d: RefineriaOSM) => {
-      if (vivo) setReal(d);
-    });
-    return () => { vivo = false; };
-  }, [vista, idReal]);
-  const cargandoReal = vista === "real" && real?.id !== idReal;
-  const objetivo = useMemo(() => (vista === "real" && real ? { ...encuadre(real), id: real.id } : null), [vista, real]);
+  const real = refinerias.find((r) => r.id === idReal) ?? null;
 
   // modo grabación: recorrido automático
   useEffect(() => {
@@ -248,25 +225,25 @@ export default function EscenaPlanta({ datos, modo, refinacion }:
   return (
     <div className={modo.grabacion ? "fixed inset-0 z-50 grid place-items-center bg-[#eef1f4]" : "relative h-full"}>
       <div className={`relative overflow-hidden rounded-xl bg-[#eef1f4] ${modo.grabacion ? marco : "h-full"}`}>
-        <Canvas shadows={!modo.bajaPotencia && vista === "maqueta"} dpr={modo.bajaPotencia ? 1 : [1, 1.75]} frameloop={animar ? "always" : "demand"}
-          gl={{ antialias: true }} aria-label={vista === "real" && real
-            ? `Refinería ${real.empresa} en ${real.sitio}, ${real.estado}: geometría de OpenStreetMap en 3D`
-            : "Escena 3D esquemática de instalaciones de petróleo y gas"}
+        {vista === "real" ? (
+          <FotoAerea refinerias={refinerias} elegida={real} onElegir={setIdReal} animar={animar} />
+        ) : (
+        <Canvas shadows={!modo.bajaPotencia} dpr={modo.bajaPotencia ? 1 : [1, 1.75]} frameloop={animar ? "always" : "demand"}
+          gl={{ antialias: true }} aria-label="Escena 3D esquemática de instalaciones de petróleo y gas"
           onPointerMissed={() => setHover(null)}>
           <color attach="background" args={["#eef1f4"]} />
           <OrthographicCamera makeDefault position={[DISTANCIA * Math.sin(ANGULO_BASE) + 4, DISTANCIA * 0.8, DISTANCIA * Math.cos(ANGULO_BASE)]} zoom={9} near={-500} far={1000} />
-          <OrbitControls ref={controles} makeDefault enableDamping={animar} minZoom={vista === "real" ? 0.2 : 4} maxZoom={60}
+          <OrbitControls ref={controles} makeDefault enableDamping={animar} minZoom={4} maxZoom={60}
             maxPolarAngle={Math.PI / 2.6} minPolarAngle={0.35} target={[4, 0, 0]} />
-          <Camara zona={zona} giro={giro} animar={animar} orbita={orbita} controles={controles} panel={panel} objetivo={objetivo} />
+          <Camara zona={zona} giro={giro} animar={animar} orbita={orbita} controles={controles} panel={panel} />
           <hemisphereLight args={["#ffffff", "#c9d3df", 1.1]} />
           <directionalLight position={[30, 60, 25]} intensity={2.2} castShadow={!modo.bajaPotencia}
             shadow-mapSize={[2048, 2048]} shadow-camera-left={-80} shadow-camera-right={80}
             shadow-camera-top={60} shadow-camera-bottom={-60} shadow-bias={-0.0004} />
-          {vista === "maqueta" ? (
-            <Mundo datos={datos} animar={animar} baja={modo.bajaPotencia} refinacion={formaRef}
-              onFicha={(f, e) => setHover(f && e ? { f, x: e.x, y: e.y } : null)} />
-          ) : real && <RefineriaReal r={real} util={datos.utilizacion.norm} animar={animar} />}
+          <Mundo datos={datos} animar={animar} baja={modo.bajaPotencia} refinacion={formaRef}
+            onFicha={(f, e) => setHover(f && e ? { f, x: e.x, y: e.y } : null)} />
         </Canvas>
+        )}
 
         {vista === "maqueta" ? (
           <p className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[300px] rounded-md bg-white/90 px-2.5 py-1.5 text-[11px] text-tinta-2 shadow">
@@ -274,10 +251,8 @@ export default function EscenaPlanta({ datos, modo, refinacion }:
             tuberías son ilustrativos, no representan caudal.
           </p>
         ) : (
-          <p className="absolute bottom-3 left-3 z-10 max-w-[360px] rounded-md bg-white/95 px-2.5 py-1.5 text-[11px] text-tinta-2 shadow">
-            Geometría de OpenStreetMap (© <a className="underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">colaboradores de OpenStreetMap</a>,
-            licencia ODbL). Alturas estimadas cuando OSM no las trae. Capacidad: EIA.
-            {cargandoReal && " Cargando…"}
+          <p className="pointer-events-none absolute bottom-8 left-3 z-10 max-w-[360px] rounded-md bg-white/95 px-2.5 py-1.5 text-[11px] text-tinta-2 shadow">
+            {FOTO_ATRIBUCION}. Las fotos pueden ser de vuelos de años anteriores (actualizadas a junio de 2024).
           </p>
         )}
 
@@ -321,8 +296,8 @@ export default function EscenaPlanta({ datos, modo, refinacion }:
             ))}
           </div>
           {vista === "real" && (
-            <PanelReal indice={indice} idReal={idReal} setIdReal={setIdReal} real={real}
-              util={datos.utilizacion} volverMaqueta={() => setVista("maqueta")} />
+            <PanelReal refinerias={refinerias} idReal={idReal} setIdReal={setIdReal} real={real}
+              anio={refinacion.anio} />
           )}
           <div className={vista === "real" ? "hidden" : ""}>
           <div className="grid grid-cols-2 gap-2">
@@ -414,27 +389,21 @@ function FichaTexto({ f, datos }: { f: Ficha; datos: DatosPlanta }) {
 }
 
 // ------------------------------------------------------------------ panel del modo real
-interface IndiceOSM {
-  anio_capacidad: number | null;
-  refinerias: { id: string; empresa: string; sitio: string; estado: string; bcd: number;
-    cobertura: RefineriaOSM["cobertura"]; nivel_cobertura: RefineriaOSM["nivel_cobertura"]; extraido: string }[];
-}
-
-function PanelReal({ indice, idReal, setIdReal, real, util, volverMaqueta }:
-  { indice: IndiceOSM | null; idReal: string; setIdReal: (id: string) => void; real: RefineriaOSM | null;
-    util: Indicador; volverMaqueta: () => void }) {
-  if (!indice) return <p className="text-xs text-tinta-3">Cargando la lista de refinerías…</p>;
-  const porEstado = new Map<string, IndiceOSM["refinerias"]>();
-  for (const r of [...indice.refinerias].sort((a, b) => b.bcd - a.bcd)) {
+function PanelReal({ refinerias, idReal, setIdReal, real, anio }:
+  { refinerias: RefineriaEIA[]; idReal: string; setIdReal: (id: string) => void; real: RefineriaEIA | null;
+    anio: number | null }) {
+  const porEstado = new Map<string, RefineriaEIA[]>();
+  for (const r of [...refinerias].sort((a, b) => a.estado.localeCompare(b.estado) || b.bcd - a.bcd)) {
     porEstado.set(r.estado, [...(porEstado.get(r.estado) ?? []), r]);
   }
-  const estimadas = real ? real.tanques.filter((t) => t[4] === 1).length : 0;
-  const c = real?.cobertura;
   return (
     <div className="mb-3 text-xs">
-      <label htmlFor="ref-real" className="text-[11px] font-semibold tracking-wide text-tinta-3">REFINERÍA</label>
+      <label htmlFor="ref-real" className="text-[11px] font-semibold tracking-wide text-tinta-3">
+        REFINERÍA ({refinerias.length} EN EL PAÍS)
+      </label>
       <select id="ref-real" value={idReal} onChange={(e) => setIdReal(e.target.value)}
         className="mt-1 w-full rounded-md border border-linea bg-white px-2 py-1.5 text-xs">
+        <option value="">Todo el país</option>
         {[...porEstado.entries()].map(([est, lista]) => (
           <optgroup key={est} label={est}>
             {lista.map((r) => (
@@ -443,30 +412,20 @@ function PanelReal({ indice, idReal, setIdReal, real, util, volverMaqueta }:
           </optgroup>
         ))}
       </select>
-      {real && real.id === idReal && (
-        <div className="mt-2 rounded-lg border border-linea bg-[#f8f9fb] p-2.5 text-tinta-2" aria-live="polite">
-          <p className="text-[13px] font-semibold text-tinta">{real.sitio}, {real.estado}</p>
-          <p>{real.empresa}</p>
-          <p className="mt-1"><strong className="text-tinta">{num(real.bcd, 0)} barriles por día</strong> de capacidad de destilación de crudo, al 1/1/{real.anio_capacidad ?? "—"} (EIA)</p>
-          <p className="mt-2 font-semibold text-tinta">Mapeado en OpenStreetMap</p>
-          <p>{c!.tanques} tanques · {c!.chimeneas} chimeneas · {c!.antorchas} antorchas · {c!.torres} torres · {c!.edificios} edificios · {c!.tuberias} tramos de tubería</p>
-          <p className={`mt-1 font-semibold ${real.nivel_cobertura === "pobre" ? "text-alerta" : real.nivel_cobertura === "parcial" ? "text-tinta" : "text-ok"}`}>
-            Cobertura {real.nivel_cobertura}
-          </p>
-          {real.nivel_cobertura === "pobre" && (
-            <div className="mt-1 rounded-md border border-alerta/40 bg-[#fff7ed] p-2">
-              <p>Esta refinería casi no está mapeada en OpenStreetMap: no inventamos estructuras para rellenarla.</p>
-              <button type="button" onClick={volverMaqueta} className="mt-1 text-gas underline">Ver la maqueta esquemática</button>
-            </div>
-          )}
-          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] text-tinta-3">
-            <li>Posición y tamaño de los tanques: reales (huella en OSM). Alturas: {estimadas} de {real.tanques.length} tanques sin altura en OSM, estimadas como 0,6 × diámetro (máx. 20 m).</li>
-            <li>Techo naranja: tanque de crudo según OSM; celeste: gas; gris: contenido no informado.</li>
-            <li>La antorcha se mueve con la utilización de refinerías de todo EE. UU. ({util.valor == null ? "no disponible" : `${num(util.valor, 1)} %`}), no con la de esta refinería.</li>
-            <li>{real.predio_osm ? `Predio: ${real.predio_osm} en OSM.` : `Sin predio mapeado: se tomó un radio de ${num((real.radio_busqueda_m ?? 0) / 1000, 0)} km alrededor del punto de la EIA, que puede incluir instalaciones vecinas.`} Datos extraídos el {fechaCorta(real.extraido)}.</li>
-          </ul>
-        </div>
-      )}
+      <div className="mt-2 rounded-lg border border-linea bg-[#f8f9fb] p-2.5 text-tinta-2" aria-live="polite">
+        {real ? (
+          <>
+            <p className="text-[13px] font-semibold text-tinta">{real.sitio}, {real.estado}</p>
+            <p>{real.empresa}</p>
+            <p className="mt-1"><strong className="text-tinta">{num(real.bcd, 0)} barriles por día</strong> de capacidad de destilación de crudo, al 1/1/{anio ?? "—"} (EIA)</p>
+            {real.operando < real.bcd && <p>En operación: {num(real.operando, 0)} b/d (el resto figura como capacidad ociosa).</p>}
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] text-tinta-3">
+              <li>Foto aérea real (USGS / USDA NAIP), vista desde arriba. Puede ser de un vuelo de años anteriores.</li>
+              <li>La ubicación es el punto que publica la EIA (al 1/1/2024): la refinería se ve alrededor.</li>
+            </ul>
+          </>
+        ) : <p>Elegí una refinería en la lista o tocá un punto amarillo del mapa para volar hasta ella.</p>}
+      </div>
     </div>
   );
 }
