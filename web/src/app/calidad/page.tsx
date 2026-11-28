@@ -5,6 +5,7 @@ import { Icono, Kpi, Pagina, Panel } from "@/components/marco";
 import type { MetaPetroleo } from "@/components/mapa-petroleo/tipos";
 import { cargarDatos, cargarGeo } from "@/lib/datos";
 import { fechaCorta, num } from "@/lib/formato";
+import { etapasHistoria } from "@/lib/historia";
 import { indicadores } from "@/lib/indicadores";
 
 const OK = "#1d7a3b", ALERTA = "#a35400", GRIS = "#4a5260";
@@ -115,6 +116,36 @@ export default function Calidad() {
                   <td className="py-2 pr-2"><Icono nombre="x-circulo" color="#7a8394" tam={16} titulo="no disponible" /></td>
                   <td className="py-2 font-medium">{n.capa}</td>
                   <td className="py-2 text-xs text-tinta-2" colSpan={3}>No disponible: {n.motivo}.</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+      <Panel titulo="Portada: «Del pozo al surtidor» y capas de visualización" nota="Cifras de la historia de la portada y capas externas que solo se usan para dibujar" icono="info" iconoColor="#4a5260">
+        <div className="overflow-x-auto">
+          <table className="cifra w-full min-w-[720px] text-left text-sm">
+            <thead className="border-b border-linea text-xs text-tinta-3">
+              <tr><th className="py-2"></th><th>Etapa / capa</th><th>Dato</th><th>Fecha del dato</th><th>Fuente</th></tr>
+            </thead>
+            <tbody>
+              {etapasHistoria().map((e) => (
+                <tr key={e.id} className="border-b border-linea/60 align-top">
+                  <td className="py-2 pr-2"><Icono nombre={e.dato ? "check-circulo" : "x-circulo"} color={e.dato ? OK : "#7a8394"} tam={16} titulo={e.dato ? "disponible" : "no disponible"} /></td>
+                  <td className="py-2 font-medium">{e.numero} · {e.titulo}</td>
+                  <td className="py-2">{e.dato ? `${e.dato.prefijo ?? ""}${num(e.dato.valor, e.dato.decimales)} ${e.dato.unidad.split(" (")[0]}` : "no disponible"}</td>
+                  <td className="py-2">{e.dato?.fecha ?? "—"}</td>
+                  <td className="py-2 text-xs text-tinta-2">{e.dato?.fuente ?? "—"}</td>
+                </tr>
+              ))}
+              {[["Luces nocturnas (Mapa gas)", "VIIRS Black Marble", "compuesto 2016", "NASA GIBS (datos de misión NASA, CC0 salvo indicación)"],
+                ["Foto aérea (Planta 3D)", "USGS Imagery Only (USDA NAIP)", "actualizada a junio de 2024", "USGS The National Map, dominio público"],
+                ["Mapa base de los mapas", "OpenFreeMap (OpenMapTiles)", "vigente", "© colaboradores de OpenStreetMap, ODbL"],
+                ["Fotos de la historia", "5 imágenes ilustrativas", "descargadas el 28/11/2026", "Wikimedia Commons (ver IMAGE_CREDITS.md)"]].map(([a, b, c, d]) => (
+                <tr key={a} className="border-b border-linea/60 align-top">
+                  <td className="py-2 pr-2"><Icono nombre="check-circulo" color={OK} tam={16} titulo="disponible" /></td>
+                  <td className="py-2 font-medium">{a}</td><td className="py-2">{b}</td><td className="py-2">{c}</td>
+                  <td className="py-2 text-xs text-tinta-2">{d}</td>
                 </tr>
               ))}
             </tbody>
