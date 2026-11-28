@@ -127,6 +127,19 @@ export interface EstadoGeo {
   centro: [number, number] | null;
 }
 
+/** Refinerías de crudo (EIA-820): capacidad operable de destilación atmosférica, b/d calendario. */
+export interface Refineria {
+  id: string; empresa: string; sitio: string; estado: string;
+  bcd: number; operando: number; lon: number | null; lat: number | null;
+}
+export interface Refinerias {
+  /** año de los totales por estado (API, capacidad al 1 de enero) */
+  anio: number | null;
+  refinerias: Refineria[];
+  /** totales por estado de la API: refinerías operables, operando y capacidad (b/d calendario) */
+  estados: Record<string, { n: number; operando: number; bcd: number }>;
+}
+
 /** Flujos interestatales de la EIA (MMcf por año). */
 export interface Flujos {
   anios: number[];
@@ -152,6 +165,7 @@ export interface Geo {
     registros: number | null; estado: string }[];
   flujos: Flujos;
   fuentes: { conexiones_henry_hub: string; flujos: string };
+  refinerias: Refinerias;
   validacion: { km_red_total: number; km_dentro_de_estados: number; pct_fuera: number;
     estados_sin_km: string[]; calefaccion: { condados_alta_dependencia_lejos: number } };
 }

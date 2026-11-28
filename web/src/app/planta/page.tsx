@@ -1,7 +1,7 @@
 import { Encabezado } from "@/components/marco";
 import { Planta } from "@/components/planta";
-import { datosPlanta } from "@/components/planta/tipos";
-import { cargarDatos } from "@/lib/datos";
+import { datosPlanta, refinacionPorEstado } from "@/components/planta/tipos";
+import { cargarDatos, cargarGeo } from "@/lib/datos";
 import { indicadores } from "@/lib/indicadores";
 
 export const metadata = { title: "Planta 3D: petróleo y gas en movimiento · Pulso Energético de EE. UU." };
@@ -14,7 +14,7 @@ export default function PaginaPlanta() {
         bajada="Una planta esquemática que se mueve con los datos de la EIA" ind={indicadores(d)} />
       <main className="mx-auto h-[calc(100vh-150px)] min-h-[620px] w-full max-w-[1600px] px-3 py-3 max-lg:h-auto">
         <div className="h-full max-lg:h-[70vh]">
-          <Planta datos={datosPlanta(d)} />
+          <Planta datos={datosPlanta(d)} refinacion={refinacionPorEstado(cargarGeo())} />
         </div>
       </main>
       <footer className="mx-auto w-full max-w-[1600px] px-4 pb-5 text-xs text-tinta-3">

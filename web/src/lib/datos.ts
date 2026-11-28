@@ -54,6 +54,7 @@ export function cargarGeo(): Geo {
     frescura: leerGeo("frescura_geo"),
     flujos: leerGeo("flujos"),
     fuentes: leerGeo("fuentes_mapa"),
+    refinerias: leerGeo("refinerias"),
     validacion: leerGeo("validacion"),
   };
 }

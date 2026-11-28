@@ -50,7 +50,7 @@ function Cargando() {
 }
 
 // ---------------------------------------------------------------- mapa de la red
-export const CAPAS = ["Gasoductos", "Hubs", "Terminales de GNL", "Centrales a gas",
+export const CAPAS = ["Gasoductos", "Hubs", "Terminales de GNL", "Refinerías", "Centrales a gas",
   "Regiones de almacenamiento", "Reserva estratégica"] as const;
 export type Capa = (typeof CAPAS)[number];
 

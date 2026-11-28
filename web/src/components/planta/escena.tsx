@@ -15,7 +15,7 @@ import { Conteo } from "../mapa-animado/conteo";
 import { GUION_PLANTA } from "./guion";
 import type { ModoPlanta } from "./index";
 import { Agua, Arboles, Bomba, Buque, C, Plataforma, Refineria, Suelo, TanqueCrudo, TanqueGas, Tuberia } from "./modelos";
-import type { DatosPlanta, Ficha, Indicador, Zona } from "./tipos";
+import type { DatosPlanta, Ficha, Indicador, Refinacion, Zona } from "./tipos";
 
 // Centro y zoom de cada zona (zoom pensado para un lienzo de ~1200 px de ancho).
 const ZONAS: Record<Zona, { centro: [number, number, number]; zoom: number; nombre: string }> = {
@@ -116,8 +116,9 @@ function Camara({ zona, giro, animar, orbita, controles, panel }:
 }
 
 // ------------------------------------------------------------------ escena
-function Mundo({ datos, animar, baja, onFicha }:
-  { datos: DatosPlanta; animar: boolean; baja: boolean; onFicha: (f: Ficha | null, e?: { x: number; y: number }) => void }) {
+function Mundo({ datos, animar, baja, onFicha, refinacion }:
+  { datos: DatosPlanta; animar: boolean; baja: boolean; onFicha: (f: Ficha | null, e?: { x: number; y: number }) => void;
+    refinacion: { escala: number; columnas: number } }) {
   const ficha = (id: string) => FICHAS.find((f) => f.id === id)!;
   const sobre = (id: string) => ({
     onPointerOver: (e: { stopPropagation: () => void; nativeEvent: PointerEvent }) => {
@@ -148,7 +149,8 @@ function Mundo({ datos, animar, baja, onFicha }:
       <Arboles puntos={arboles} />
       <group {...sobre("plataforma")}><Plataforma position={[-50, 0, -4]} /></group>
       <group {...sobre("buque")}><Buque animar={animar} /></group>
-      <group {...sobre("refineria")}><Refineria position={[-4, 0, -10]} util={datos.utilizacion.norm} animar={animar} /></group>
+      <group {...sobre("refineria")}><Refineria position={[-4, 0, -10]} util={datos.utilizacion.norm} animar={animar}
+        escala={refinacion.escala} nColumnas={refinacion.columnas} /></group>
       <group {...sobre("tanques")}>
         {[0, 1, 2].flatMap((i) => [0, 1].map((j) => (
           <TanqueCrudo key={`${i}${j}`} position={[8 + i * 6, 0.1, 4 + j * 6]} nivel={datos.crudo.norm} />
@@ -180,7 +182,14 @@ function Mundo({ datos, animar, baja, onFicha }:
   );
 }
 
-export default function EscenaPlanta({ datos, modo }: { datos: DatosPlanta; modo: ModoPlanta }) {
+export default function EscenaPlanta({ datos, modo, refinacion }:
+  { datos: DatosPlanta; modo: ModoPlanta; refinacion: Refinacion }) {
+  const [estadoRef, setEstadoRef] = useState("");
+  const est = refinacion.estados.find((e) => e.k === estadoRef) ?? null;
+  // tamaño de la refinería: raíz de la capacidad del estado frente al de mayor capacidad (Texas)
+  const formaRef = est
+    ? { escala: 0.45 + 0.7 * Math.sqrt(est.bcd / refinacion.maxBcd), columnas: Math.min(4, est.n) }
+    : { escala: 1, columnas: 4 };
   const animar = !modo.movimientoReducido;
   const controles = useRef<OrbitControlsImpl | null>(null);
   const [zona, setZona] = useState<Zona>("general");
@@ -221,7 +230,7 @@ export default function EscenaPlanta({ datos, modo }: { datos: DatosPlanta; modo
           <directionalLight position={[30, 60, 25]} intensity={2.2} castShadow={!modo.bajaPotencia}
             shadow-mapSize={[2048, 2048]} shadow-camera-left={-80} shadow-camera-right={80}
             shadow-camera-top={60} shadow-camera-bottom={-60} shadow-bias={-0.0004} />
-          <Mundo datos={datos} animar={animar} baja={modo.bajaPotencia}
+          <Mundo datos={datos} animar={animar} baja={modo.bajaPotencia} refinacion={formaRef}
             onFicha={(f, e) => setHover(f && e ? { f, x: e.x, y: e.y } : null)} />
         </Canvas>
 
@@ -275,6 +284,25 @@ export default function EscenaPlanta({ datos, modo }: { datos: DatosPlanta; modo
                 </div>
               );
             })}
+          </div>
+
+          <label className="mt-4 block text-[11px] font-semibold tracking-wide text-tinta-3" htmlFor="estado-ref">
+            REFINERÍAS DE UN ESTADO
+          </label>
+          <select id="estado-ref" value={estadoRef} onChange={(e) => { setEstadoRef(e.target.value); if (e.target.value) ir("refineria"); }}
+            className="mt-1 w-full rounded-md border border-linea bg-white px-2 py-1.5 text-xs">
+            <option value="">Todo el país</option>
+            {refinacion.estados.map((e) => <option key={e.k} value={e.k}>{e.nombre} ({e.n})</option>)}
+          </select>
+          <div className="mt-1.5 rounded-lg border border-linea bg-[#fbf7ec] p-2.5 text-xs text-tinta-2" aria-live="polite">
+            {est ? (
+              <>
+                <p className="font-semibold text-tinta">{est.nombre}: {est.n} {est.n === 1 ? "refinería" : "refinerías"}</p>
+                <p>{num(est.bcd, 0)} barriles por día de capacidad de destilación ({num((est.bcd / refinacion.estados.reduce((s, e) => s + e.bcd, 0)) * 100, 1)} % del país)</p>
+                {est.mayores.length > 0 && <p className="mt-1">Mayores: {est.mayores.map((r) => `${r.sitio} (${num(r.bcd / 1000, 0)} mil b/d)`).join(" · ")}</p>}
+                <p className="mt-1 text-tinta-3">La refinería de la escena cambia de tamaño con la capacidad del estado y muestra hasta 4 columnas según cuántas refinerías tiene.</p>
+              </>
+            ) : <p>Elegí un estado para ver cuántas refinerías tiene y su capacidad (EIA, al 1/1/{refinacion.anio ?? "—"}).</p>}
           </div>
 
           <p className="mt-4 text-[11px] font-semibold tracking-wide text-tinta-3">IR A</p>

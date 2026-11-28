@@ -11,7 +11,7 @@ import maplibregl, { type Map as MapaGL } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { fechaCorta, num } from "@/lib/formato";
-import type { Flujos } from "@/lib/tipos";
+import type { Flujos, Refineria, Refinerias } from "@/lib/tipos";
 
 import type { Modo } from "./index";
 import { Conteo } from "./conteo";
@@ -29,7 +29,7 @@ const VUELOS = {
   Alaska: { bounds: [[-170, 51], [-129, 71.5]] as [[number, number], [number, number]] },
   Hawái: { bounds: [[-160.5, 18.8], [-154.6, 22.4]] as [[number, number], [number, number]] },
 };
-const CAPAS = ["Gasoductos", "Pulsos", "Flujos entre estados", "Almacenamiento", "Hubs", "GNL"] as const;
+const CAPAS = ["Gasoductos", "Pulsos", "Flujos entre estados", "Almacenamiento", "Hubs", "GNL", "Refinerías"] as const;
 type Capa = (typeof CAPAS)[number];
 
 // Paleta sobre fondo oscuro: azul = gas; naranja solo para el Henry Hub (marcador HTML).
@@ -83,7 +83,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   const mapa = useRef<MapaGL | null>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
   const [listo, setListo] = useState(false);
-  const [geo, setGeo] = useState<{ red: Tramo[]; regiones: FC; estados: FC; pulsos: { max_km: number; trayectos: Pulso[] }; flujos: Flujos } | null>(null);
+  const [geo, setGeo] = useState<{ red: Tramo[]; regiones: FC; estados: FC; pulsos: { max_km: number; trayectos: Pulso[] }; flujos: Flujos; refinerias: Refinerias } | null>(null);
   const [capas, setCapas] = useState<Set<Capa>>(new Set(modo.grabacion ? ["Gasoductos", "Pulsos"] : CAPAS.filter((c) => c !== "Flujos entre estados")));
   const [tresD, setTresD] = useState(false);
   const [pitch, setPitch] = useState(0);
@@ -95,11 +95,11 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   // ---- datos (la geometría se baja acá, no en el HTML)
   useEffect(() => {
     let vivo = true;
-    Promise.all(["mapa_red_detalle.geojson", "mapa_regiones.geojson", "mapa_estados.geojson", "pulsos.json", "flujos.json"]
+    Promise.all(["mapa_red_detalle.geojson", "mapa_regiones.geojson", "mapa_estados.geojson", "pulsos.json", "flujos.json", "refinerias.json"]
       .map((n) => fetch(`/data/geo/${n}`).then((r) => r.json())))
-      .then(([red, regiones, estados, pulsos, flujos]) => {
+      .then(([red, regiones, estados, pulsos, flujos, refinerias]) => {
         if (!vivo) return;
-        setGeo({ red: tramos(red), regiones, estados, pulsos, flujos });
+        setGeo({ red: tramos(red), regiones, estados, pulsos, flujos, refinerias });
         setAnio((flujos as Flujos).anios.at(-1) ?? null);
       });
     return () => { vivo = false; };
@@ -242,6 +242,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
         getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat], radiusUnits: "pixels", getRadius: 3.5,
         getFillColor: [150, 195, 245, 230], stroked: true, getLineColor: [5, 8, 15], lineWidthUnits: "pixels", getLineWidth: 1,
       }),
+      new ScatterplotLayer<Refineria>({
+        id: "refinerias", data: geo.refinerias.refinerias.filter((r) => r.lon != null), visible: on("Refinerías"),
+        pickable: true, getPosition: (d) => [d.lon!, d.lat!], radiusUnits: "pixels",
+        getRadius: (d) => 2.5 + Math.sqrt(d.bcd) / 70, getFillColor: [240, 196, 92, 215],
+        stroked: true, getLineColor: [5, 8, 15], lineWidthUnits: "pixels", getLineWidth: 1,
+      }),
       new ScatterplotLayer({
         id: "gnl", data: datos.gnl, visible: on("GNL"), pickable: true,
         getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat], radiusUnits: "pixels", getRadius: 6,
@@ -263,6 +269,10 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
           return { text: `${o.operador}\nGasoducto ${o.inter ? "interestatal" : "intraestatal"}`, style: estilo };
         }
         if (layer.id === "hubs") return { text: `Hub de gas: ${object.nombre}`, style: estilo };
+        if (layer.id === "refinerias") {
+          const r = object as unknown as Refineria;
+          return { text: `Refinería: ${r.empresa}\n${r.sitio} (${r.estado})\n${num(r.bcd, 0)} barriles por día de destilación de crudo`, style: estilo };
+        }
         if (layer.id === "gnl") return { text: `Terminal de GNL: ${object.nombre}\n${object.operador ?? ""} · ${object.funcion ?? ""}\n${object.ciudad ?? ""}, ${object.estado ?? ""}`, style: estilo };
         if (layer.id === "arcos-base") {
           const a = object as unknown as Arco;
@@ -344,7 +354,9 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
     const f = geo.flujos.estados.find((x) => x[0] === sel && x[1] === anio);
     const sale = geo.flujos.pares.filter((p) => p[0] === sel && p[2] === anio).sort((a, b) => b[3] - a[3]).slice(0, 3);
     const entra = geo.flujos.pares.filter((p) => p[1] === sel && p[2] === anio).sort((a, b) => b[3] - a[3]).slice(0, 3);
-    return { e, recibe: f?.[2] ?? null, entrega: f?.[3] ?? null, neto: f?.[4] ?? null, sale, entra };
+    const ref = geo.refinerias.estados[sel] ?? null;
+    const mayores = geo.refinerias.refinerias.filter((r) => r.estado === sel).sort((a, b) => b.bcd - a.bcd).slice(0, 3);
+    return { e, recibe: f?.[2] ?? null, entrega: f?.[3] ?? null, neto: f?.[4] ?? null, sale, entra, ref, mayores };
   }, [sel, geo, anio, datos.estados]);
   const nombre = (k: string) => datos.estados.find((e) => e.k === k)?.nombre ?? k;
 
@@ -452,6 +464,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
                 </dl>
                 {det.sale.length > 0 && <p className="mt-2 text-[#c9d4e5]">Entrega sobre todo a: {det.sale.map((p) => `${nombre(p[1])} (${num(p[3] / 1000, 0)} Bcf)`).join(", ")}</p>}
                 {det.entra.length > 0 && <p className="mt-1 text-[#c9d4e5]">Recibe sobre todo de: {det.entra.map((p) => `${nombre(p[0])} (${num(p[3] / 1000, 0)} Bcf)`).join(", ")}</p>}
+                <p className="mt-2 border-t border-[#23446f] pt-2 text-[#f0c45c]">
+                  {det.ref
+                    ? `Refinerías (${geo?.refinerias.anio}): ${det.ref.n} · ${num(det.ref.bcd, 0)} barriles por día de capacidad`
+                    : "Sin refinerías de crudo"}
+                </p>
+                {det.mayores.length > 0 && <p className="mt-1 text-[#c9d4e5]">Mayores: {det.mayores.map((r) => `${r.empresa.split(" ").slice(0, 2).join(" ")}, ${r.sitio} (${num(r.bcd / 1000, 0)} mil b/d)`).join(" · ")}</p>}
               </>
             ) : <p className="text-[#9db7dd]">Hacé clic en un estado para ver sus gasoductos y su balance de flujos.</p>}
           </section>
@@ -474,6 +492,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
             <p className="mt-1 flex items-center gap-2"><span className="inline-block h-0.5 w-6 bg-[#4696eb]" /> Gasoducto (más grueso: interestatal)</p>
             <p className="flex items-center gap-2"><span className="inline-block h-1 w-6 rounded bg-gradient-to-r from-transparent to-[#96d7ff]" /> Pulso ilustrativo desde el Henry Hub</p>
             <p className="flex items-center gap-2"><span className="inline-block h-1.5 w-6 bg-[#d2ebff]" /> Flujo entre estados: el más grueso = {arcos.max ? `${num(arcos.max / 1000, 0)} Bcf en ${anio}` : "—"}</p>
+            <p className="flex items-center gap-2"><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#f0c45c]" /> Refinería (tamaño = capacidad de destilación)</p>
             <p className="mt-1">Almacenamiento por región: {num(aMin, 0)} a {num(aMax, 0)} Bcf</p>
             <div className="mt-1 flex h-2 w-40 overflow-hidden rounded">{RAMPA_ALM.map((c) => <span key={c.join()} className="flex-1" style={{ background: `rgb(${c.join(",")})` }} />)}</div>
           </section>

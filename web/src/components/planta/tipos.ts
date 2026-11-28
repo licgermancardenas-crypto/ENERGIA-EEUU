@@ -1,6 +1,6 @@
 // Datos que mueven la escena 3D. Se calculan en el servidor a partir de los JSON de la web
 // (los mismos que usan las demás páginas): nada se escribe a mano.
-import type { Datos } from "@/lib/tipos";
+import type { Datos, Geo } from "@/lib/tipos";
 
 export interface Indicador {
   /** serie de la EIA (clave de la web) */
@@ -16,6 +16,23 @@ export interface Indicador {
   desde: string;
   /** posición del último valor dentro de ese rango: 0 = mínimo, 1 = máximo */
   norm: number | null;
+}
+
+/** Refinación por estado (EIA-820 y API v2 petroleum/pnp/cap1) para el selector de la escena. */
+export interface EstadoRefinacion {
+  k: string; nombre: string; n: number; bcd: number;
+  mayores: { empresa: string; sitio: string; bcd: number }[];
+}
+export interface Refinacion { anio: number | null; maxBcd: number; estados: EstadoRefinacion[] }
+
+export function refinacionPorEstado(g: Geo): Refinacion {
+  const { estados, refinerias, anio } = g.refinerias;
+  const lista = Object.entries(estados).map(([k, e]) => ({
+    k, nombre: g.estados.find((x) => x.k === k)?.nombre ?? k, n: e.n, bcd: e.bcd,
+    mayores: refinerias.filter((r) => r.estado === k).sort((a, b) => b.bcd - a.bcd).slice(0, 3)
+      .map((r) => ({ empresa: r.empresa, sitio: r.sitio, bcd: r.bcd })),
+  })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  return { anio, maxBcd: Math.max(1, ...lista.map((e) => e.bcd)), estados: lista };
 }
 
 export interface DatosPlanta {

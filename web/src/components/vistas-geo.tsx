@@ -46,6 +46,7 @@ export function VistaRed({ geo, gasRegion, precioHH, nCentrales }:
           <li className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#164e9c]" />Hub de gas</li>
           <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-gas" />Terminal de GNL</li>
           <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-[#4a5260]" />Reserva estratégica</li>
+          <li className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-[#a87d00]" />Refinería (tamaño = capacidad)</li>
           <li className="flex items-center gap-1.5"><span className="inline-block h-1 w-5 bg-[#3d4a5c]" />Gasoducto interestatal</li>
           <li className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-[#8a6d3b]" />Gasoducto intraestatal</li>
           <li className="flex items-center gap-1.5"><span className="inline-block h-1 w-5 bg-[#c4531a]" />Operador resaltado</li>
@@ -152,6 +153,50 @@ export function VistaAnalisis({ geo, umbralKm }: { geo: Geo; umbralKm: number })
           <p className="mt-1 flex items-center gap-1.5 text-xs text-tinta-3"><Icono nombre="info" color="#7a8394" tam={14} />Los 15 estados con mayor proporción.</p>
         </Panel>
       </div>
+      <RefinacionPorEstado geo={geo} />
     </>
+  );
+}
+
+// ---------------------------------------------------------------- refinación por estado
+const OCRE = "#a87d00";
+const OCRES = ["#f3ead2", "#e3cf94", "#cfae55", "#a87d00", "#6e5200"];
+
+function RefinacionPorEstado({ geo }: { geo: Geo }) {
+  const { estados: tot, anio } = geo.refinerias;
+  const caps = Object.values(tot).map((e) => e.bcd).filter((v) => v > 0);
+  const max = Math.max(1, ...caps);
+  // escala raíz cuadrada: Texas concentra un tercio del país y aplastaría al resto
+  const color = (v: number | undefined) => {
+    if (!v) return "#f1eee7";
+    return OCRES[Math.min(4, Math.floor(Math.sqrt(v / max) * 4.999))];
+  };
+  const ranking = Object.entries(tot).sort((a, b) => b[1].bcd - a[1].bcd).slice(0, 12);
+  const nombre = (k: string) => geo.estados.find((e) => e.k === k)?.nombre ?? k;
+  const total = Object.values(tot).reduce((s, e) => s + e.bcd, 0);
+  const nTotal = Object.values(tot).reduce((s, e) => s + e.n, 0);
+  return (
+    <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+      <Panel titulo="Capacidad de refinación por estado" icono="fabrica" iconoColor={OCRE}
+        nota={`Destilación de crudo operable al 1/1/${anio ?? "—"} · barriles por día calendario · EIA`}>
+        <MapaEstados estados={geo.estados} color={(e) => color(e ? tot[e.k]?.bcd : undefined)}
+          titulo={(e, k) => {
+            const t = tot[k];
+            return t ? `${e?.nombre ?? k}: ${t.n} refinerías · ${num(t.bcd, 0)} b/d` : `${e?.nombre ?? k}: sin refinerías de crudo`;
+          }} />
+        <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-tinta-2">
+          <li className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-[#f1eee7] ring-1 ring-linea" />sin refinerías</li>
+          {OCRES.map((c, i) => (
+            <li key={c} className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: c }} />
+              {i === 0 ? "menos" : i === 4 ? "más capacidad" : ""}</li>
+          ))}
+        </ul>
+        <p className="mt-1 text-xs text-tinta-3">{nTotal} refinerías operables y {num(total / 1e6, 1)} millones de barriles por día en el país. Escala de raíz cuadrada.</p>
+      </Panel>
+      <Panel titulo="Estados con más capacidad" nota="miles de barriles por día" icono="fabrica" iconoColor={OCRE}>
+        <BarrasH ancho={100} alto={360} items={ranking.map(([k, t]) => ({ nombre: `${nombre(k)} (${t.n})`, valor: t.bcd / 1000, color: OCRE }))} />
+        <p className="mt-1 text-xs text-tinta-3">Entre paréntesis, la cantidad de refinerías. El mapa animado y la página Red muestran cada una.</p>
+      </Panel>
+    </div>
   );
 }

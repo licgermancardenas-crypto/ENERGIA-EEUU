@@ -9,7 +9,7 @@ import type { ExpressionSpecification, GeoJSONSource, Map as MapaGL, MapLayerMou
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { num } from "@/lib/formato";
-import type { EstadoGeo, Punto2 } from "@/lib/tipos";
+import type { EstadoGeo, Punto2, Refinerias } from "@/lib/tipos";
 
 import { AZULES, type Capa, rampa } from "./mapas";
 
@@ -147,6 +147,27 @@ export function MapaRedGL({ estados, puntos, gasRegion, precioHH, visibles, sele
             `Central a gas: ${p.nombre} (${p.estado})`));
         });
         m.on("mouseleave", "centrales", () => ocultar());
+        // refinerías de crudo (EIA-820): tamaño según capacidad operable de destilación
+        const ref = (await fetch("/data/geo/refinerias.json").then((r) => r.json())) as Refinerias;
+        if (!vivo) return;
+        const conUbicacion = ref.refinerias.filter((r) => r.lon != null && r.lat != null);
+        m.addSource("refinerias", { type: "geojson", data: {
+          type: "FeatureCollection",
+          features: conUbicacion.map((r) => ({ type: "Feature", properties: { ...r },
+            geometry: { type: "Point", coordinates: [r.lon!, r.lat!] } })) } });
+        m.addLayer({ id: "refinerias", type: "circle", source: "refinerias", paint: {
+          "circle-radius": ["interpolate", ["linear"], ["sqrt", ["get", "bcd"]], 0, 3, 800, 15],
+          "circle-color": "#a87d00", "circle-opacity": 0.8, "circle-stroke-color": "#fff", "circle-stroke-width": 1.2 } });
+        m.on("mousemove", "refinerias", (e) => {
+          const p = e.features![0].properties;
+          const est = ref.estados[String(p.estado)];
+          mostrar(e, ficha([
+            ["Capacidad (destilación de crudo)", `${num(Number(p.bcd), 0)} barriles por día`],
+            ...(Number(p.operando) < Number(p.bcd) ? [["En operación", `${num(Number(p.operando), 0)} b/d`] as [string, string]] : []),
+            ...(est ? [[`Total del estado (${ref.anio})`, `${est.n} refinerías · ${num(est.bcd, 0)} b/d`] as [string, string]] : []),
+          ], `Refinería: ${p.empresa} · ${p.sitio} (${p.estado})`));
+        });
+        m.on("mouseleave", "refinerias", () => ocultar());
         m.addSource("reserva", { type: "geojson", data: coleccion(puntos.reserva, (p) => ({ cap: p.capacidad_mmbbl })) });
         m.addLayer({ id: "reserva", type: "circle", source: "reserva", paint: {
           "circle-radius": 6, "circle-color": "#4a5260", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } });
@@ -240,6 +261,7 @@ export function MapaRedGL({ estados, puntos, gasRegion, precioHH, visibles, sele
     ver(["regiones"], visibles.has("Regiones de almacenamiento"));
     ver(["reserva"], visibles.has("Reserva estratégica"));
     if (m.getLayer("centrales")) ver(["centrales"], visibles.has("Centrales a gas"));
+    if (m.getLayer("refinerias")) ver(["refinerias"], visibles.has("Refinerías"));
   }, [visibles, listo]);
 
   // ---- estado seleccionado: resalta y acerca

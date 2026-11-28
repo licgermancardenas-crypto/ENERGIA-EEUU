@@ -221,10 +221,12 @@ export function Buque({ animar }: Anim) {
 }
 
 // ------------------------------------------------------------------ refinería
-export function Refineria({ position, util, animar }: { position: Vec; util: number | null; animar: boolean }) {
-  const columnas: [number, number, number, number][] = [[-4, -2, 1.1, 12], [-1, -3, 0.9, 9], [1.8, -2.2, 0.75, 7], [-2.5, 1.5, 0.7, 6]];
+export function Refineria({ position, util, animar, escala = 1, nColumnas = 4 }:
+  { position: Vec; util: number | null; animar: boolean; escala?: number; nColumnas?: number }) {
+  const columnas = ([[-4, -2, 1.1, 12], [-1, -3, 0.9, 9], [1.8, -2.2, 0.75, 7], [-2.5, 1.5, 0.7, 6]] as
+    [number, number, number, number][]).slice(0, Math.max(1, Math.min(4, nColumnas)));
   return (
-    <group position={position}>
+    <group position={position} scale={escala}>
       <mesh position={[0, 0.15, 0]} receiveShadow>
         <boxGeometry args={[18, 0.3, 14]} />
         <Mat color={C.gris} />

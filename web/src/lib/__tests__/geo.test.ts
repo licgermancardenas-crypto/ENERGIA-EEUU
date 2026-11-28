@@ -55,4 +55,16 @@ describe("capa geoespacial en public/data/geo", () => {
       expect(mmcf).toBeGreaterThan(0);
     }
   });
+  it("refinerías: cada una con estado y capacidad; el total por estado es el de la API", () => {
+    const { refinerias, estados, anio } = g.refinerias;
+    expect(anio).toBeGreaterThanOrEqual(2026);
+    expect(refinerias.length).toBeGreaterThan(100);
+    for (const r of refinerias) {
+      expect(r.estado).toMatch(/^[A-Z]{2}$/);
+      expect(r.bcd).toBeGreaterThan(0);
+    }
+    const suma = refinerias.reduce((s, r) => s + r.bcd, 0);
+    const api = Object.values(estados).reduce((s, e) => s + e.bcd, 0);
+    expect(Math.abs(suma - api)).toBeLessThan(1);
+  });
 });
