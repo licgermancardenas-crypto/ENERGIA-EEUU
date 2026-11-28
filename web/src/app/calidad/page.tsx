@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { Icono, Kpi, Pagina, Panel } from "@/components/marco";
+import type { MetaPetroleo } from "@/components/mapa-petroleo/tipos";
 import { cargarDatos, cargarGeo } from "@/lib/datos";
 import { fechaCorta, num } from "@/lib/formato";
 import { indicadores } from "@/lib/indicadores";
@@ -22,6 +26,11 @@ function Barra({ dias, umbral }: { dias: number; umbral: number }) {
 export default function Calidad() {
   const d = cargarDatos();
   const g = cargarGeo();
+  const mp = JSON.parse(readFileSync(path.join(process.cwd(), "public/data/petroleo/meta.json"), "utf-8")) as MetaPetroleo;
+  const NOMBRES: Record<string, string> = { oleoductos: "Oleoductos de crudo", poliductos: "Poliductos de derivados",
+    pulsos: "Pulsos ilustrativos (derivado)", terminales: "Terminales de derivados", puertos: "Puertos principales",
+    plays: "Plays de shale", plataformas: "Plataformas offshore del Golfo", cushing: "Cushing (punto)",
+    series: "Series API: producción y comercio de crudo" };
   const i = indicadores(d);
   const filas = [...d.frescura.datasets].sort((a, b) => b.dias_atraso / b.umbral_dias - a.dias_atraso / a.umbral_dias);
   return (
@@ -84,6 +93,33 @@ export default function Calidad() {
           Red total: {num(g.validacion.km_red_total, 0)} km · {num(g.validacion.pct_fuera, 1)} % fuera de los estados (costa afuera) ·
           sin km de red: {g.validacion.estados_sin_km.join(", ")} (real) · Flujos y centrales quedan &quot;no disponible&quot; mientras la API de la EIA no responda.
         </p>
+      </Panel>
+      <Panel titulo="Mapa de petróleo: capas y series" nota={`Descargadas el ${fechaCorta(mp.fecha_descarga)} con scripts/preparar_mapa_petroleo.py`} icono="gota" iconoColor="#c4531a">
+        <div className="overflow-x-auto">
+          <table className="cifra w-full min-w-[720px] text-left text-sm">
+            <thead className="border-b border-linea text-xs text-tinta-3">
+              <tr><th className="py-2"></th><th>Capa</th><th>Origen</th><th>Dato al</th><th className="text-right">Elementos</th></tr>
+            </thead>
+            <tbody>
+              {Object.entries(mp.capas).map(([k, c]) => (
+                <tr key={k} className="border-b border-linea/60 align-top">
+                  <td className="py-2 pr-2"><Icono nombre="check-circulo" color={OK} tam={16} titulo="disponible" /></td>
+                  <td className="py-2 font-medium">{NOMBRES[k] ?? k}</td>
+                  <td className="py-2 text-xs text-tinta-2">{c.origen ?? "API v2 de la EIA (crpdn, imp, exp)"}{c.nota ? ` · ${c.nota}` : ""}</td>
+                  <td className="py-2">{c.vintage ?? (k === "series" ? "último año publicado" : "no informado")}</td>
+                  <td className="py-2 text-right">{c.elementos == null ? "—" : num(c.elementos, 0)}</td>
+                </tr>
+              ))}
+              {mp.no_disponibles.map((n) => (
+                <tr key={n.capa} className="border-b border-linea/60 align-top">
+                  <td className="py-2 pr-2"><Icono nombre="x-circulo" color="#7a8394" tam={16} titulo="no disponible" /></td>
+                  <td className="py-2 font-medium">{n.capa}</td>
+                  <td className="py-2 text-xs text-tinta-2" colSpan={3}>No disponible: {n.motivo}.</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Panel>
     </Pagina>
   );
