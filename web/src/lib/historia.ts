@@ -1,5 +1,8 @@
 // Datos de la historia "Del pozo al surtidor" (portada). Todo sale de archivos que el sitio ya
 // publica; si un dato falta, la etapa queda sin cifra (no se estima nada).
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { cargarDatos } from "./datos";
 
 export interface DatoHistoria {
@@ -17,6 +20,11 @@ export interface EtapaHistoria {
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const mes = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]} de ${iso.slice(0, 4)}`;
+const n = (v: number, d = 0) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+
+function leer<T>(rel: string): T | null {
+  try { return JSON.parse(readFileSync(path.join(process.cwd(), "public", rel), "utf-8")) as T; } catch { return null; }
+}
 
 export function etapasHistoria(): EtapaHistoria[] {
   const d = cargarDatos();
@@ -32,6 +40,19 @@ export function etapasHistoria(): EtapaHistoria[] {
     extra: [],
     imagen: { clave: "1-pozo", alt: "Bombas de varilla en un campo petrolero de Texas" },
     mapa: { recuadro: [[-106.5, 25.5], [-86.5, 34.5]], capas: ["plataformas"] },
+  });
+  // 2 · Oleoducto: km de la capa de la EIA (verificada y publicada en el mapa de petróleo)
+  const mp = leer<{ fecha_descarga: string; capas: Record<string, { km_total?: number }> }>("data/petroleo/meta.json");
+  const kmOle = mp?.capas.oleoductos?.km_total, kmPol = mp?.capas.poliductos?.km_total;
+  etapas.push({
+    id: "oleoducto", numero: 2, titulo: "El oleoducto",
+    texto: "Del campo, el crudo viaja por oleoductos troncales hacia las refinerías y los puertos. Cushing, en Oklahoma, es uno de sus nudos y el punto de entrega del precio WTI.",
+    dato: kmOle != null && mp ? { valor: kmOle, decimales: 0, unidad: "km de oleoductos de crudo en la capa de la EIA",
+      fecha: `capa descargada el ${mp.fecha_descarga.split("-").reverse().join("/")}`, fuente: "EIA, Crude Oil Trunk Pipelines (largo calculado en EPSG:5070)" } : null,
+    extra: kmPol != null ? [`Además, ${n(kmPol, 0)} km de poliductos de derivados en la misma fuente. Es lo que mapea la EIA, no el total de la red del país.`] : [],
+    imagen: { clave: "2-oleoducto", alt: "Oleoducto elevado sobre la tundra al atardecer" },
+    mapa: { recuadro: [[-106, 26.5], [-82, 42]], capas: ["oleoductos"] },
+    nota: "En el mapa, los pulsos que recorren los oleoductos son una animación ilustrativa: la EIA no publica el flujo por ducto.",
   });
   return etapas;
 }
