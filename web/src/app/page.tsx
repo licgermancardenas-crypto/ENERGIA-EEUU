@@ -3,6 +3,7 @@ import path from "node:path";
 
 import Link from "next/link";
 
+import { FondoParallax } from "@/components/fondo-parallax";
 import { type CreditoImagen, Historia, type Placeholder } from "@/components/historia";
 import { MiniRedHud, TendenciaHud } from "@/components/portada";
 import { etapasHistoria } from "@/lib/historia";
@@ -32,7 +33,7 @@ export default function Portada() {
     <>
     <div className="relative min-h-screen overflow-hidden bg-navy text-white">
       {/* Foto: "Oil Refinery" (Porvoo), Carlos "Grury" Santos, Unsplash License */}
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/portada.jpg)" }} aria-hidden />
+      <FondoParallax src="/portada.jpg" />
       <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col gap-6 px-6 py-8 lg:px-12">
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div>
