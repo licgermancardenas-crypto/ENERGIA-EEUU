@@ -29,7 +29,7 @@ export default function Mapa() {
   };
   return (
     <div className="flex min-h-screen flex-col bg-[#05080f]">
-      <Encabezado activa="Mapa" titulo="La red de gas en movimiento"
+      <Encabezado activa="Mapa gas" titulo="La red de gas en movimiento"
         bajada="Gasoductos, flujos entre estados y almacenamiento, con el Henry Hub como centro" ind={i} />
       <main className="relative mx-auto h-[calc(100vh-150px)] min-h-[620px] w-full max-w-[1600px] px-3 py-3 max-lg:h-auto">
         <div className="h-full max-lg:h-[70vh]">
