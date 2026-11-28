@@ -6,7 +6,7 @@ import Link from "next/link";
 import { FondoParallax } from "@/components/fondo-parallax";
 import { type CreditoImagen, Historia, type Placeholder } from "@/components/historia";
 import { BotonPresentacion } from "@/components/historia/boton-presentacion";
-import { MiniRedHud, TendenciaHud } from "@/components/portada";
+import { MiniRedHudDiferida, TendenciaHudDiferida } from "@/components/portada-diferida";
 import { etapasHistoria } from "@/lib/historia";
 import { cargarDatos, cargarGeo } from "@/lib/datos";
 import { num } from "@/lib/formato";
@@ -60,7 +60,7 @@ export default function Portada() {
           <div className="hud p-4">
             <p className="text-[11px] font-semibold tracking-wide text-cian">WTI · ÚLTIMOS 12 MESES</p>
             <p className="text-xs text-[#9db7dd]">US$ por barril</p>
-            <TendenciaHud datos={d.hechos.RWTC_D} />
+            <TendenciaHudDiferida datos={d.hechos.RWTC_D} />
           </div>
           <div className="flex flex-col items-center gap-2">
             <Link href="/resumen/"
@@ -72,7 +72,7 @@ export default function Portada() {
           <div className="hud p-4">
             <p className="text-[11px] font-semibold tracking-wide text-cian">RED DE GASODUCTOS</p>
             <p className="text-xs text-[#9db7dd]">capa de la EIA · Henry Hub en naranja</p>
-            <MiniRedHud hh={g.puntos.hubs.find((h) => h.nombre === "Henry Hub")} />
+            <MiniRedHudDiferida hh={g.puntos.hubs.find((h) => h.nombre === "Henry Hub")} />
           </div>
         </div>
         <p className="text-[11px] text-[#9db7dd]">
