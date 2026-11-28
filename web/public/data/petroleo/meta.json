@@ -20,10 +20,10 @@
    "km_total": 71425
   },
   "pulsos": {
-   "origen": null,
+   "origen": "Derivado de la capa de oleoductos de la EIA (función pulsos_desde)",
    "url": null,
    "vintage": null,
-   "licencia": null,
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
    "elementos": 223,
    "bytes": 27328,
    "nota": "ILUSTRATIVO: km por la red desde Cushing; no es flujo medido"
@@ -61,18 +61,18 @@
    "bytes": 187344
   },
   "cushing": {
-   "origen": null,
+   "origen": "U.S. Census TIGERweb (lugar 4018850) · EIA (área YCUOK, punto de entrega del WTI)",
    "url": null,
    "vintage": null,
-   "licencia": null,
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
    "elementos": 1,
    "bytes": 171
   },
   "series": {
-   "origen": null,
+   "origen": "EIA API v2: petroleum/crd/crpdn, petroleum/move/imp, petroleum/move/exp",
    "url": null,
    "vintage": null,
-   "licencia": null,
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
    "elementos": null,
    "bytes": 10414
   }

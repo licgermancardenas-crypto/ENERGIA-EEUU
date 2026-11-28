@@ -212,7 +212,9 @@ def main() -> int:
     pulsos = pulsos_desde(g_ole, (CUSHING["lon"], CUSHING["lat"]), redondeo=REDONDEO_NODO_CRUDO)
     if pulsos:
         escribir("pulsos", pulsos, len(pulsos["trayectos"]),
-                 {"nota": "ILUSTRATIVO: km por la red desde Cushing; no es flujo medido"})
+                 {"nota": "ILUSTRATIVO: km por la red desde Cushing; no es flujo medido",
+                  "origen": "Derivado de la capa de oleoductos de la EIA (función pulsos_desde)",
+                  "licencia": DOMINIO_PUBLICO})
 
     t = bajar("terminales")
     t = t.rename(columns={"Company": "empresa", "Site": "sitio", "City": "ciudad",
@@ -245,9 +247,11 @@ def main() -> int:
 
     escribir("cushing", {"type": "FeatureCollection", "features": [{
         "type": "Feature", "properties": {"nombre": CUSHING["nombre"]},
-        "geometry": mapping(Point(CUSHING["lon"], CUSHING["lat"]))}]}, 1)
+        "geometry": mapping(Point(CUSHING["lon"], CUSHING["lat"]))}]}, 1,
+        {"origen": CUSHING["fuente"], "licencia": DOMINIO_PUBLICO})
 
-    escribir("series", series())
+    escribir("series", series(), None, {"origen": "EIA API v2: petroleum/crd/crpdn, "
+             "petroleum/move/imp, petroleum/move/exp", "licencia": DOMINIO_PUBLICO})
     (SALIDA / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     print("listo", flush=True)
     return 0
