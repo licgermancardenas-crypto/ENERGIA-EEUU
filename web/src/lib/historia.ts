@@ -68,5 +68,20 @@ export function etapasHistoria(): EtapaHistoria[] {
     imagen: { clave: "3-refineria", alt: "Vista aérea de una refinería junto al Golfo de México, cerca de Houston" },
     mapa: { recuadro: [[-98, 27.3], [-88, 31.2]], capas: ["refinerias"] },
   });
+  // 4 · Puerto: exportaciones e importaciones de crudo de EE. UU. (API v2 petroleum/move/exp e imp)
+  const s = leer<{ comercio_crudo_padd: { importaciones: Record<string, Record<string, number>>; exportaciones: Record<string, Record<string, number>> } }>("data/petroleo/series.json");
+  const expUS = s?.comercio_crudo_padd.exportaciones.NUS ?? {}, impUS = s?.comercio_crudo_padd.importaciones.NUS ?? {};
+  const anioCom = Object.keys(expUS).sort().at(-1);
+  etapas.push({
+    id: "puerto", numero: 4, titulo: "El puerto",
+    texto: "Por los puertos de la Costa del Golfo sale crudo hacia otros países y entra crudo importado. Los dos movimientos conviven: las refinerías no usan un solo tipo de crudo.",
+    dato: anioCom ? { valor: expUS[anioCom], decimales: 0, unidad: "miles de barriles por día exportados (promedio anual)", fecha: anioCom,
+      fuente: "EIA API v2, petroleum/move/exp (crudo, EE. UU.)" } : null,
+    extra: anioCom && impUS[anioCom] != null ? [`Importaciones de crudo en ${anioCom}: ${n(impUS[anioCom], 0)} miles de barriles por día (EIA API v2, petroleum/move/imp). La EIA lo publica por región (PADD), no por puerto.`] : [],
+    imagen: { clave: "4-puerto", alt: "Buque petrolero navegando junto a una zona industrial costera" },
+    mapa: { recuadro: [[-98.5, 26.5], [-87.5, 31.5]], capas: ["puertos"] },
+    nota: "En el mapa, el tamaño de cada puerto es su tonelaje total de 2023 (todas las cargas, no solo crudo), según USACE.",
+  });
+
   return etapas;
 }
