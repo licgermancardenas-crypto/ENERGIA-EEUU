@@ -1,0 +1,108 @@
+{
+ "fecha_descarga": "2026-11-28",
+ "capas": {
+  "oleoductos": {
+   "origen": "EIA, Crude Oil Trunk Pipelines (copia pública en ArcGIS Online, Federal User Community)",
+   "url": "https://services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/Crude_Oil_Trunk_Pipelines_1/FeatureServer/0",
+   "vintage": null,
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
+   "elementos": 236,
+   "bytes": 75956,
+   "km_total": 73131
+  },
+  "poliductos": {
+   "origen": "EIA, Petroleum Products Pipelines (copia pública en ArcGIS Online, Federal User Community)",
+   "url": "https://services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/Petroleum_Products_Pipelines_1/FeatureServer/0",
+   "vintage": null,
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
+   "elementos": 329,
+   "bytes": 89428,
+   "km_total": 71425
+  },
+  "pulsos": {
+   "origen": null,
+   "url": null,
+   "vintage": null,
+   "licencia": null,
+   "elementos": 223,
+   "bytes": 27328,
+   "nota": "ILUSTRATIVO: km por la red desde Cushing; no es flujo medido"
+  },
+  "terminales": {
+   "origen": "EIA, Petroleum Product Terminals (formulario EIA-815; copia pública en ArcGIS Online)",
+   "url": "https://services.arcgis.com/kbDdtKcFi2adamXa/arcgis/rest/services/Petroleum_Product_Terminals_US_EIA/FeatureServer/0",
+   "vintage": "2023-06",
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
+   "elementos": 1464,
+   "bytes": 298019
+  },
+  "puertos": {
+   "origen": "USACE / USDOT BTS, Principal Ports (NTAD). Toneladas de TODAS las cargas, no solo crudo",
+   "url": "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/Principal_Ports/FeatureServer/0",
+   "vintage": "2023",
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
+   "elementos": 150,
+   "bytes": 34026
+  },
+  "plays": {
+   "origen": "EIA, Tight Oil and Shale Gas Plays, Lower 48 (cuenta EIA.gov en ArcGIS Online)",
+   "url": "https://services7.arcgis.com/FGr1D95XCGALKXqM/arcgis/rest/services/TightOil_ShaleGas_Plays_Lower48_EIA/FeatureServer/0",
+   "vintage": null,
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
+   "elementos": 50,
+   "bytes": 46370
+  },
+  "plataformas": {
+   "origen": "BOEM, OCS Oil and Natural Gas Platforms, Golfo, 4.º trimestre 2024 (vía Esri US Federal Data)",
+   "url": "https://services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/OCS_Oil_And_Natural_Gas_Platforms_Gulf_2024Q4/FeatureServer/0",
+   "vintage": "2024-Q4",
+   "licencia": "Dominio público (datos del gobierno de EE. UU.)",
+   "elementos": 1280,
+   "bytes": 187344
+  },
+  "cushing": {
+   "origen": null,
+   "url": null,
+   "vintage": null,
+   "licencia": null,
+   "elementos": 1,
+   "bytes": 171
+  },
+  "series": {
+   "origen": null,
+   "url": null,
+   "vintage": null,
+   "licencia": null,
+   "elementos": null,
+   "bytes": 10414
+  }
+ },
+ "no_disponibles": [
+  {
+   "capa": "Rigs activos (Baker Hughes)",
+   "motivo": "sin licencia pública clara de redistribución; las series de rigs del STEO derivan de Baker Hughes"
+  },
+  {
+   "capa": "Pozos y ductos offshore (BOEM)",
+   "motivo": "no verificados en la Fase 0"
+  },
+  {
+   "capa": "Comercio de crudo por puerto",
+   "motivo": "la API v2 de la EIA publica importaciones y exportaciones por PADD, no por puerto"
+  },
+  {
+   "capa": "Producción por cuenca de shale",
+   "motivo": "el STEO mezcla historia y pronóstico sin marcar cada dato; se muestra la producción por estado"
+  },
+  {
+   "capa": "Profundidad de agua de las plataformas",
+   "motivo": "la capa de BOEM usada no trae ese campo"
+  }
+ ],
+ "cushing": {
+  "nombre": "Cushing, Oklahoma",
+  "lon": -96.7617533,
+  "lat": 35.9796807,
+  "fuente": "U.S. Census TIGERweb (lugar 4018850) · EIA (área YCUOK, punto de entrega del WTI)"
+ }
+}
