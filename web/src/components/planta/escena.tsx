@@ -415,7 +415,13 @@ function PanelReal({ refinerias, idReal, setIdReal, real, anio, estados, estado,
       </select>
       {est && !real && (
         <p className="mb-2 rounded-md bg-[#fbf7ec] px-2 py-1.5 text-tinta-2">
-          {est.nombre}: {est.n} {est.n === 1 ? "refinería" : "refinerías"} · {num(est.bcd, 0)} b/d de capacidad
+          {est.nombre}: {est.n} {est.n === 1 ? "refinería operable" : "refinerías operables"} (EIA) · {num(est.bcd, 0)} b/d de capacidad
+          {[...porEstado.values()].flat().length < est.n && (
+            <span className="block text-tinta-3">
+              En el mapa van las {[...porEstado.values()].flat().length} que destilan crudo; las otras {est.n - [...porEstado.values()].flat().length} son plantas
+              de proceso (lubricantes, alquilatos, aromáticos) sin destilación de crudo.
+            </span>
+          )}
         </p>
       )}
       <label htmlFor="ref-real" className="text-[11px] font-semibold tracking-wide text-tinta-3">
