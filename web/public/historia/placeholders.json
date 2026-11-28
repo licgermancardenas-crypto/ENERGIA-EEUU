@@ -1,0 +1,52 @@
+{
+ "1-pozo": {
+  "blur": "data:image/webp;base64,UklGRlAAAABXRUJQVlA4IEQAAACQAwCdASoYAAkAPu1mqk2ppaQiMAgBMB2JYwC06CKRubdd6FrwAP6RQ4/s+i6vFG+0YfYYp33jZH6Z6un92wlMkMAAAA==",
+  "ancho": 2265,
+  "alto": 847,
+  "anchos": [
+   640,
+   1280,
+   1920
+  ]
+ },
+ "2-oleoducto": {
+  "blur": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACQAwCdASoYABAAPu1iqk2ppaQiMAgBMB2JQBYdhD4HXrKmMCkAAP7TVsnxGW8Q1s8+ThfBZZag+jNiXKvFX8txP8NGu1lRF5pApOFAAAA=",
+  "ancho": 2880,
+  "alto": 1880,
+  "anchos": [
+   640,
+   1280,
+   1920
+  ]
+ },
+ "3-refineria": {
+  "blur": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAACQBACdASoYABMAPu1qsFAppiSiqAqpMB2JQBTigXCQQ2Y/+0zBjgkNEir7oggA/UP/n8iqDoKxqrU+qnbwoPP5HYXUv/GMJF8rHJrVaN6NVlihZE3bGdkqIYO1uMbC2a2gAA==",
+  "ancho": 3840,
+  "alto": 3023,
+  "anchos": [
+   640,
+   1280,
+   1920
+  ]
+ },
+ "4-puerto": {
+  "blur": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAADwAwCdASoYABEAPu1kqk2ppaQiMAgBMB2JYwDMHCHWvC8a4AJ8fzGAAP7q2CJNuiHHuIRjEVUi2YJ/P58HRb/2Jw35YFlUZhiu26ZEws8grMrXat0/0AAA",
+  "ancho": 3840,
+  "alto": 2790,
+  "anchos": [
+   640,
+   1280,
+   1920
+  ]
+ },
+ "5-surtidor": {
+  "blur": "data:image/webp;base64,UklGRooAAABXRUJQVlA4IH4AAACQBACdASoYABIAPuVepU2pJSOiMAwBIByJZACdMuIzGDNJyT+IEep3rWfTDAAA/luA0dTBlt6+Ml7198c3jGpV6EhHZnkHboRSkIxxqnhTMP4vyXRXJJQ7PBbAFVnmyzWiO6vG5ybS51gRKIR8AKNsZv8F/Aqctoa+orXELAA=",
+  "ancho": 2592,
+  "alto": 1936,
+  "anchos": [
+   640,
+   1280,
+   1920
+  ]
+ }
+}
