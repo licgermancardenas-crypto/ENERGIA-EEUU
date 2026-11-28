@@ -18,7 +18,7 @@ despareja. Queda en el historial de git (commits `bfcbcda`, `b4a0eb1`, `189051d`
 | Capacidad | EIA, Refinery Capacity Report 2026 (`refcap26.xlsx`, EIA-820) | 1/1/2026 |
 
 Las refinerías y la capacidad salen de `web/public/data/geo/refinerias.json`, el mismo archivo que
-usan el mapa animado, la página Red y Análisis (ver `src/eia_pulso/geo/refinerias.py` y
+usan el mapa de gas, el de petróleo y Análisis (ver `src/eia_pulso/geo/refinerias.py` y
 `docs/mapa.md`).
 
 ## Cómo funciona

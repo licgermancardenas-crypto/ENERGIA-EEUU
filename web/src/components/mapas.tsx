@@ -49,11 +49,6 @@ function Cargando() {
   return <p className="grid h-full min-h-48 place-items-center text-sm text-tinta-3">Cargando el mapa…</p>;
 }
 
-// ---------------------------------------------------------------- mapa de la red
-export const CAPAS = ["Gasoductos", "Hubs", "Terminales de GNL", "Refinerías", "Centrales a gas",
-  "Regiones de almacenamiento", "Reserva estratégica"] as const;
-export type Capa = (typeof CAPAS)[number];
-
 // ---------------------------------------------------------------- mapas por estado (análisis)
 export function MapaEstados({ estados, color, titulo, hhDestacado = false, aviso }:
   { estados: EstadoGeo[]; color: (e: EstadoGeo | undefined) => string;

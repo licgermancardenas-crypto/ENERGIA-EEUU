@@ -1,4 +1,12 @@
-# Mapa animado de la red de gas (`/mapa`)
+# Mapa de gas (`/mapa`)
+
+Desde el 2026-11-28 es el único mapa de gas: se fusionó con la ex página Red (`/red` redirige acá
+de forma permanente, en `web/vercel.json`). Suma lo que tenía Red: centrales a gas y reserva
+estratégica como capas opcionales, buscador "Resaltar operador" que encuadra su red, ficha del
+estado con densidad, conexión al Henry Hub, hogares con gas de red y gas en su región, KPIs de la
+red y ranking de estados con más km.
+
+## Antes: mapa animado de la red de gas
 
 Sección de la web con un mapa interactivo y animado de la red de gasoductos de EE. UU., con el
 Henry Hub como protagonista. Usa los mismos datos geoespaciales que las páginas Red y Análisis
@@ -75,7 +83,7 @@ Henry Hub como protagonista. Usa los mismos datos geoespaciales que las páginas
   halo de los gasoductos y 40 arcos.
 - `prefers-reduced-motion`: sin pulsos, sin cometas en los arcos, sin vuelo de entrada, sin
   conteo de KPIs y con el anillo del Henry Hub fijo. El mapa sigue funcionando completo.
-- Sin WebGL: aviso y un mapa fijo de la red (SVG), con link a la página Red.
+- Sin WebGL: aviso y un mapa fijo de la red (SVG), con link a Análisis.
 
 ## Limitaciones
 

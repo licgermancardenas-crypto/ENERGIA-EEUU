@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { num } from "@/lib/formato";
 import type { EstadoGeo } from "@/lib/tipos";
 
-import { ESTILO, ficha, recuadro } from "./mapa-red-gl";
+import { ESTILO, ficha, recuadro } from "./mapa-claro";
 import { AZULES } from "./mapas";
 
 const CORTES = [0.16, 0.32, 0.48, 0.64]; // 5 clases iguales entre 0 y 80 %

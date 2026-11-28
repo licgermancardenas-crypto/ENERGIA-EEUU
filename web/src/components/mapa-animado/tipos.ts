@@ -2,7 +2,7 @@ import type { EstadoGeo, Geo, Punto2 } from "@/lib/tipos";
 
 /** Lo que el servidor le pasa al mapa animado (la geometría se baja en el navegador). */
 export interface DatosMapa {
-  estados: Pick<EstadoGeo, "k" | "nombre" | "km" | "operadores" | "region" | "centro" | "hh">[];
+  estados: Pick<EstadoGeo, "k" | "nombre" | "km" | "operadores" | "region" | "centro" | "hh" | "densidad" | "pct_gas_red">[];
   hubs: Punto2[];
   gnl: Punto2[];
   henryHub: Geo["henryHub"];

@@ -15,7 +15,8 @@ export default function Mapa() {
     .map((r) => [r, d.ultimo[`NW2_EPG0_SWO_${r}_BCF_W`]?.valor])
     .filter(([, v]) => v != null)) as Record<string, number>;
   const datos: DatosMapa = {
-    estados: g.estados.map(({ k, nombre, km, operadores, region, centro, hh }) => ({ k, nombre, km, operadores, region, centro, hh })),
+    estados: g.estados.map(({ k, nombre, km, operadores, region, centro, hh, densidad, pct_gas_red }) =>
+      ({ k, nombre, km, operadores, region, centro, hh, densidad, pct_gas_red })),
     hubs: g.puntos.hubs,
     gnl: g.puntos.gnl,
     henryHub: g.henryHub,

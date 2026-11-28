@@ -16,7 +16,7 @@ export const FOTO_TESELAS =
 export const FOTO_ATRIBUCION =
   "Foto: USGS The National Map, ortoimágenes USDA NAIP (dominio público) · Límites: U.S. Census · " +
   "Nombres: OpenFreeMap, © colaboradores de OpenStreetMap · Ubicación y capacidad: EIA";
-// nombres de estados y ciudades (vector tiles de OpenStreetMap, sin clave; mismo servicio que la página Red)
+// nombres de estados y ciudades (vector tiles de OpenStreetMap, sin clave; mismo servicio que los mapas claros)
 const NOMBRES_URL = "https://tiles.openfreemap.org/backup_planet";
 const GLIFOS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
 const TEXTO = ["coalesce", ["get", "name_en"], ["get", "name"]];

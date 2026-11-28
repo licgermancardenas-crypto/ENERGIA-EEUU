@@ -22,7 +22,6 @@ export const PAGINAS = [
   { ruta: "/gas/", menu: "Gas", icono: "llama" },
   { ruta: "/rezago/", menu: "Rezago", icono: "reloj" },
   { ruta: "/calidad/", menu: "Calidad", icono: "escudo-check" },
-  { ruta: "/red/", menu: "Red", icono: "red" },
   { ruta: "/analisis/", menu: "Análisis", icono: "capas" },
   { ruta: "/mapa/", menu: "Mapa gas", icono: "mapa-pin" },
   { ruta: "/petroleo-red/", menu: "Mapa petróleo", icono: "gota" },
@@ -50,7 +49,7 @@ export function Encabezado({ activa, titulo, bajada, ind }:
           <p className="mt-1 text-[13px] text-[#c9d4e5]">{bajada}</p>
         </div>
         <div className="flex flex-col gap-2 lg:w-[980px]">
-          <nav aria-label="Páginas del tablero" className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 xl:grid-cols-10">
+          <nav aria-label="Páginas del tablero" className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 xl:grid-cols-9">
             {PAGINAS.map((p) => {
               const on = p.menu === activa;
               return (

@@ -50,9 +50,8 @@ desde copias públicas porque los servicios oficiales piden token. El mapa base 
 
 ## /mapa y /red
 
-Hoy se solapan: los dos muestran la red de gas sobre MapLibre. Propuesta (no aplicada): dejar
-`/red` como mapa claro de consulta (zoom fino, capas y fichas) y `/mapa` como la versión animada
-para presentar; o fusionarlas en una sola página con un botón "modo presentación". Requiere tu OK.
+Resuelto el 2026-11-28: se fusionaron en `/mapa` ("Mapa gas"), hermano de "Mapa petróleo", y
+`/red` redirige a `/mapa`. Ver docs/mapa.md.
 
 ## Cómo refrescar
 

@@ -34,7 +34,7 @@ export function MapaAnimado({ datos }: { datos: DatosMapa }) {
     return (
       <Aviso texto="Tu navegador no tiene WebGL activado, así que mostramos una versión fija de la red.">
         <div className="mx-auto mt-4 max-w-2xl"><MiniRed hh={datos.hubs.find((h) => h.nombre === "Henry Hub")} /></div>
-        <Link href="/red/" className="mt-3 inline-block text-[#5fb3e6] underline">Ver la página Red</Link>
+        <Link href="/analisis/" className="mt-3 inline-block text-[#5fb3e6] underline">Ver los mapas de Análisis</Link>
       </Aviso>
     );
   }

@@ -29,7 +29,10 @@ const VUELOS = {
   Alaska: { bounds: [[-170, 51], [-129, 71.5]] as [[number, number], [number, number]] },
   Hawái: { bounds: [[-160.5, 18.8], [-154.6, 22.4]] as [[number, number], [number, number]] },
 };
-const CAPAS = ["Gasoductos", "Pulsos", "Flujos entre estados", "Almacenamiento", "Hubs", "GNL", "Refinerías"] as const;
+const CAPAS = ["Gasoductos", "Pulsos", "Flujos entre estados", "Almacenamiento", "Hubs", "GNL", "Refinerías",
+  "Centrales a gas", "Reserva estratégica"] as const;
+// apagadas al entrar: evitan el amontonamiento (se prenden desde el panel)
+const APAGADAS: string[] = ["Flujos entre estados", "Centrales a gas", "Reserva estratégica"];
 type Capa = (typeof CAPAS)[number];
 
 // Paleta sobre fondo oscuro: azul = gas; naranja solo para el Henry Hub (marcador HTML).
@@ -37,7 +40,9 @@ const AZUL_RED: [number, number, number] = [70, 150, 235];
 const AZUL_PULSO: [number, number, number] = [225, 243, 255];
 const RAMPA_ALM: [number, number, number][] = [[26, 58, 110], [33, 86, 160], [44, 116, 205], [77, 150, 230], [130, 190, 245]];
 
-type Tramo = { path: [number, number][]; inter: boolean; operador: string };
+type Tramo = { path: [number, number][]; inter: boolean; operador: string; km: number };
+type Central = { nombre: string; estado: string; mw: number | null; lon: number; lat: number; km: number | null };
+type Reserva = { nombre: string; lon: number; lat: number; capacidad_mmbbl?: number | null };
 type Pulso = [number, number, number][];
 type Arco = { path: [number, number, number][]; tiempos: number[]; mmcf: number; o: string; d: string };
 type FC = { type: "FeatureCollection"; features: { properties: Record<string, unknown>; geometry: { type: string; coordinates: unknown } }[] };
@@ -48,7 +53,7 @@ function tramos(red: FC): Tramo[] {
     const g = f.geometry;
     const lineas = (g.type === "LineString" ? [g.coordinates] : g.coordinates) as [number, number][][];
     for (const l of lineas) {
-      out.push({ path: l, inter: f.properties.tipo === "interestatal", operador: String(f.properties.operador) });
+      out.push({ path: l, inter: f.properties.tipo === "interestatal", operador: String(f.properties.operador), km: Number(f.properties.km ?? 0) });
     }
   }
   return out;
@@ -83,8 +88,9 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   const mapa = useRef<MapaGL | null>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
   const [listo, setListo] = useState(false);
-  const [geo, setGeo] = useState<{ red: Tramo[]; regiones: FC; estados: FC; pulsos: { max_km: number; trayectos: Pulso[] }; flujos: Flujos; refinerias: Refinerias } | null>(null);
-  const [capas, setCapas] = useState<Set<Capa>>(new Set(modo.grabacion ? ["Gasoductos", "Pulsos"] : CAPAS.filter((c) => c !== "Flujos entre estados")));
+  const [geo, setGeo] = useState<{ red: Tramo[]; regiones: FC; estados: FC; pulsos: { max_km: number; trayectos: Pulso[] }; flujos: Flujos; refinerias: Refinerias; centrales: Central[]; reserva: Reserva[] } | null>(null);
+  const [operador, setOperador] = useState("");
+  const [capas, setCapas] = useState<Set<Capa>>(new Set(modo.grabacion ? ["Gasoductos", "Pulsos"] : CAPAS.filter((c) => !APAGADAS.includes(c))));
   const [tresD, setTresD] = useState(false);
   const [pitch, setPitch] = useState(0);
   const [anio, setAnio] = useState<number | null>(null);
@@ -95,11 +101,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   // ---- datos (la geometría se baja acá, no en el HTML)
   useEffect(() => {
     let vivo = true;
-    Promise.all(["mapa_red_detalle.geojson", "mapa_regiones.geojson", "mapa_estados.geojson", "pulsos.json", "flujos.json", "refinerias.json"]
+    Promise.all(["mapa_red_detalle.geojson", "mapa_regiones.geojson", "mapa_estados.geojson", "pulsos.json", "flujos.json", "refinerias.json", "puntos.json"]
       .map((n) => fetch(`/data/geo/${n}`).then((r) => r.json())))
-      .then(([red, regiones, estados, pulsos, flujos, refinerias]) => {
+      .then(([red, regiones, estados, pulsos, flujos, refinerias, puntos]) => {
         if (!vivo) return;
-        setGeo({ red: tramos(red), regiones, estados, pulsos, flujos, refinerias });
+        setGeo({ red: tramos(red), regiones, estados, pulsos, flujos, refinerias,
+          centrales: puntos.centrales, reserva: puntos.reserva });
         setAnio((flujos as Flujos).anios.at(-1) ?? null);
       });
     return () => { vivo = false; };
@@ -218,6 +225,21 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
         getRadius: (d) => 2.5 + Math.sqrt(d.bcd) / 70, getFillColor: [240, 196, 92, 215],
         stroked: true, getLineColor: [5, 8, 15], lineWidthUnits: "pixels", getLineWidth: 1,
       }),
+      new PathLayer<Tramo>({
+        id: "red-operador", data: operador ? geo.red.filter((r) => r.operador === operador) : [],
+        getPath: (d) => d.path, getColor: [240, 138, 75], widthUnits: "pixels", getWidth: 3,
+        capRounded: true, jointRounded: true, updateTriggers: { data: operador },
+      }),
+      new ScatterplotLayer<Central>({
+        id: "centrales", data: geo.centrales, visible: on("Centrales a gas"), pickable: true,
+        getPosition: (d) => [d.lon, d.lat], radiusUnits: "pixels",
+        getRadius: (d) => 1.5 + Math.sqrt(d.mw ?? 0) / 9, getFillColor: [165, 134, 238, 170],
+      }),
+      new ScatterplotLayer<Reserva>({
+        id: "reserva", data: geo.reserva, visible: on("Reserva estratégica"), pickable: true,
+        getPosition: (d) => [d.lon, d.lat], radiusUnits: "pixels", getRadius: 7, getFillColor: [90, 95, 105],
+        stroked: true, getLineColor: [235, 245, 255], lineWidthUnits: "pixels", getLineWidth: 2,
+      }),
       new ScatterplotLayer({
         id: "gnl", data: datos.gnl, visible: on("GNL"), pickable: true,
         getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat], radiusUnits: "pixels", getRadius: 6,
@@ -239,6 +261,14 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
           return { text: `${o.operador}\nGasoducto ${o.inter ? "interestatal" : "intraestatal"}`, style: estilo };
         }
         if (layer.id === "hubs") return { text: `Hub de gas: ${object.nombre}`, style: estilo };
+        if (layer.id === "centrales") {
+          const c = object as unknown as Central;
+          return { text: `Central a gas: ${c.nombre} (${c.estado})\n${c.mw == null ? "capacidad no informada" : `${num(c.mw, 0)} MW`}${c.km == null ? "" : ` · a ${num(c.km, 1)} km de un gasoducto`}`, style: estilo };
+        }
+        if (layer.id === "reserva") {
+          const r = object as unknown as Reserva;
+          return { text: `Reserva Estratégica de Petróleo: ${r.nombre}${r.capacidad_mmbbl ? `\nCapacidad: ${num(r.capacidad_mmbbl, 0)} millones de barriles` : ""}`, style: estilo };
+        }
         if (layer.id === "refinerias") {
           const r = object as unknown as Refineria;
           return { text: `Refinería: ${r.empresa}\n${r.sitio} (${r.estado})\n${num(r.bcd, 0)} barriles por día de destilación de crudo`, style: estilo };
@@ -326,9 +356,27 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
     const entra = geo.flujos.pares.filter((p) => p[1] === sel && p[2] === anio).sort((a, b) => b[3] - a[3]).slice(0, 3);
     const ref = geo.refinerias.estados[sel] ?? null;
     const mayores = geo.refinerias.refinerias.filter((r) => r.estado === sel).sort((a, b) => b.bcd - a.bcd).slice(0, 3);
-    return { e, recibe: f?.[2] ?? null, entrega: f?.[3] ?? null, neto: f?.[4] ?? null, sale, entra, ref, mayores };
-  }, [sel, geo, anio, datos.estados]);
+    const gasReg = e?.region ? datos.gasRegion[e.region] ?? null : null;
+    return { e, recibe: f?.[2] ?? null, entrega: f?.[3] ?? null, neto: f?.[4] ?? null, sale, entra, ref, mayores, gasReg };
+  }, [sel, geo, anio, datos.estados, datos.gasRegion]);
   const nombre = (k: string) => datos.estados.find((e) => e.k === k)?.nombre ?? k;
+  const maxKmEstado = Math.max(1, ...datos.estados.map((e) => e.km));
+  // operadores ordenados por km de red (suma de sus tramos en la capa de la EIA)
+  const operadores = useMemo(() => {
+    const km = new Map<string, number>();
+    for (const r of geo?.red ?? []) km.set(r.operador, (km.get(r.operador) ?? 0) + r.km);
+    return [...km].map(([op, k]) => ({ op, km: k })).sort((a, b) => b.km - a.km);
+  }, [geo]);
+  const elegirOperador = (op: string) => {
+    setOperador(op);
+    const m = mapa.current;
+    if (!op || !m || !geo) return;
+    const b: [[number, number], [number, number]] = [[180, 90], [-180, -90]];
+    for (const r of geo.red) if (r.operador === op) for (const [x, y] of r.path) {
+      b[0][0] = Math.min(b[0][0], x); b[0][1] = Math.min(b[0][1], y); b[1][0] = Math.max(b[1][0], x); b[1][1] = Math.max(b[1][1], y);
+    }
+    m.fitBounds(b, { padding: 50, maxZoom: 8, duration: animar ? 1500 : 0 });
+  };
 
   const marco = modo.formato === "4x5" ? "aspect-[4/5] h-full max-h-screen" : modo.formato === "1x1" ? "aspect-square h-full max-h-screen" : "h-full w-full";
   return (
@@ -377,6 +425,12 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
             </div>
           </div>
 
+          <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-[11px]">
+            <div className="rounded-md border border-[#23446f] p-1.5"><dt className="text-[#9db7dd]">Red</dt><dd className="cifra text-sm font-semibold">{num(datos.kmRed, 0)} km</dd></div>
+            <div className="rounded-md border border-[#23446f] p-1.5"><dt className="text-[#9db7dd]">Estados con el HH</dt><dd className="cifra text-sm font-semibold">{datos.estados.filter((e) => e.hh).length}</dd></div>
+            <div className="rounded-md border border-[#23446f] p-1.5"><dt className="text-[#9db7dd]">Terminales GNL</dt><dd className="cifra text-sm font-semibold">{datos.gnl.length}</dd></div>
+          </dl>
+
           <fieldset className="mt-4">
             <legend className="text-[11px] font-semibold tracking-wide text-[#9db7dd]">CAPAS</legend>
             <div className="mt-1.5 grid grid-cols-2 gap-1.5">
@@ -407,6 +461,14 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
               <input type="checkbox" className="accent-[#5fb3e6]" checked={tresD} onChange={(e) => alternar3D(e.target.checked)} />
               Almacenamiento en 3D (altura = Bcf de la región)
             </label>
+            <label className="grid gap-1">
+              Resaltar operador
+              <select value={operador} onChange={(e) => elegirOperador(e.target.value)} disabled={!geo}
+                className="rounded-md border border-[#23446f] bg-[#0b1f3a] px-2 py-1">
+                <option value="">— ninguno —</option>
+                {operadores.map((o) => <option key={o.op} value={o.op}>{o.op} ({num(o.km, 0)} km)</option>)}
+              </select>
+            </label>
             <div className="flex flex-wrap gap-1.5">
               {(Object.keys(VUELOS) as (keyof typeof VUELOS)[]).map((k) => (
                 <button key={k} type="button" onClick={() => volar(k)}
@@ -427,6 +489,10 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
                 <dl className="mt-2 grid grid-cols-2 gap-2">
                   <div><dt className="text-[#9db7dd]">Gasoductos</dt><dd className="cifra font-semibold">{num(det.e.km, 0)} km</dd></div>
                   <div><dt className="text-[#9db7dd]">Operadores</dt><dd className="cifra font-semibold">{det.e.operadores ?? "—"}</dd></div>
+                  <div><dt className="text-[#9db7dd]">Densidad</dt><dd className="cifra font-semibold">{num(det.e.densidad, 1)} km/1.000 km²</dd></div>
+                  <div><dt className="text-[#9db7dd]">Conectado al Henry Hub</dt><dd className="font-semibold">{det.e.hh ? "Sí" : "No"}</dd></div>
+                  <div><dt className="text-[#9db7dd]">Hogares con gas de red</dt><dd className="cifra font-semibold">{det.e.pct_gas_red == null ? "no disponible" : `${num(det.e.pct_gas_red * 100, 1)} %`}</dd></div>
+                  <div><dt className="text-[#9db7dd]">Gas en su región</dt><dd className="cifra font-semibold">{det.gasReg == null ? "—" : `${num(det.gasReg, 0)} Bcf`}</dd></div>
                   <div><dt className="text-[#9db7dd]">Recibe ({anio})</dt><dd className="cifra font-semibold">{det.recibe == null ? "no disponible" : `${num(det.recibe / 1000, 1)} Bcf`}</dd></div>
                   <div><dt className="text-[#9db7dd]">Entrega ({anio})</dt><dd className="cifra font-semibold">{det.entrega == null ? "no disponible" : `${num(det.entrega / 1000, 1)} Bcf`}</dd></div>
                   <div className="col-span-2"><dt className="text-[#9db7dd]">Balance neto</dt>
@@ -442,6 +508,21 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
                 {det.mayores.length > 0 && <p className="mt-1 text-[#c9d4e5]">Mayores: {det.mayores.map((r) => `${r.empresa.split(" ").slice(0, 2).join(" ")}, ${r.sitio} (${num(r.bcd / 1000, 0)} mil b/d)`).join(" · ")}</p>}
               </>
             ) : <p className="text-[#9db7dd]">Hacé clic en un estado para ver sus gasoductos y su balance de flujos.</p>}
+          </section>
+
+          <section className="mt-4 text-xs">
+            <p className="text-[11px] font-semibold tracking-wide text-[#9db7dd]">ESTADOS CON MÁS RED</p>
+            <ul className="mt-1.5 grid gap-1">
+              {[...datos.estados].sort((a, b) => b.km - a.km).slice(0, 8).map((e) => (
+                <li key={e.k}>
+                  <button type="button" onClick={() => setSel(e.k)} className="grid w-full grid-cols-[96px_1fr_64px] items-center gap-2 text-left hover:text-white">
+                    <span className="truncate">{e.nombre}</span>
+                    <span className="h-2 rounded bg-[#4696eb]" style={{ width: `${(e.km / maxKmEstado) * 100}%` }} />
+                    <span className="cifra text-right text-[#9db7dd]">{num(e.km, 0)} km</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section className="mt-4 text-xs">
