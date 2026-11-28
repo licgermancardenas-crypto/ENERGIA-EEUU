@@ -105,3 +105,7 @@ body {
 /* el overlay de deck.gl es otro canvas encima del mapa: los marcadores HTML van por arriba */
 /* MapLibre usa el mismo elemento como marcador: el selector va sobre .hh-marcador */
 .maplibregl-marker.hh-marcador { z-index: 5; }
+
+/* B4: modo presentación de la portada: sin botones ni cursor */
+html.presentando, html.presentando * { cursor: none !important; }
+html.presentando [data-ocultar-en-presentacion] { display: none !important; }

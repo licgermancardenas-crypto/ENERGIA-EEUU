@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { FondoParallax } from "@/components/fondo-parallax";
 import { type CreditoImagen, Historia, type Placeholder } from "@/components/historia";
+import { BotonPresentacion } from "@/components/historia/boton-presentacion";
 import { MiniRedHud, TendenciaHud } from "@/components/portada";
 import { etapasHistoria } from "@/lib/historia";
 import { cargarDatos, cargarGeo } from "@/lib/datos";
@@ -61,10 +62,13 @@ export default function Portada() {
             <p className="text-xs text-[#9db7dd]">US$ por barril</p>
             <TendenciaHud datos={d.hechos.RWTC_D} />
           </div>
-          <Link href="/resumen/"
-            className="mx-auto rounded-xl bg-gas px-8 py-3 text-base font-semibold text-white ring-1 ring-cian transition-colors hover:bg-[#2f7ddb]">
-            Entrar al tablero →
-          </Link>
+          <div className="flex flex-col items-center gap-2">
+            <Link href="/resumen/"
+              className="mx-auto rounded-xl bg-gas px-8 py-3 text-base font-semibold text-white ring-1 ring-cian transition-colors hover:bg-[#2f7ddb]">
+              Entrar al tablero →
+            </Link>
+            <BotonPresentacion />
+          </div>
           <div className="hud p-4">
             <p className="text-[11px] font-semibold tracking-wide text-cian">RED DE GASODUCTOS</p>
             <p className="text-xs text-[#9db7dd]">capa de la EIA · Henry Hub en naranja</p>

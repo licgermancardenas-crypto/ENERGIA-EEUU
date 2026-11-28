@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FLAGS } from "@/lib/flags";
 import type { EtapaHistoria } from "@/lib/historia";
 
 import { Conteo } from "../mapa-animado/conteo";
@@ -48,6 +49,48 @@ export function Historia({ etapas, creditos, placeholders }:
   const irA = useCallback((i: number) => {
     pasos.current[i]?.scrollIntoView({ behavior: animar ? "smooth" : "auto", block: "center" });
   }, [animar]);
+
+  // ---- B4: modo presentación (pantalla completa, sin botones ni cursor, recorrido automático)
+  const [presentando, setPresentando] = useState(false);
+  const [pausado, setPausado] = useState(false);
+  const [paso, setPaso] = useState(0);
+  const presentar = useCallback(async () => {
+    setCerca(true);
+    setPaso(0);
+    setPausado(false);
+    try { await document.documentElement.requestFullscreen?.(); } catch { /* sin pantalla completa: sigue igual */ }
+    document.documentElement.classList.add("presentando");
+    setPresentando(true);
+  }, []);
+  const salir = useCallback(() => {
+    document.documentElement.classList.remove("presentando");
+    setPresentando(false);
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  }, []);
+  useEffect(() => {
+    const desdeHero = () => { void presentar(); };
+    window.addEventListener("historia:presentar", desdeHero);
+    return () => window.removeEventListener("historia:presentar", desdeHero);
+  }, [presentar]);
+  useEffect(() => {
+    if (!presentando) return;
+    const alSalirPantalla = () => { if (!document.fullscreenElement) salir(); };
+    const teclas = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") salir();
+      else if (ev.key === " " || ev.key === "k") { ev.preventDefault(); setPausado((x) => !x); }
+      else if (ev.key === "ArrowRight") setPaso((x) => Math.min(etapas.length - 1, x + 1));
+      else if (ev.key === "ArrowLeft") setPaso((x) => Math.max(0, x - 1));
+    };
+    document.addEventListener("fullscreenchange", alSalirPantalla);
+    window.addEventListener("keydown", teclas);
+    return () => { document.removeEventListener("fullscreenchange", alSalirPantalla); window.removeEventListener("keydown", teclas); };
+  }, [presentando, salir, etapas.length]);
+  useEffect(() => { if (presentando) irA(paso); }, [presentando, paso, irA]);
+  useEffect(() => {
+    if (!presentando || pausado || paso >= etapas.length - 1) return;
+    const t = setTimeout(() => setPaso((x) => x + 1), 5000);
+    return () => clearTimeout(t);
+  }, [presentando, pausado, paso, etapas.length]);
 
   const e = etapas[activa];
   return (
@@ -121,7 +164,18 @@ export function Historia({ etapas, creditos, placeholders }:
           ))}
         </ol>
       </nav>
-      <Link href="/resumen/" className="fixed right-3 top-3 z-30 rounded-full bg-[#05080f]/85 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/30 hover:ring-white">
+      {presentando && pausado && (
+        <p className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/80 px-4 py-1.5 text-xs" role="status">
+          En pausa · Espacio para seguir · Esc para salir
+        </p>
+      )}
+      {FLAGS.modoPresentacion && (
+        <button type="button" onClick={() => void presentar()} data-ocultar-en-presentacion
+          className="fixed right-36 top-3 z-30 rounded-full bg-[#05080f]/85 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/30 hover:ring-white max-sm:hidden">
+          Modo presentación
+        </button>
+      )}
+      <Link href="/resumen/" data-ocultar-en-presentacion className="fixed right-3 top-3 z-30 rounded-full bg-[#05080f]/85 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/30 hover:ring-white">
         Saltar al tablero
       </Link>
     </section>
