@@ -80,6 +80,10 @@ def silver_puntos(capa: str, g: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
             "ciudad": g["City"], "estado": g["State"], "funcion": g["Functions"],
             "licuefaccion_bcfd": _num(g["Liq_Bcfd"]), "regasificacion_bcfd": _num(g["Regas_Bcfd"]),
             "almacenamiento_bcf": _num(g["Stora_Bcf"]), "periodo": g["Period"]})
+    elif capa == "refinerias":
+        df = pd.DataFrame({"empresa": g["Company"].str.strip(), "corporacion": g["Corp"],
+                           "sitio": g["Site"].str.strip(), "estado": g["State"],
+                           "periodo": g["Period"]})
     elif capa == "reserva_estrategica":
         df = pd.DataFrame({"nombre": g["Site"].str.strip(), "estado": g["State"],
                            "capacidad_mmbbl": _num(g["Capacity"]), "periodo": g["Period"]})
@@ -129,8 +133,17 @@ def run_silver(cfg: GeoConfig) -> dict[str, gpd.GeoDataFrame]:
         cfg.silver_dir.mkdir(parents=True, exist_ok=True)
         acs.to_parquet(cfg.silver_dir / "acs.parquet", index=False)
         log.info("Silver geo acs: %d condados", len(acs))
-    for p in ("hubs", "gnl", "reserva_estrategica"):
-        capas[p] = silver_puntos(p, _leer(cfg, p))
+    for p in ("hubs", "gnl", "reserva_estrategica", "refinerias"):
+        if p in cfg.capas:
+            capas[p] = silver_puntos(p, _leer(cfg, p))
+    if "refinerias_capacidad" in cfg.capas:
+        from eia_pulso.geo.refinerias import silver_capacidad
+
+        ruta, _ = ultimo(cfg, "refinerias_capacidad")
+        cap = silver_capacidad(pd.read_excel(ruta))
+        cfg.silver_dir.mkdir(parents=True, exist_ok=True)
+        cap.to_parquet(cfg.silver_dir / "refinerias_capacidad.parquet", index=False)
+        log.info("Silver geo refinerias_capacidad: %d refinerías", len(cap))
     cfg.silver_dir.mkdir(parents=True, exist_ok=True)
     for nombre, g in capas.items():
         g.to_parquet(cfg.silver_dir / f"{nombre}.parquet", index=False)

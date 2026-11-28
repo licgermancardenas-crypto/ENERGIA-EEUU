@@ -33,6 +33,24 @@ def _registros(df: pd.DataFrame, dec: int = 4) -> list[dict[str, Any]]:
     return out
 
 
+def _refinerias_web(gold_geo: Path) -> dict[str, Any]:
+    """Refinerías (capacidad en barriles/día calendario) y totales por estado de la API."""
+    p, e = gold_geo / "geo_refinerias.parquet", gold_geo / "geo_estado_refinacion.parquet"
+    ref = pd.read_parquet(p) if p.exists() else pd.DataFrame()
+    est = pd.read_parquet(e) if e.exists() else pd.DataFrame()
+    return {
+        "anio": int(est["anio"].max()) if len(est) else None,
+        "refinerias": [{"id": r.refineria_id, "empresa": r.empresa, "sitio": r.sitio,
+                        "estado": r.estado_key, "bcd": _num(r.capacidad_operable_bcd, 0),
+                        "operando": _num(r.capacidad_operando_bcd, 0),
+                        "lon": _num(r.lon, 4), "lat": _num(r.lat, 4)} for r in ref.itertuples()],
+        "estados": {r.estado_key: {"n": int(r.refinerias_operables),
+                                   "operando": int(r.refinerias_operando),
+                                   "bcd": _num(r.capacidad_operable_bcd, 0)}
+                    for r in est.itertuples()},
+    }
+
+
 def _fuentes_mapa() -> dict[str, str]:
     """Citas que muestra el mapa animado, leídas de config/pipeline.yaml (no se escriben a mano)."""
     from eia_pulso.geo.config import load_geo
@@ -133,6 +151,7 @@ def exportar_geo(gold_geo: Path, destino: Path) -> dict[str, int] | None:
         "frescura_geo": _registros(leer("frescura_geo").drop(columns=["calculado_al"])),
         "flujos": _flujos(gold_geo),
         "fuentes_mapa": _fuentes_mapa(),
+        "refinerias": _refinerias_web(gold_geo),
         "validacion": json.loads((gold_geo / "validacion.json").read_text(encoding="utf-8")),
     }
     conteo: dict[str, int] = {}

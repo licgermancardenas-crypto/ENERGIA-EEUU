@@ -24,6 +24,7 @@ Henry Hub como protagonista. Usa los mismos datos geoespaciales que las páginas
 | Pulsos desde el Henry Hub | Derivado de la capa de gasoductos (ver cálculo) | — | `data/geo/pulsos.json` |
 | Flujos entre estados | EIA API v2 `natural-gas/move/ist`, entregas (MID) por par de estados | anual, 2015–2024 | `data/geo/flujos.json` |
 | Almacenamiento por región | EIA, Weekly Natural Gas Storage Report (series `NW2_EPG0_SWO_R3x_BCF_W`) sobre la capa de regiones de almacenamiento de la EIA (2020-10) | semanal | `data/semanales.json`, `data/geo/mapa_regiones.geojson` |
+| Refinerías de crudo | Ubicación: EIA, Petroleum Refineries (copia pública, vintage 1/1/2024). Capacidad: EIA Refinery Capacity Report 2026 (`refcap26.xlsx`, EIA-820). Totales por estado: API v2 `petroleum/pnp/cap1` | 2026-01 | `data/geo/refinerias.json` |
 | Hubs de gas | EIA, Natural Gas Market Hubs (copia pública) | 2020-02 | `data/geo/puntos.json` |
 | Terminales de GNL | EIA, LNG Import/Export Terminals (copia pública) | 2023-08 | `data/geo/puntos.json` |
 | Estados | U.S. Census, Cartographic Boundary Files 2024 (1:20.000.000) | 2024 | `data/geo/mapa_estados.geojson` |
@@ -52,6 +53,18 @@ Henry Hub como protagonista. Usa los mismos datos geoespaciales que las páginas
 - **Almacenamiento en 3D:** la altura es proporcional a los Bcf almacenados la última semana en la
   región de la EIA (40 m por Bcf, para que no tape los arcos). Es un dato regional: todos los estados de una región comparten
   el mismo valor.
+
+## Refinerías
+
+- 124 refinerías con capacidad de destilación de crudo al 1/1/2026 (suma: 18.160.493 barriles por
+  día calendario, igual al total de la API para EE. UU.). Todas encontraron su punto en la capa de
+  2024 (unión por estado + sitio, y empresa si hay más de una en el mismo sitio).
+- 8 puntos de la capa de 2024 no figuran en el informe 2026: cerraron o se reconvirtieron, y no se
+  muestran.
+- El informe 2026 lista 6 plantas más sin destilación de crudo (lubricantes, alquilatos,
+  aromáticos). La API las cuenta entre las 130 "refinerías operables", pero no tienen capacidad de
+  crudo y no van en el mapa.
+- Código: `src/eia_pulso/geo/refinerias.py`.
 
 ## Rendimiento (medido en el build de producción)
 

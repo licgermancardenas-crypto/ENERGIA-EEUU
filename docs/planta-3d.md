@@ -17,6 +17,7 @@ la **posición del último valor dentro de su rango histórico** en la web:
 | 3 gasómetros telescópicos | Gas almacenado Lower 48, `NW2_EPG0_SWO_R48_BCF` (semanal) | La campana celeste sube: altura = 15 % + 80 % × norm |
 | 6 bombas de varilla | Producción de crudo, `MCRFPUS2` (mensual) | Ritmo del cabeceo = 0,6 + 1,8 × norm radianes por segundo |
 | Chimeneas y antorcha | Utilización de refinerías, `WPULEUS3` (semanal, `petroleum/pnp/wiup`) | Humo: cantidad y opacidad = 25 % + 75 % × norm. Antorcha: tamaño = 0,4 + 0,9 × norm |
+| Refinería (selector de estado) | Capacidad de refinación por estado, API v2 `petroleum/pnp/cap1` y EIA-820 2026 | Tamaño = 0,45 + 0,7 × √(capacidad del estado ÷ la del estado con más capacidad); columnas = cantidad de refinerías (hasta 4) |
 | Buque petrolero | Precio WTI, `RWTC` (diario) | Solo en la ficha, como referencia: el buque se mueve igual siempre |
 | Plataforma costa afuera | — | Ilustrativa: la web no tiene un dato de producción costa afuera |
 | Pulsos en las tuberías | — | Ilustrativos (naranja = crudo, celeste = gas): no representan caudal |

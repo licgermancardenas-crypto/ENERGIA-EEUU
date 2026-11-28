@@ -163,3 +163,48 @@ def test_calefaccion_por_condado_y_estado(estados, red):
     e = gold.calefaccion_estado(df).set_index("estado_key")
     assert e.loc["BB", "pct_gas_red"] == pytest.approx(0.75)
     assert e.loc["BB", "hogares_gas_red_lejos"] == pytest.approx(150)
+
+
+def test_refinerias_union_capacidad_y_estados():
+    from eia_pulso.geo import refinerias as rf
+
+    excel = pd.DataFrame([
+        {"STATE_NAME": "Texas", "SITE": "PORT ARTHUR", "COMPANY_NAME": "MOTIVA ENTERPRISES LLC",
+         "CORPORATION": "SAUDI ARAMCO", "PADD": 3, "PRODUCT": "TOTAL OPERABLE CAPACITY",
+         "SUPPLY": "Atmospheric Crude Distillation Capacity (barrels per calendar day)",
+         "QUANTITY": 626000},
+        {"STATE_NAME": "Texas", "SITE": "PORT ARTHUR", "COMPANY_NAME": "TOTALENERGIES PETROCHEM",
+         "CORPORATION": "TOTALENERGIES SE", "PADD": 3, "PRODUCT": "TOTAL OPERABLE CAPACITY",
+         "SUPPLY": "Atmospheric Crude Distillation Capacity (barrels per calendar day)",
+         "QUANTITY": 238000},
+        {"STATE_NAME": "Texas", "SITE": "PORT ARTHUR", "COMPANY_NAME": "MOTIVA ENTERPRISES LLC",
+         "CORPORATION": "SAUDI ARAMCO", "PADD": 3, "PRODUCT": "TOTAL OPERABLE CAPACITY",
+         "SUPPLY": "Atmospheric Crude Distillation Capacity (barrels per stream day)",
+         "QUANTITY": 999999},  # día de corrida: no se suma
+        {"STATE_NAME": "Ohio", "SITE": "LIMA", "COMPANY_NAME": "LIMA REFINING CO",
+         "CORPORATION": "CENOVUS", "PADD": 2, "PRODUCT": "TOTAL OPERABLE CAPACITY",
+         "SUPPLY": "Atmospheric Crude Distillation Capacity (barrels per calendar day)",
+         "QUANTITY": 180000},
+    ])
+    cap = rf.silver_capacidad(excel)
+    assert cap["capacidad_operable_bcd"].sum() == 626000 + 238000 + 180000
+    puntos = pd.DataFrame([
+        {"estado": "Texas", "sitio": "Port Arthur", "empresa": "TOTALENERGIES PETROCHEM & REFG",
+         "lon": -93.88, "lat": 29.96},
+        {"estado": "Texas", "sitio": "Port Arthur", "empresa": "MOTIVA ENTERPRISES LLC",
+         "lon": -93.95, "lat": 29.89},
+    ])
+    estados = pd.DataFrame({"nombre": ["Texas", "Ohio"], "estado_key": ["TX", "OH"]})
+    out, val = rf.unir(cap, puntos, estados)
+    motiva = out[out["empresa"].str.startswith("MOTIVA")].iloc[0]
+    assert motiva["lon"] == -93.95  # el desempate por empresa elige el punto correcto
+    assert val["con_ubicacion"] == 2 and len(val["sin_ubicacion"]) == 1  # Lima no está en la capa
+    def fila(area, anio, proc, unid, v):
+        return {"duoarea": area, "period": anio, "process": proc, "units": unid, "value": v}
+
+    filas = [fila("STX", "2026", "8D0", "B/CD", "864000"),
+             fila("STX", "2026", "8O0", "COUNT", "2"), fila("STX", "2025", "8O0", "COUNT", "3"),
+             fila("NUS", "2026", "8D0", "B/CD", "1044000")]
+    e = rf.estado_refinacion(filas, {"TX"}).set_index("estado_key")
+    assert e.loc["TX", "refinerias_operables"] == 2 and e.loc["TX", "anio"] == 2026
+    assert rf.total_nacional_api(filas) == 1044000

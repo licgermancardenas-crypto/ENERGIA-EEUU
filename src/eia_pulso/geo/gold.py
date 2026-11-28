@@ -170,7 +170,9 @@ def red_disuelta(gasoductos: gpd.GeoDataFrame, hh_ops: set[str]) -> gpd.GeoDataF
 NOMBRES_CAPA = {"gasoductos": "Gasoductos", "hubs": "Hubs de gas",
                 "gnl": "Terminales de GNL", "reserva_estrategica": "Reserva estratégica",
                 "regiones_almacenamiento": "Regiones de almacenamiento",
-                "estados": "Estados (Census)", "condados": "Condados (Census)"}
+                "estados": "Estados (Census)", "condados": "Condados (Census)",
+                "refinerias": "Refinerías (ubicación)",
+                "refinerias_capacidad": "Refinerías (capacidad 2026)"}
 
 
 def frescura_geo(cfg: GeoConfig, hoy: date, extra: list[dict[str, Any]]) -> pd.DataFrame:
@@ -249,7 +251,7 @@ def calefaccion_estado(cond: pd.DataFrame) -> pd.DataFrame:
 def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     hoy = hoy or date.today()
     s = {p.stem: gpd.read_parquet(p) for p in cfg.silver_dir.glob("*.parquet")
-         if p.stem != "acs"}
+         if p.stem not in ("acs", "refinerias_capacidad")}
     estados, red = s["estados"], s["gasoductos"]
     conexiones = leer_conexiones()
     hh_ops = {o for o in conexiones["operador_en_capa"].dropna()}
@@ -281,6 +283,7 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     centrales = centrales_a_red(filas_c, red, cfg.crs_calculo, cfg.umbral_proximidad_km, claves)
     if len(flujos):
         val["flujos_cierre_ok"] = bool(flujos["cierre_ok"].all())
+    refinerias, refinacion, man_r = _refinerias(cfg, s, estados, claves, val)
     extra = [{"capa": "Gasoductos de recolección", "tipo": "estática",
               "origen": "la capa de la EIA solo distingue interestatal e intraestatal",
               "vintage": None, "registros": None, "estado": "no disponible"}]
@@ -295,6 +298,8 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
                   "estado": "disponible" if man_acs else "no disponible"})
     for nombre, man, tipo, origen in [
             ("Flujos interestatales", man_f, "anual", "EIA API v2 natural-gas/move/ist"),
+            ("Capacidad de refinación por estado", man_r, "anual",
+             "EIA API v2 petroleum/pnp/cap1"),
             ("Centrales a gas (EIA-860M)", man_c, "mensual",
              "EIA API v2 electricity/operating-generator-capacity")]:
         extra.append({"capa": nombre, "tipo": tipo, "origen": origen,
@@ -309,6 +314,7 @@ def run_gold(cfg: GeoConfig, hoy: date | None = None) -> dict[str, Any]:
     metricas = metricas.drop(columns=["fips", "nombre", "area_km2"])
     metricas["km_recoleccion"] = pd.to_numeric(metricas["km_recoleccion"], errors="coerce")
     tablas = {"geo_dim_estado": dim_estado,
+              "geo_refinerias": refinerias, "geo_estado_refinacion": refinacion,
               "geo_estado_metricas": metricas, "geo_km_estado_operador": km,
               "geo_henry_hub_conexiones": alcance, "geo_gnl": gnl,
               "geo_hubs": _puntos(s["hubs"]), "geo_reserva_estrategica":
@@ -425,6 +431,28 @@ def centrales_a_red(filas: list[dict[str, Any]], red: gpd.GeoDataFrame, crs: int
                         "lon": j["lon"], "lat": j["lat"], "distancia_red_km": j["d_m"] / 1000})
     out["dentro_umbral"] = out["distancia_red_km"] <= umbral_km
     return out.reset_index(drop=True)
+
+
+def _refinerias(cfg: GeoConfig, s: dict[str, gpd.GeoDataFrame], estados: gpd.GeoDataFrame,
+                claves: set[str], val: dict[str, Any]
+                ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any] | None]:
+    """Refinerías con capacidad 2026 y coordenadas; totales por estado de la API."""
+    from eia_pulso.geo import refinerias as rf
+
+    filas_r, man_r = _bronze_api(cfg, "refinacion")
+    por_estado = rf.estado_refinacion(filas_r, claves)
+    cap_p = cfg.silver_dir / "refinerias_capacidad.parquet"
+    if not cap_p.exists() or "refinerias" not in s:
+        return pd.DataFrame(columns=list(rf.COLS_REFINERIAS)), por_estado, man_r
+    cap = pd.read_parquet(cap_p)
+    pts = _puntos(s["refinerias"])
+    out, v = rf.unir(cap, pts, pd.DataFrame(estados.drop(columns="geometry")))
+    total = rf.total_nacional_api(filas_r)
+    v["capacidad_informe_bcd"] = float(cap["capacidad_operable_bcd"].sum())
+    v["capacidad_api_bcd"] = total
+    v["informe_igual_api"] = total is not None and abs(v["capacidad_informe_bcd"] - total) < 1
+    val["refinerias"] = v
+    return out, por_estado, man_r
 
 
 def _bronze_api(cfg: GeoConfig, capa: str) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:

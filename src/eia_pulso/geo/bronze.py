@@ -113,6 +113,16 @@ def bronze_api(cfg: GeoConfig, settings: Settings, cliente: EIAClient) -> dict[s
         {"capa": "flujos", "origen": "EIA API v2 " + f["ruta"], "registros": len(res.filas),
          "parametros": res.parametros, "vintage": max((r["period"] for r in res.filas),
                                                       default=None)})
+    if cfg.refinacion:
+        rf = cfg.refinacion
+        res = cliente.fetch_data(rf["ruta"], rf["frecuencia"], inicio=str(rf["inicio"]),
+                                 facetas={"process": list(rf["procesos"])})
+        salidas["refinacion"] = _guardar(
+            cfg.bronze_dir / "refinacion", "refinacion", "json",
+            json.dumps(res.filas, ensure_ascii=False).encode("utf-8"),
+            {"capa": "refinacion", "origen": "EIA API v2 " + rf["ruta"],
+             "registros": len(res.filas), "parametros": res.parametros,
+             "vintage": max((r["period"] for r in res.filas), default=None)})
     c = cfg.centrales
     # último mes disponible: se consulta el metadato de la ruta
     meta = cliente._get(f"{settings.api_base}/{c['ruta']}", [])["response"]

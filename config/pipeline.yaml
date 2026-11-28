@@ -214,6 +214,17 @@ geo:
       url: https://services.arcgis.com/jDGuO8tYggdCCnUJ/arcgis/rest/services/Strategic_Petroleum_Reserves/FeatureServer/0
       origen: "DOE Office of Petroleum Reserves vía EIA (copia pública de terceros en ArcGIS Online)"
       vintage: "2022-04"       # campo Period = "As of April 6, 2022"
+    refinerias:
+      tipo: puntos
+      url: https://services.arcgis.com/8df8p0NlLFEShl0r/arcgis/rest/services/Petroleum_Refineries_US_EIA__1544220956852457142/FeatureServer/0
+      origen: "EIA, Petroleum Refineries (EIA-820; copia pública de terceros en ArcGIS Online)"
+      vintage: "2024-01"       # campo Period = "As of Jan. 1, 2024"
+    refinerias_capacidad:
+      tipo: tabla
+      archivo: data/geo/entrada/refinerias/refcap26.xlsx
+      url: https://www.eia.gov/petroleum/refinerycapacity/refcap26.xlsx
+      origen: "EIA, Refinery Capacity Report 2026 (EIA-820), capacidad por refinería"
+      vintage: "2026-01"       # capacidad al 1 de enero de 2026
     regiones_almacenamiento:
       tipo: poligonos
       url: https://services7.arcgis.com/FGr1D95XCGALKXqM/ArcGIS/rest/services/Natural_Gas_Storage_Regions/FeatureServer/0
@@ -236,6 +247,11 @@ geo:
     frecuencia: annual
     inicio: "2015"
     procesos: {MIR: recibe, MID: entrega, MIN: neto}
+  capacidad_refinacion:
+    ruta: petroleum/pnp/cap1     # totales por estado: 8D0 capacidad (B/CD), 8O0 cantidad
+    frecuencia: annual
+    inicio: "2024"
+    procesos: [8D0, 8DO, 8O0, 8OO]
   centrales:
     ruta: electricity/operating-generator-capacity   # Inventario de generadores (EIA-860M)
     frecuencia: monthly
