@@ -4,9 +4,9 @@
 // la escena pesada (MapLibre + deck.gl) con import dinámico, solo en el navegador.
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 
 import { MiniRed } from "../mapas";
+import { type ModoMapa, useModoMapa } from "../modo-mapa";
 import type { DatosMapa } from "./tipos";
 
 const Escena = dynamic(() => import("./escena"), {
@@ -25,38 +25,10 @@ function Aviso({ texto, children }: { texto: string; children?: React.ReactNode 
   );
 }
 
-export interface Modo {
-  grabacion: boolean;
-  formato: "libre" | "4x5" | "1x1";
-  movimientoReducido: boolean;
-  bajaPotencia: boolean;
-  webgl: boolean;
-}
-
-function leerModo(): Modo {
-  const q = new URLSearchParams(window.location.search);
-  const f = q.get("formato");
-  const canvas = document.createElement("canvas");
-  const webgl = !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
-  const nav = navigator as Navigator & { deviceMemory?: number };
-  return {
-    grabacion: q.get("record") === "1",
-    formato: f === "4x5" || f === "1x1" ? f : "libre",
-    movimientoReducido: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    // equipos chicos: menos capas animadas
-    bajaPotencia: (nav.hardwareConcurrency ?? 8) <= 4 || (nav.deviceMemory ?? 8) <= 4
-      || window.matchMedia("(max-width: 640px)").matches,
-    webgl,
-  };
-}
-
-let modoCache: Modo | null = null;
-const suscribir = () => () => {};
-const modoCliente = () => (modoCache ??= leerModo());
-const modoServidor = () => null;
+export type Modo = ModoMapa;
 
 export function MapaAnimado({ datos }: { datos: DatosMapa }) {
-  const modo = useSyncExternalStore(suscribir, modoCliente, modoServidor);
+  const modo = useModoMapa();
   if (!modo) return <Aviso texto="Cargando el mapa…" />;
   if (!modo.webgl) {
     return (

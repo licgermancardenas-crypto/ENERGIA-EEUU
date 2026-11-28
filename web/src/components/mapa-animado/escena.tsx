@@ -6,7 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { TripsLayer } from "@deck.gl/geo-layers";
 import { GeoJsonLayer, PathLayer, ScatterplotLayer } from "@deck.gl/layers";
-import { MapboxOverlay } from "@deck.gl/mapbox";
+import type { MapboxOverlay } from "@deck.gl/mapbox";
 import maplibregl, { type Map as MapaGL } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -14,15 +14,15 @@ import { fechaCorta, num } from "@/lib/formato";
 import type { Flujos, Refineria, Refinerias } from "@/lib/tipos";
 
 import type { Modo } from "./index";
+import { crearMapaOscuro, LOWER48, marcadorLatido } from "../mapa-comun";
+
 import { Conteo } from "./conteo";
 import { GUION } from "./guion";
 import { NOMBRE_REGION, type DatosMapa } from "./tipos";
 
-const ESTILO_OSCURO = "https://tiles.openfreemap.org/styles/dark";
 // 40 m por Bcf: la región más llena queda en ~50 km, por debajo de los arcos de flujo
 const ALTURA_POR_BCF = 40;
 const ENCIMA = { depthCompare: "always" } as never; // arcos y pulsos siempre visibles sobre el 3D
-const LOWER48: [[number, number], [number, number]] = [[-125, 24], [-66.5, 49.5]];
 const VUELOS = {
   "Vista nacional": { bounds: LOWER48 },
   "Henry Hub": { center: [-92.06, 29.9] as [number, number], zoom: 5.4, pitch: 40, bearing: -12 },
@@ -108,48 +108,18 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
   // ---- mapa base + overlay de deck.gl
   useEffect(() => {
     if (!caja.current) return;
-    const m = new maplibregl.Map({
-      container: caja.current, style: ESTILO_OSCURO, bounds: LOWER48, fitBoundsOptions: { padding: 30 },
-      maxPitch: 70, attributionControl: { compact: false }, maxZoom: 11,
-    });
+    const { mapa: m, overlay: ov } = crearMapaOscuro(maplibregl, caja.current, { controles: !modo.grabacion });
     mapa.current = m;
-    if (!modo.grabacion) {
-      m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
-      m.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
-    }
-    const ov = new MapboxOverlay({ interleaved: false, layers: [] });
     overlay.current = ov;
-    m.addControl(ov);
     m.on("pitch", () => setPitch(Math.round(m.getPitch())));
-    // el estilo oscuro pide un ícono ("circle-11") que no trae su sprite: se reemplaza por uno vacío
-    m.on("styleimagemissing", (e) => {
-      if (!m.hasImage(e.id)) m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
-    });
 
     // Henry Hub: marcador HTML con anillo que late (CSS; se apaga con movimiento reducido)
     const hh = datos.hubs.find((h) => h.nombre === "Henry Hub");
-    let marcador: maplibregl.Marker | null = null;
-    if (hh) {
-      const el = document.createElement("div");
-      el.className = "hh-marcador";
-      el.setAttribute("role", "img");
-      el.setAttribute("aria-label", "Henry Hub, Erath, Luisiana");
-      const anillo = document.createElement("span");
-      anillo.className = "hh-anillo";
-      const punto = document.createElement("span");
-      punto.className = "hh-punto";
-      const nota = document.createElement("span");
-      nota.className = "hh-nota";
-      const t1 = document.createElement("strong");
-      t1.textContent = "Henry Hub";
-      const t2 = document.createElement("span");
-      t2.textContent = datos.precioHH != null ? `US$ ${num(datos.precioHH, 2)} por MMBtu` : "precio no disponible";
-      const t3 = document.createElement("small");
-      t3.textContent = datos.fechaHH ? `al ${fechaCorta(datos.fechaHH)}` : "";
-      nota.append(t1, t2, t3);
-      el.append(anillo, punto, nota);
-      marcador = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([hh.lon, hh.lat]).addTo(m);
-    }
+    const marcador = hh ? marcadorLatido(maplibregl, m, {
+      lon: hh.lon, lat: hh.lat, titulo: "Henry Hub", etiqueta: "Henry Hub, Erath, Luisiana",
+      lineas: [datos.precioHH != null ? `US$ ${num(datos.precioHH, 2)} por MMBtu` : "precio no disponible",
+        datos.fechaHH ? `al ${fechaCorta(datos.fechaHH)}` : ""],
+    }) : null;
     m.on("load", () => setListo(true));
     return () => { marcador?.remove(); m.remove(); mapa.current = null; overlay.current = null; };
   }, [datos, modo.grabacion]);
