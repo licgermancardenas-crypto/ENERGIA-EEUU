@@ -6,9 +6,9 @@
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import type maplibreglTipos from "maplibre-gl";
 
-export const ESTILO_OSCURO = "https://tiles.openfreemap.org/styles/dark";
-export type Recuadro = [[number, number], [number, number]];
-export const LOWER48: Recuadro = [[-125, 24], [-66.5, 49.5]];
+import { ESTILO_OSCURO, LOWER48, type Recuadro } from "./mapa-estilos";
+
+export { ESTILO_OSCURO, LOWER48, type Recuadro };
 
 type MaplibreGL = typeof maplibreglTipos;
 

@@ -1,6 +1,11 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import Link from "next/link";
 
+import { type CreditoImagen, Historia, type Placeholder } from "@/components/historia";
 import { MiniRedHud, TendenciaHud } from "@/components/portada";
+import { etapasHistoria } from "@/lib/historia";
 import { cargarDatos, cargarGeo } from "@/lib/datos";
 import { num } from "@/lib/formato";
 import { estadoDatos, indicadores } from "@/lib/indicadores";
@@ -20,7 +25,11 @@ export default function Portada() {
   const i = indicadores(d);
   const estado = estadoDatos(i);
   const v = (x: number | null, dec = 0) => (x == null ? "—" : num(x, dec));
+  const pub = (f: string) => JSON.parse(readFileSync(path.join(process.cwd(), "public/historia", f), "utf-8"));
+  const creditos = pub("creditos.json") as Record<string, CreditoImagen>;
+  const placeholders = pub("placeholders.json") as Record<string, Placeholder>;
   return (
+    <>
     <div className="relative min-h-screen overflow-hidden bg-navy text-white">
       {/* Foto: "Oil Refinery" (Porvoo), Carlos "Grury" Santos, Unsplash License */}
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/portada.jpg)" }} aria-hidden />
@@ -67,5 +76,21 @@ export default function Portada() {
         </p>
       </div>
     </div>
+    <Historia etapas={etapasHistoria()} creditos={creditos} placeholders={placeholders} />
+    <footer className="bg-[#05080f] px-6 pb-8 text-[11px] text-[#9db7dd]">
+      <div className="mx-auto max-w-[1280px]">
+        <p className="font-semibold text-[#c9d4e5]">Imágenes ilustrativas de «Del pozo al surtidor» (Wikimedia Commons)</p>
+        <ul className="mt-1 grid gap-0.5">
+          {Object.entries(creditos).map(([k, c]) => (
+            <li key={k}>
+              <a className="underline underline-offset-2 hover:text-white" href={c.pagina}>{c.titulo}</a> · {c.autor} ·{" "}
+              {c.licencia_url ? <a className="underline underline-offset-2 hover:text-white" href={c.licencia_url}>{c.licencia}</a> : c.licencia}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-1">Detalle completo en IMAGE_CREDITS.md del repositorio. Ninguna imagen fue generada por IA.</p>
+      </div>
+    </footer>
+    </>
   );
 }
