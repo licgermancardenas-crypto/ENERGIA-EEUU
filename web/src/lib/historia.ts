@@ -83,5 +83,18 @@ export function etapasHistoria(): EtapaHistoria[] {
     nota: "En el mapa, el tamaño de cada puerto es su tonelaje total de 2023 (todas las cargas, no solo crudo), según USACE.",
   });
 
+  // 5 · Surtidor: precio semanal de la gasolina regular y del diésel (series ya cargadas)
+  const nafta = u("EMM_EPMR_PTE_NUS_DPG_W"), diesel = u("EMD_EPD2D_PTE_NUS_DPG_W");
+  const variacion = (x: typeof nafta) => x?.variacion_abs == null ? "" :
+    ` (${x.variacion_abs > 0 ? "+" : x.variacion_abs < 0 ? "−" : "±"}US$ ${n(Math.abs(x.variacion_abs), 3)} frente a la semana anterior)`;
+  etapas.push({
+    id: "surtidor", numero: 5, titulo: "El surtidor",
+    texto: "Al final del recorrido, el combustible llega al surtidor. El precio que paga cada conductor se publica semana a semana.",
+    dato: nafta ? { valor: nafta.valor, decimales: 3, unidad: `por galón de gasolina regular${variacion(nafta)}`, fecha: `semana al ${dia(nafta.fecha)}`,
+      fuente: "EIA, precio minorista en EE. UU. (EMM_EPMR_PTE_NUS_DPG)", prefijo: "US$ " } : null,
+    extra: diesel ? [`Diésel: US$ ${n(diesel.valor, 3)} por galón${variacion(diesel)}, semana al ${dia(diesel.fecha)} (EIA, EMD_EPD2D_PTE_NUS_DPG).`] : [],
+    imagen: { clave: "5-surtidor", alt: "Mano cargando combustible con un pico de surtidor" },
+    mapa: { recuadro: [[-125, 24], [-66.5, 49.5]], capas: [] },
+  });
   return etapas;
 }
