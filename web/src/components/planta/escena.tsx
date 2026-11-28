@@ -13,7 +13,7 @@ import { fechaCorta, num } from "@/lib/formato";
 
 import { Conteo } from "../mapa-animado/conteo";
 import { GUION_PLANTA } from "./guion";
-import { extension, RefineriaReal, type RefineriaOSM } from "./refineria-real";
+import { encuadre, RefineriaReal, type RefineriaOSM } from "./refineria-real";
 import type { ModoPlanta } from "./index";
 import { Agua, Arboles, Bomba, Buque, C, Plataforma, Refineria, Suelo, TanqueCrudo, TanqueGas, Tuberia } from "./modelos";
 import type { DatosPlanta, Ficha, Indicador, Refinacion, Zona } from "./tipos";
@@ -49,7 +49,7 @@ function valorTexto(i: Indicador) {
 function Camara({ zona, giro, animar, orbita, controles, panel, objetivo }:
   { zona: Zona; giro: number; animar: boolean; orbita: boolean; controles: React.RefObject<OrbitControlsImpl | null>; panel: number;
     /** modo real: encuadra un área de `ext` unidades centrada en el origen */
-    objetivo?: { ext: number; id: string } | null }) {
+    objetivo?: { ext: number; cx: number; cz: number; id: string } | null }) {
   const { camera, size, invalidate } = useThree();
   // el panel lateral tapa la derecha: se corre el encuadre para que la escena quede en lo visible
   useEffect(() => {
@@ -63,7 +63,7 @@ function Camara({ zona, giro, animar, orbita, controles, panel, objetivo }:
   const meta = useRef({ centro: new THREE.Vector3(...ZONAS.general.centro), zoom: ZONAS.general.zoom * escala, angulo: ANGULO_BASE });
   useEffect(() => {
     if (objetivo) {
-      meta.current.centro.set(0, 0, 0);
+      meta.current.centro.set(objetivo.cx, 0, objetivo.cz);
       meta.current.zoom = ((size.width - panel) * 0.62) / objetivo.ext;
     } else {
       meta.current.centro.set(...ZONAS[zona].centro);
@@ -227,7 +227,7 @@ export default function EscenaPlanta({ datos, modo, refinacion }:
     return () => { vivo = false; };
   }, [vista, idReal]);
   const cargandoReal = vista === "real" && real?.id !== idReal;
-  const objetivo = useMemo(() => (vista === "real" && real ? { ext: extension(real), id: real.id } : null), [vista, real]);
+  const objetivo = useMemo(() => (vista === "real" && real ? { ...encuadre(real), id: real.id } : null), [vista, real]);
 
   // modo grabación: recorrido automático
   useEffect(() => {

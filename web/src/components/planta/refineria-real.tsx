@@ -33,14 +33,31 @@ const s = (v: number) => v / ESCALA_M;
 const pos = (x: number, y: number): [number, number] => [s(x), -s(y)];
 
 /** Extensión en unidades de escena, para encuadrar la cámara. */
+/** Encuadre: la zona donde hay estructuras mapeadas (percentiles 5–95, para que un tanque
+ *  suelto en un rincón no achique todo), o el predio si no hay estructuras. En unidades de escena. */
+export function encuadre(r: RefineriaOSM): { ext: number; cx: number; cz: number } {
+  let pts: [number, number][] = [
+    ...r.tanques.map((t) => [t[0], t[1]] as [number, number]),
+    ...r.chimeneas.map((t) => [t[0], t[1]] as [number, number]),
+    ...r.edificios.map((b) => b.p[0]),
+  ];
+  if (pts.length < 5) pts = r.predio ?? [[-(r.radio_busqueda_m ?? 1500), 0], [r.radio_busqueda_m ?? 1500, 0]];
+  const q = (v: number[], f: number) => [...v].sort((a, b) => a - b)[Math.floor((v.length - 1) * f)];
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const [x0, x1, y0, y1] = [q(xs, 0.05), q(xs, 0.95), q(ys, 0.05), q(ys, 0.95)];
+  const [cx, cz] = pos((x0 + x1) / 2, (y0 + y1) / 2);
+  return { ext: s(Math.max(x1 - x0, y1 - y0, 300)), cx, cz };
+}
+
+/** Extensión total (predio o estructuras), para el tamaño del terreno. */
 export function extension(r: RefineriaOSM): number {
   const pts: [number, number][] = r.predio ?? [
     ...r.tanques.map((t) => [t[0], t[1]] as [number, number]),
     ...r.edificios.flatMap((b) => b.p),
   ];
   if (!pts.length) return s(r.radio_busqueda_m ?? 1500) * 2;
-  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-  return s(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 400));
+  const xs = pts.map((p) => Math.abs(p[0])), ys = pts.map((p) => Math.abs(p[1]));
+  return s(Math.max(...xs, ...ys, 400) * 2);
 }
 
 function Instanciados({ datos, geometria, color, emisivo }:
@@ -88,7 +105,7 @@ export function RefineriaReal({ r, util, animar }: { r: RefineriaOSM; util: numb
   }), [r]);
   const colorTecho = useMemo(() => (i: number) => {
     const c = r.tanques[i][6];
-    return c === "oil" || c === "crude_oil" ? C.crudo : ["gas", "LPG", "LNG"].includes(c) ? C.celeste : C.gris;
+    return c === "oil" || c === "crude_oil" ? C.crudo : ["gas", "LPG", "LNG"].includes(c) ? C.celeste : C.gris3;
   }, [r]);
   const chimeneas = useMemo(() => r.chimeneas.map(([x, y, h]) => {
     const [px, pz] = pos(x, y);
@@ -152,7 +169,7 @@ export function RefineriaReal({ r, util, animar }: { r: RefineriaOSM; util: numb
       </mesh>
       {predio && (
         <mesh geometry={predio} position={[0, 0.01, 0]}>
-          <meshStandardMaterial color={C.gris} roughness={1} />
+          <meshStandardMaterial color="#e4e8ed" roughness={1} />
         </mesh>
       )}
       <lineSegments geometry={tuberias}>
