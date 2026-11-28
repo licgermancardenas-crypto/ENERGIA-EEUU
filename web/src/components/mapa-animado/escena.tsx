@@ -52,9 +52,10 @@ function tramos(red: FC): Tramo[] {
   for (const f of red.features) {
     const g = f.geometry;
     const lineas = (g.type === "LineString" ? [g.coordinates] : g.coordinates) as [number, number][][];
-    for (const l of lineas) {
-      out.push({ path: l, inter: f.properties.tipo === "interestatal", operador: String(f.properties.operador), km: Number(f.properties.km ?? 0) });
-    }
+    // el largo (km) es de todo el elemento: se cuenta una sola vez, en su primera parte
+    lineas.forEach((l, i) => {
+      out.push({ path: l, inter: f.properties.tipo === "interestatal", operador: String(f.properties.operador), km: i === 0 ? Number(f.properties.km ?? 0) : 0 });
+    });
   }
   return out;
 }

@@ -4,7 +4,7 @@ import type { DatosMapa } from "@/components/mapa-animado/tipos";
 import { cargarDatos, cargarGeo } from "@/lib/datos";
 import { indicadores } from "@/lib/indicadores";
 
-export const metadata = { title: "Mapa animado de la red de gas · Pulso Energético de EE. UU." };
+export const metadata = { title: "Mapa de gas · Pulso Energético de EE. UU." };
 
 export default function Mapa() {
   const d = cargarDatos();
