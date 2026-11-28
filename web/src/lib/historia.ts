@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { cargarDatos } from "./datos";
+import { cargarDatos, cargarGeo } from "./datos";
 
 export interface DatoHistoria {
   valor: number; decimales: number; unidad: string; fecha: string; fuente: string; prefijo?: string;
@@ -20,6 +20,7 @@ export interface EtapaHistoria {
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const mes = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]} de ${iso.slice(0, 4)}`;
+const dia = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const n = (v: number, d = 0) => new Intl.NumberFormat("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
 
 function leer<T>(rel: string): T | null {
@@ -53,6 +54,19 @@ export function etapasHistoria(): EtapaHistoria[] {
     imagen: { clave: "2-oleoducto", alt: "Oleoducto elevado sobre la tundra al atardecer" },
     mapa: { recuadro: [[-106, 26.5], [-82, 42]], capas: ["oleoductos"] },
     nota: "En el mapa, los pulsos que recorren los oleoductos son una animación ilustrativa: la EIA no publica el flujo por ducto.",
+  });
+  // 3 · Refinería: utilización (semanal) y capacidad (EIA-820, 1/1 del año)
+  const g = cargarGeo();
+  const util = u("WPULEUS3_W");
+  const capTotal = Object.values(g.refinerias.estados).reduce((s, e) => s + e.bcd, 0);
+  etapas.push({
+    id: "refineria", numero: 3, titulo: "La refinería",
+    texto: "En la refinería el crudo se separa y se transforma en gasolina, diésel y otros productos. Buena parte de la capacidad del país está sobre la Costa del Golfo.",
+    dato: util ? { valor: util.valor, decimales: 1, unidad: "% de la capacidad operable en uso", fecha: `semana al ${dia(util.fecha)}`,
+      fuente: "EIA, utilización de refinerías (WPULEUS3)" } : null,
+    extra: capTotal > 0 ? [`Capacidad de destilación de crudo: ${n(capTotal, 0)} barriles por día en ${g.refinerias.refinerias.length} refinerías, al 1/1/${g.refinerias.anio ?? ""} (EIA, Refinery Capacity Report).`] : [],
+    imagen: { clave: "3-refineria", alt: "Vista aérea de una refinería junto al Golfo de México, cerca de Houston" },
+    mapa: { recuadro: [[-98, 27.3], [-88, 31.2]], capas: ["refinerias"] },
   });
   return etapas;
 }
