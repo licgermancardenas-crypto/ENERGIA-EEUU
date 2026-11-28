@@ -204,7 +204,13 @@ export default function EscenaPlanta({ datos, modo, refinacion, refinerias }:
   // ---- modo "Refinería real": foto aérea (USGS) de cualquiera de las refinerías de la EIA
   const [vista, setVista] = useState<"maqueta" | "real">("maqueta");
   const [idReal, setIdReal] = useState("");
+  const [estadoFoto, setEstadoFoto] = useState("");
   const real = refinerias.find((r) => r.id === idReal) ?? null;
+  const elegirRefineria = (id: string) => {
+    setIdReal(id);
+    const r = refinerias.find((x) => x.id === id);
+    if (r) setEstadoFoto(r.estado);
+  };
 
   // modo grabación: recorrido automático
   useEffect(() => {
@@ -226,7 +232,7 @@ export default function EscenaPlanta({ datos, modo, refinacion, refinerias }:
     <div className={modo.grabacion ? "fixed inset-0 z-50 grid place-items-center bg-[#eef1f4]" : "relative h-full"}>
       <div className={`relative overflow-hidden rounded-xl bg-[#eef1f4] ${modo.grabacion ? marco : "h-full"}`}>
         {vista === "real" ? (
-          <FotoAerea refinerias={refinerias} elegida={real} onElegir={setIdReal} animar={animar} />
+          <FotoAerea refinerias={refinerias} elegida={real} onElegir={elegirRefineria} animar={animar} estado={estadoFoto} />
         ) : (
         <Canvas shadows={!modo.bajaPotencia} dpr={modo.bajaPotencia ? 1 : [1, 1.75]} frameloop={animar ? "always" : "demand"}
           gl={{ antialias: true }} aria-label="Escena 3D esquemática de instalaciones de petróleo y gas"
@@ -296,8 +302,9 @@ export default function EscenaPlanta({ datos, modo, refinacion, refinerias }:
             ))}
           </div>
           {vista === "real" && (
-            <PanelReal refinerias={refinerias} idReal={idReal} setIdReal={setIdReal} real={real}
-              anio={refinacion.anio} />
+            <PanelReal refinerias={refinerias} idReal={idReal} setIdReal={elegirRefineria} real={real}
+              anio={refinacion.anio} estados={refinacion.estados} estado={estadoFoto}
+              setEstado={(e) => { setEstadoFoto(e); setIdReal(""); }} />
           )}
           <div className={vista === "real" ? "hidden" : ""}>
           <div className="grid grid-cols-2 gap-2">
@@ -389,21 +396,34 @@ function FichaTexto({ f, datos }: { f: Ficha; datos: DatosPlanta }) {
 }
 
 // ------------------------------------------------------------------ panel del modo real
-function PanelReal({ refinerias, idReal, setIdReal, real, anio }:
+function PanelReal({ refinerias, idReal, setIdReal, real, anio, estados, estado, setEstado }:
   { refinerias: RefineriaEIA[]; idReal: string; setIdReal: (id: string) => void; real: RefineriaEIA | null;
-    anio: number | null }) {
+    anio: number | null; estados: Refinacion["estados"]; estado: string; setEstado: (e: string) => void }) {
   const porEstado = new Map<string, RefineriaEIA[]>();
-  for (const r of [...refinerias].sort((a, b) => a.estado.localeCompare(b.estado) || b.bcd - a.bcd)) {
+  for (const r of [...refinerias].filter((r) => !estado || r.estado === estado)
+    .sort((a, b) => a.estado.localeCompare(b.estado) || b.bcd - a.bcd)) {
     porEstado.set(r.estado, [...(porEstado.get(r.estado) ?? []), r]);
   }
+  const est = estados.find((e) => e.k === estado);
   return (
     <div className="mb-3 text-xs">
+      <label htmlFor="estado-foto" className="text-[11px] font-semibold tracking-wide text-tinta-3">ESTADO</label>
+      <select id="estado-foto" value={estado} onChange={(e) => setEstado(e.target.value)}
+        className="mb-2 mt-1 w-full rounded-md border border-linea bg-white px-2 py-1.5 text-xs">
+        <option value="">Todo el país</option>
+        {estados.map((e) => <option key={e.k} value={e.k}>{e.nombre} ({e.n})</option>)}
+      </select>
+      {est && !real && (
+        <p className="mb-2 rounded-md bg-[#fbf7ec] px-2 py-1.5 text-tinta-2">
+          {est.nombre}: {est.n} {est.n === 1 ? "refinería" : "refinerías"} · {num(est.bcd, 0)} b/d de capacidad
+        </p>
+      )}
       <label htmlFor="ref-real" className="text-[11px] font-semibold tracking-wide text-tinta-3">
-        REFINERÍA ({refinerias.length} EN EL PAÍS)
+        REFINERÍA ({estado ? `${[...porEstado.values()].flat().length} EN ${estado}` : `${refinerias.length} EN EL PAÍS`})
       </label>
       <select id="ref-real" value={idReal} onChange={(e) => setIdReal(e.target.value)}
         className="mt-1 w-full rounded-md border border-linea bg-white px-2 py-1.5 text-xs">
-        <option value="">Todo el país</option>
+        <option value="">{estado ? "Todo el estado" : "Todo el país"}</option>
         {[...porEstado.entries()].map(([est, lista]) => (
           <optgroup key={est} label={est}>
             {lista.map((r) => (

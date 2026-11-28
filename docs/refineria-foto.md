@@ -11,6 +11,8 @@ despareja. Queda en el historial de git (commits `bfcbcda`, `b4a0eb1`, `189051d`
 
 | Dato | Fuente | Vintage |
 |---|---|---|
+| Límites de estados | U.S. Census (`mapa_estados.geojson`) | 2024 |
+| Nombres de estados y ciudades | OpenFreeMap (vector tiles de OpenStreetMap, © colaboradores de OSM, ODbL) | vigente |
 | Foto aérea | USGS The National Map, servicio `USGSImageryOnly` (ortoimágenes, sobre todo USDA NAIP). Dominio público, sin clave. URL de teselas: `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}` | "Data refreshed June, 2024" según el servicio; cada zona puede ser de un vuelo anterior |
 | Refinerías (124) y ubicación | EIA, capa *Petroleum Refineries* (copia pública en ArcGIS Online) | 1/1/2024 |
 | Capacidad | EIA, Refinery Capacity Report 2026 (`refcap26.xlsx`, EIA-820) | 1/1/2026 |
