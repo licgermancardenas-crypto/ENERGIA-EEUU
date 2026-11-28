@@ -6,7 +6,9 @@
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import type maplibreglTipos from "maplibre-gl";
 
-import { ESTILO_OSCURO, LOWER48, type Recuadro } from "./mapa-estilos";
+import { FLAGS } from "@/lib/flags";
+
+import { aplicarTonoHorario, ESTILO_OSCURO, LOWER48, type Recuadro } from "./mapa-estilos";
 
 export { ESTILO_OSCURO, LOWER48, type Recuadro };
 
@@ -29,6 +31,11 @@ export function crearMapaOscuro(gl: MaplibreGL, contenedor: HTMLElement,
   mapa.on("styleimagemissing", (e) => {
     if (!mapa.hasImage(e.id)) mapa.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
   });
+  // B1: tono sutil según la hora local del visitante (desactivable en lib/flags.ts)
+  if (FLAGS.diaNoche) {
+    const reducido = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    mapa.on("load", () => aplicarTonoHorario(mapa, !reducido));
+  }
   return { mapa, overlay };
 }
 

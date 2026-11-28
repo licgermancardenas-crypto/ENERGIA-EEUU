@@ -9,7 +9,9 @@ import { useEffect, useRef, useState } from "react";
 
 import type { EtapaHistoria } from "@/lib/historia";
 
-import { ESTILO_OSCURO, LOWER48 } from "../mapa-estilos";
+import { FLAGS } from "@/lib/flags";
+
+import { aplicarTonoHorario, ESTILO_OSCURO, LOWER48 } from "../mapa-estilos";
 
 const CAPAS = ["plataformas", "oleoductos", "refinerias", "puertos"] as const;
 
@@ -17,6 +19,8 @@ export function MapaHistoria({ etapa, animar }: { etapa: EtapaHistoria; animar: 
   const caja = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaGL | null>(null);
   const [listo, setListo] = useState(false);
+  const animarRef = useRef(animar);
+  useEffect(() => { animarRef.current = animar; }, [animar]);
 
   useEffect(() => {
     let vivo = true;
@@ -28,6 +32,7 @@ export function MapaHistoria({ etapa, animar }: { etapa: EtapaHistoria; animar: 
       mapa.current = m;
       m.on("styleimagemissing", (e) => { if (!m.hasImage(e.id)) m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }); });
       m.on("load", async () => {
+        if (FLAGS.diaNoche) aplicarTonoHorario(m, animarRef.current);
         const j = (u: string) => fetch(u).then((r) => r.json());
         const [plat, ole, ref, pue] = await Promise.all([j("/data/petroleo/plataformas.json"), j("/data/petroleo/oleoductos.json"),
           j("/data/geo/refinerias.json"), j("/data/petroleo/puertos.json")]);
