@@ -14,6 +14,8 @@ import { fechaCorta, num } from "@/lib/formato";
 import type { Flujos, Refineria, Refinerias } from "@/lib/tipos";
 
 import type { Modo } from "./index";
+import { FLAGS } from "@/lib/flags";
+
 import { crearMapaOscuro, LOWER48, marcadorLatido } from "../mapa-comun";
 
 import { Conteo } from "./conteo";
@@ -30,9 +32,13 @@ const VUELOS = {
   Hawái: { bounds: [[-160.5, 18.8], [-154.6, 22.4]] as [[number, number], [number, number]] },
 };
 const CAPAS = ["Gasoductos", "Pulsos", "Flujos entre estados", "Almacenamiento", "Hubs", "GNL", "Refinerías",
-  "Centrales a gas", "Reserva estratégica"] as const;
+  "Centrales a gas", "Reserva estratégica", "Luces nocturnas"] as const;
 // apagadas al entrar: evitan el amontonamiento (se prenden desde el panel)
-const APAGADAS: string[] = ["Flujos entre estados", "Centrales a gas", "Reserva estratégica"];
+const APAGADAS: string[] = ["Flujos entre estados", "Centrales a gas", "Reserva estratégica",
+  ...(FLAGS.lucesNocturnas ? [] : ["Luces nocturnas"])];
+// B2: luces nocturnas de la NASA (GIBS, VIIRS Black Marble 2016; datos de misión NASA, CC0 salvo indicación)
+const LUCES_URL = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png";
+const LUCES_ATRIBUCION = "Luces nocturnas: NASA GIBS, VIIRS Black Marble 2016";
 type Capa = (typeof CAPAS)[number];
 
 // Paleta sobre fondo oscuro: azul = gas; naranja solo para el Henry Hub (marcador HTML).
@@ -128,7 +134,16 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
       lineas: [datos.precioHH != null ? `US$ ${num(datos.precioHH, 2)} por MMBtu` : "precio no disponible",
         datos.fechaHH ? `al ${fechaCorta(datos.fechaHH)}` : ""],
     }) : null;
-    m.on("load", () => setListo(true));
+    m.on("load", () => {
+      if (FLAGS.lucesNocturnas) {
+        // debajo de los nombres del mapa base; los ductos (deck.gl) se dibujan encima
+        const antes = m.getStyle().layers.find((l) => l.type === "symbol")?.id;
+        m.addSource("luces", { type: "raster", tiles: [LUCES_URL], tileSize: 256, maxzoom: 8, attribution: LUCES_ATRIBUCION });
+        m.addLayer({ id: "luces", type: "raster", source: "luces",
+          paint: { "raster-opacity": 0, "raster-opacity-transition": { duration: 1200, delay: 0 } } }, antes);
+      }
+      setListo(true);
+    });
     return () => { marcador?.remove(); m.remove(); mapa.current = null; overlay.current = null; };
   }, [datos, modo.grabacion]);
 
@@ -157,6 +172,14 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
 
   const valores = Object.values(datos.gasRegion);
   const [aMin, aMax] = [Math.min(...valores), Math.max(...valores)];
+
+  // ---- B2: luces nocturnas con fundido de opacidad
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m || !listo || !m.getLayer("luces")) return;
+    m.setPaintProperty("luces", "raster-opacity-transition", { duration: animar ? 1200 : 0, delay: 0 });
+    m.setPaintProperty("luces", "raster-opacity", capas.has("Luces nocturnas") ? 0.8 : 0);
+  }, [capas, listo, animar]);
 
   // ---- capas de deck.gl para un instante t (segundos)
   const construir = useRef<(t: number) => unknown[]>(() => []);
@@ -435,7 +458,7 @@ export default function Escena({ datos, modo }: { datos: DatosMapa; modo: Modo }
           <fieldset className="mt-4">
             <legend className="text-[11px] font-semibold tracking-wide text-[#9db7dd]">CAPAS</legend>
             <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-              {CAPAS.map((c) => (
+              {CAPAS.filter((c) => FLAGS.lucesNocturnas || c !== "Luces nocturnas").map((c) => (
                 <label key={c} className={`flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${capas.has(c) ? "border-[#5fb3e6] bg-[#16335c]" : "border-[#23446f] text-[#9db7dd]"}`}>
                   <input type="checkbox" className="accent-[#5fb3e6]" checked={capas.has(c)}
                     onChange={() => setCapas((s) => { const n = new Set(s); if (n.has(c)) n.delete(c); else n.add(c); return n; })} />

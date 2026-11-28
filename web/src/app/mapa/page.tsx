@@ -40,7 +40,9 @@ export default function Mapa() {
       <footer className="mx-auto w-full max-w-[1600px] px-4 pb-5 text-xs text-[#9db7dd]">
         Fuente: EIA (API v2, flujos interestatales y capas geoespaciales vía HIFLD/DHS; copias públicas) · U.S. Census ·
         Mapa base: OpenFreeMap, © OpenMapTiles, © colaboradores de OpenStreetMap · Autor: Germán Cárdenas ·
-        La EIA no garantiza la exactitud de los datos geoespaciales · Los pulsos son una animación ilustrativa
+        La EIA no garantiza la exactitud de los datos geoespaciales · Los pulsos son una animación ilustrativa ·
+        Luces nocturnas: agradecemos el uso de imágenes de los servicios de la NASA Global Imagery Browse Services
+        (GIBS), parte del Earth Science Data and Information System (ESDIS)
         {" · "}<a className="underline underline-offset-2 hover:text-white" href="https://github.com/licgermancardenas-crypto/ENERGIA-EEUU">Código</a>
       </footer>
     </div>
